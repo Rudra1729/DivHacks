@@ -107,3 +107,13 @@ This module provides helper functions used across the API layer to
 normalize and validate incoming request data.
 """
 ```
+
+### Checking docstrings locally
+
+You can lint docstrings against this format with `pydocstyle` or by enabling
+the Napoleon extension in Sphinx. Run a quick check before opening a PR:
+
+```
+pip install pydocstyle
+pydocstyle --convention=google path/to/module.py
+```
