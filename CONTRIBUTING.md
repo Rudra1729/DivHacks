@@ -9,6 +9,7 @@ These are the rules for this repo. Follow them for every commit and PR.
 3. Commit frequently enough. Don't push a big feature all together.
 4. PR descriptions detailed enough to review without reading the diff.
 5. Google-style docstrings on all functions, classes, and modules.
+6. Agree on hand-off contracts in chat before coding against them.
 
 ## 1. No AI authorship on pushes
 
@@ -130,3 +131,34 @@ the Napoleon extension in Sphinx. Run a quick check before opening a PR:
 pip install pydocstyle
 pydocstyle --convention=google path/to/module.py
 ```
+
+## 6. Hand-off contracts
+
+Before coding against another teammate's module, agree on its interface in
+chat first. Don't start integrating against a hand-off contract that hasn't
+been confirmed by the person who owns that module.
+
+### Solana stamps hand-off (owner: Rudra)
+
+Agreed interface for the stamp minting module:
+
+```typescript
+export interface MintStampInput {
+  decisionId: string;
+  placeId: string;
+  userSolanaAddress: string;
+  xrplTxHash: string;
+}
+
+export type MintStampResult =
+  | { ok: true; assetAddress: string; signature: string }
+  | { ok: false; error: string };
+
+export function mintStamp(input: MintStampInput): Promise<MintStampResult>;
+export function hasStampForPlace(solanaAddress: string, placeId: string): Promise<boolean>;
+export function getStamps(solanaAddress: string): Promise<Stamp[]>;
+```
+
+Open item: ask Junaid for the metadata URL pattern (for example
+`GET /metadata/:decisionId`). Until he answers, use a `METADATA_BASE_URL`
+env var.
