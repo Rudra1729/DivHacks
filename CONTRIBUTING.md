@@ -44,6 +44,13 @@ without having to read the diff line by line. Include:
 Assume the reader wants to understand the change well enough to approve it
 from the description alone.
 
+### Before opening a PR
+
+- [ ] Description explains the problem and the fix in plain language.
+- [ ] Testing steps are listed.
+- [ ] Risk areas or follow-up work are called out.
+- [ ] New/changed functions have Google-style docstrings.
+
 ## 4. Docstrings: Google style (Napoleon)
 
 All functions, classes, and modules must have docstrings following the
