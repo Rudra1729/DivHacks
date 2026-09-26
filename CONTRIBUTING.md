@@ -2,6 +2,13 @@
 
 These are the rules for this repo. Follow them for every commit and PR.
 
+## Quick reference
+
+1. No AI authorship on commits or PRs.
+2. Simple, plain commit messages, no em dashes.
+3. PR descriptions detailed enough to review without reading the diff.
+4. Google-style docstrings on all functions, classes, and modules.
+
 ## 1. No AI authorship on pushes
 
 Do not add Claude, Anthropic, or any AI tool as an author or co-author on
