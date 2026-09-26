@@ -2,6 +2,14 @@
 
 These are the rules for this repo. Follow them for every commit and PR.
 
+## Quick reference
+
+1. No AI authorship on commits or PRs.
+2. Simple, plain commit messages, no em dashes.
+3. Commit frequently enough. Don't push a big feature all together.
+4. PR descriptions detailed enough to review without reading the diff.
+5. Google-style docstrings on all functions, classes, and modules.
+
 ## 1. No AI authorship on pushes
 
 Do not add Claude, Anthropic, or any AI tool as an author or co-author on
@@ -22,7 +30,19 @@ Add user profile endpoint
 Update README setup steps
 ```
 
-## 3. Detailed PR descriptions
+## 3. Commit frequently enough
+
+Commit frequently enough. Don't push a big feature all together as one
+giant commit or one giant PR.
+
+- Each commit should represent one coherent change (e.g. "add validation",
+  then "add tests for validation", not both bundled with five other things).
+- Commit as soon as a small piece works, don't wait until the whole feature
+  is done to make your first commit.
+- This makes PRs easier to review and history easier to bisect when
+  something breaks.
+
+## 4. Detailed PR descriptions
 
 Write PR descriptions so a reviewer can understand what changed and why
 without having to read the diff line by line. Include:
@@ -37,7 +57,14 @@ without having to read the diff line by line. Include:
 Assume the reader wants to understand the change well enough to approve it
 from the description alone.
 
-## 4. Docstrings: Google style (Napoleon)
+### Before opening a PR
+
+- [ ] Description explains the problem and the fix in plain language.
+- [ ] Testing steps are listed.
+- [ ] Risk areas or follow-up work are called out.
+- [ ] New/changed functions have Google-style docstrings.
+
+## 5. Docstrings: Google style (Napoleon)
 
 All functions, classes, and modules must have docstrings following the
 Google style docstring format, as documented here:
@@ -92,4 +119,14 @@ Module example (top of file):
 This module provides helper functions used across the API layer to
 normalize and validate incoming request data.
 """
+```
+
+### Checking docstrings locally
+
+You can lint docstrings against this format with `pydocstyle` or by enabling
+the Napoleon extension in Sphinx. Run a quick check before opening a PR:
+
+```
+pip install pydocstyle
+pydocstyle --convention=google path/to/module.py
 ```
