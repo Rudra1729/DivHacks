@@ -6,8 +6,9 @@ These are the rules for this repo. Follow them for every commit and PR.
 
 1. No AI authorship on commits or PRs.
 2. Simple, plain commit messages, no em dashes.
-3. PR descriptions detailed enough to review without reading the diff.
-4. Google-style docstrings on all functions, classes, and modules.
+3. Commit frequently enough. Don't push a big feature all together.
+4. PR descriptions detailed enough to review without reading the diff.
+5. Google-style docstrings on all functions, classes, and modules.
 
 ## 1. No AI authorship on pushes
 
@@ -29,7 +30,19 @@ Add user profile endpoint
 Update README setup steps
 ```
 
-## 3. Detailed PR descriptions
+## 3. Commit frequently enough
+
+Commit frequently enough. Don't push a big feature all together as one
+giant commit or one giant PR.
+
+- Each commit should represent one coherent change (e.g. "add validation",
+  then "add tests for validation", not both bundled with five other things).
+- Commit as soon as a small piece works, don't wait until the whole feature
+  is done to make your first commit.
+- This makes PRs easier to review and history easier to bisect when
+  something breaks.
+
+## 4. Detailed PR descriptions
 
 Write PR descriptions so a reviewer can understand what changed and why
 without having to read the diff line by line. Include:
@@ -51,7 +64,7 @@ from the description alone.
 - [ ] Risk areas or follow-up work are called out.
 - [ ] New/changed functions have Google-style docstrings.
 
-## 4. Docstrings: Google style (Napoleon)
+## 5. Docstrings: Google style (Napoleon)
 
 All functions, classes, and modules must have docstrings following the
 Google style docstring format, as documented here:
