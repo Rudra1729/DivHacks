@@ -2,8 +2,10 @@
 
 import { createApp } from './app';
 import { loadConfig } from './config';
+import { openDatabase } from './db';
 
 const config = loadConfig();
+openDatabase(config.dbPath);
 const app = createApp(config);
 
 app.listen(config.port, () => {
