@@ -12,13 +12,13 @@ import { evaluatePolicy } from '../policy/policy';
 import { Sentinel } from '../sentinel/types';
 import { MintStampInput, MintStampResult, StampService } from '../solana/types';
 import { StorageLayer } from '../storage/types';
-import { XrplClient } from '../xrpl/types';
+import { XrplService } from '../xrpl/types';
 import { DecisionResult, SubmissionInput } from './types';
 
 export interface OrchestratorDeps {
   sentinel: Sentinel;
   agent: PayoutAgent;
-  xrpl: XrplClient;
+  xrpl: XrplService;
   solana: StampService;
   storage: StorageLayer;
   /** Gates the policy bypass. Outside test mode the bypass is ignored. */
@@ -126,7 +126,7 @@ export class Orchestrator {
       throw error;
     }
 
-    const payment = await xrpl.pay({
+    const payment = await xrpl.sendPayment({
       decisionId,
       recipient: proposal.recipient,
       amount: proposal.amount,
@@ -135,10 +135,10 @@ export class Orchestrator {
       await storage.updateClaimStatus(decisionId, 'failed');
       return finish({
         status: 'REJECTED_BY_LEDGER',
-        reasons: [...notes, `ledger rejected payment: ${payment.resultCode}`],
+        reasons: [...notes, `ledger rejected payment: ${(payment.resultCode ?? payment.reason)}`],
         proposal,
         policyVersion,
-        xrplResultCode: payment.resultCode,
+        xrplResultCode: (payment.resultCode ?? payment.reason),
       });
     }
     await storage.updateClaimStatus(decisionId, 'paid');

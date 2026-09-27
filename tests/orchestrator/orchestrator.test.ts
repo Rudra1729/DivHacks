@@ -71,7 +71,7 @@ describe('Orchestrator', () => {
       expect(result.xrplTxHash).toBeDefined();
       expect(result.solanaAssetAddress).toBeDefined();
 
-      expect(await xrpl.getBalance('rUser')).toBe(2);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
       const [stamp] = await solana.getStamps('solUser');
       expect(stamp.decisionId).toBe(result.decisionId);
       expect(stamp.xrplTxHash).toBe(result.xrplTxHash);
@@ -91,7 +91,7 @@ describe('Orchestrator', () => {
       expect(result.status).toBe('BLOCKED_SENTINEL');
       expect(result.reasons).toEqual(['too far from place', 'photo too old']);
       expect(agent.propose).not.toHaveBeenCalled();
-      expect(await xrpl.getBalance('rUser')).toBe(0);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(0);
       expect(storage.getClaims()).toHaveLength(0);
     });
 
@@ -118,7 +118,7 @@ describe('Orchestrator', () => {
         ])
       );
       expect(result.policyVersion).toBeDefined();
-      expect(await xrpl.getBalance('rAttacker')).toBe(0);
+      expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
       expect(await solana.getStamps('solUser')).toEqual([]);
       expect(storage.getClaims()[0].status).toBe('failed');
     });
@@ -145,12 +145,12 @@ describe('Orchestrator', () => {
       });
 
       expect(result.status).toBe('BLOCKED_POLICY');
-      expect(await xrpl.getBalance('rAttacker')).toBe(0);
+      expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
     });
 
     it('uses the higher of the database and ledger daily totals', async () => {
       const xrpl = new FakeXrpl(10);
-      await xrpl.pay({ decisionId: 'earlier', recipient: 'rUser', amount: 8 });
+      await xrpl.sendPayment({ decisionId: 'earlier', recipient: 'rUser', amount: 8 });
       const { orchestrator } = build({ xrpl, agent: stubAgent({ ...goodProposal, amount: 3 }) });
 
       const result = await orchestrator.runSubmission(submission);
@@ -168,9 +168,9 @@ describe('Orchestrator', () => {
       const result = await orchestrator.runSubmission(submission, { bypassPolicy: true });
 
       expect(result.status).toBe('REJECTED_BY_LEDGER');
-      expect(result.xrplResultCode).toBe('tecUNFUNDED_PAYMENT');
+      expect(result.xrplResultCode).toBe('tecPATH_PARTIAL');
       expect(result.reasons).toContain('policy skipped: test mode bypass');
-      expect(await xrpl.getBalance('rAttacker')).toBe(0);
+      expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
       expect(storage.getClaims()[0].status).toBe('failed');
     });
 
@@ -182,7 +182,7 @@ describe('Orchestrator', () => {
       const result = await orchestrator.runSubmission(submission, { bypassPolicy: true });
 
       expect(result.status).toBe('BLOCKED_POLICY');
-      expect(await xrpl.getBalance('rAttacker')).toBe(0);
+      expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
     });
   });
 
@@ -197,7 +197,7 @@ describe('Orchestrator', () => {
       expect(result.status).toBe('STAMP_FAILED');
       expect(result.stampFailed).toBe(true);
       expect(result.xrplTxHash).toBeDefined();
-      expect(await xrpl.getBalance('rUser')).toBe(2);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
       expect(storage.getClaims()[0].status).toBe('paid');
       expect(storage.getStampRetries()).toEqual([
         {
@@ -211,7 +211,7 @@ describe('Orchestrator', () => {
       failingMint.mockRestore();
       const again = await orchestrator.runSubmission(submission);
       expect(again).toEqual(result);
-      expect(await xrpl.getBalance('rUser')).toBe(2);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
     });
 
     it('treats a mint that throws as a failed mint', async () => {
@@ -233,7 +233,7 @@ describe('Orchestrator', () => {
 
       expect(second).toEqual(first);
       expect(agent.propose).toHaveBeenCalledTimes(1);
-      expect(await xrpl.getBalance('rUser')).toBe(2);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
     });
   });
 
@@ -244,7 +244,7 @@ describe('Orchestrator', () => {
 
       await expect(orchestrator.runSubmission(submission)).rejects.toThrow('agent down');
       expect(storage.getClaims()[0].status).toBe('failed');
-      expect(await xrpl.getBalance('rUser')).toBe(0);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(0);
     });
   });
 });
