@@ -1,0 +1,169 @@
+{
+  "id": "C01",
+  "title": "Happy path pays real RLUSD and mints a real stamp",
+  "proves": "A valid visit produces a real payment on the XRPL ledger and a real stamp on Solana, decided by real Grok and approved by the policy engine.",
+  "cost": "0.01 RLUSD + devnet mint fee",
+  "status": "pass",
+  "summary": "Decision 545f5aad-7645-4594-b488-dcb564da05a1 finished as OK, paying 0.01 RLUSD.",
+  "assertions": [
+    {
+      "description": "server answered 202 Accepted",
+      "passed": true,
+      "actual": 202
+    },
+    {
+      "description": "decision status is OK",
+      "passed": true,
+      "actual": "OK"
+    },
+    {
+      "description": "a payment transaction hash was returned",
+      "passed": true,
+      "actual": "E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D"
+    },
+    {
+      "description": "a stamp asset address was returned",
+      "passed": true,
+      "actual": "FKoS2q2F2kNgLif64gTiDan7fzrhzepPyn4oz9J1QdRZ"
+    },
+    {
+      "description": "the policy engine approved it and recorded its version",
+      "passed": true,
+      "actual": "1.0.0"
+    },
+    {
+      "description": "the payout went to the visitor, not anyone else",
+      "passed": true,
+      "actual": "rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe"
+    },
+    {
+      "description": "the payment is on the XRPL ledger and validated",
+      "passed": true,
+      "actual": true
+    },
+    {
+      "description": "the ledger says tesSUCCESS",
+      "passed": true,
+      "actual": "tesSUCCESS"
+    },
+    {
+      "description": "it was sent by the agent wallet",
+      "passed": true,
+      "actual": "rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN"
+    },
+    {
+      "description": "it was sent to the visitor",
+      "passed": true,
+      "actual": "rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe"
+    },
+    {
+      "description": "the amount matches the decision",
+      "passed": true,
+      "actual": "0.01"
+    },
+    {
+      "description": "it is RLUSD from the right issuer",
+      "passed": true,
+      "actual": "rQhWct2fv4Vc4KRjRgMrxa8xPN9Zx9iLKV"
+    },
+    {
+      "description": "the ledger memo carries the decision ID",
+      "passed": true,
+      "actual": [
+        "decision_id=545f5aad-7645-4594-b488-dcb564da05a1"
+      ]
+    },
+    {
+      "description": "the stamp exists on Solana devnet, owned by the visitor",
+      "passed": true,
+      "actual": "ASFbDSycDNFXdWQz3zBKH7CMrdPWRtophuvu926Qr87p"
+    },
+    {
+      "description": "the stamp records the same XRPL payment hash",
+      "passed": true,
+      "actual": "E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D"
+    },
+    {
+      "description": "the stamp is for Apollo Theater",
+      "passed": true,
+      "actual": "apollo-theater"
+    }
+  ],
+  "evidence": {
+    "request": "POST /submissions at Apollo Theater, demo user 2",
+    "response": {
+      "decisionId": "545f5aad-7645-4594-b488-dcb564da05a1",
+      "stampFailed": false,
+      "status": "OK",
+      "reasons": [],
+      "proposal": {
+        "amount": 0.01,
+        "recipient": "rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe",
+        "reason": "Visit to Apollo Theater"
+      },
+      "policyVersion": "1.0.0",
+      "xrplTxHash": "E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D",
+      "solanaAssetAddress": "FKoS2q2F2kNgLif64gTiDan7fzrhzepPyn4oz9J1QdRZ",
+      "solanaSignature": "2HeCSuhhW5MzPFSAUXtZmNT6ncBGxwNaoPRMDmu7zt5SqDRZJyEgeiUN1ra3aFy6S4jtHp81h8mtRGsTAZVUmxWd",
+      "stampSerial": 10,
+      "stampTier": "Legendary"
+    },
+    "ledger": {
+      "found": true,
+      "validated": true,
+      "result": "tesSUCCESS",
+      "from": "rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN",
+      "to": "rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe",
+      "amount": "0.01",
+      "currency": "524C555344000000000000000000000000000000",
+      "issuer": "rQhWct2fv4Vc4KRjRgMrxa8xPN9Zx9iLKV",
+      "memos": [
+        "decision_id=545f5aad-7645-4594-b488-dcb564da05a1"
+      ]
+    },
+    "stamp": {
+      "assetAddress": "FKoS2q2F2kNgLif64gTiDan7fzrhzepPyn4oz9J1QdRZ",
+      "owner": "ASFbDSycDNFXdWQz3zBKH7CMrdPWRtophuvu926Qr87p",
+      "collection": "4qAZHTt4oCNEQu6W6BEPeK6AXUxAQudDuRZqQAwESzck",
+      "name": "Apollo Theater #10",
+      "uri": "http://localhost:3000/metadata/545f5aad-7645-4594-b488-dcb564da05a1",
+      "placeId": "apollo-theater",
+      "neighborhood": "Harlem",
+      "decisionId": "545f5aad-7645-4594-b488-dcb564da05a1",
+      "xrplTxHash": "E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D",
+      "serial": 10,
+      "tier": "Legendary"
+    },
+    "balancesBefore": {
+      "agent": 9.83,
+      "user-2": 0.06,
+      "user-3": 0.11,
+      "attacker": 0
+    },
+    "balancesAfter": {
+      "agent": 9.82,
+      "user-2": 0.07,
+      "user-3": 0.11,
+      "attacker": 0
+    }
+  },
+  "links": [
+    {
+      "label": "XRPL payment on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D"
+    },
+    {
+      "label": "Solana stamp (asset) on the devnet explorer",
+      "url": "https://explorer.solana.com/address/FKoS2q2F2kNgLif64gTiDan7fzrhzepPyn4oz9J1QdRZ?cluster=devnet"
+    },
+    {
+      "label": "Solana mint transaction on the devnet explorer",
+      "url": "https://explorer.solana.com/tx/2HeCSuhhW5MzPFSAUXtZmNT6ncBGxwNaoPRMDmu7zt5SqDRZJyEgeiUN1ra3aFy6S4jtHp81h8mtRGsTAZVUmxWd?cluster=devnet"
+    },
+    {
+      "label": "Visitor XRPL account",
+      "url": "https://testnet.xrpl.org/accounts/rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe"
+    }
+  ],
+  "durationMs": 16180
+}

@@ -1,0 +1,43 @@
+{
+  "id": "C06",
+  "title": "One reward per place per person",
+  "proves": "The same wallets claiming the same place again, even with a new photo, are blocked.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "Blocked: once per place: a paid claim already exists for this place",
+  "assertions": [
+    {
+      "description": "server answered 422",
+      "passed": true,
+      "actual": 422
+    },
+    {
+      "description": "status is BLOCKED_SENTINEL",
+      "passed": true,
+      "actual": "BLOCKED_SENTINEL"
+    },
+    {
+      "description": "the reason is once per place",
+      "passed": true,
+      "actual": [
+        "once per place: a paid claim already exists for this place"
+      ]
+    },
+    {
+      "description": "no payment was made",
+      "passed": true
+    }
+  ],
+  "evidence": {
+    "response": {
+      "decisionId": "0570e482-78a7-4b02-b3ab-1e53d4ed7534",
+      "stampFailed": false,
+      "status": "BLOCKED_SENTINEL",
+      "reasons": [
+        "once per place: a paid claim already exists for this place"
+      ]
+    }
+  },
+  "links": [],
+  "durationMs": 144
+}
