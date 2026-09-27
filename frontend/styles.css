@@ -1566,6 +1566,13 @@ body.knowyork-theme {
   color: var(--accent-yellow);
 }
 
+.attack-toggle-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
 .attack-toggle-wrap {
   display: flex;
   align-items: center;
@@ -1574,6 +1581,16 @@ body.knowyork-theme {
 
 .toggle-label { font-weight: 800; font-size: 0.95rem; }
 
+.attack-mode-note {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #999;
+  text-align: right;
+}
+
+.attack-mode-note.available { color: #7CFC7C; }
+.attack-mode-note.unavailable { color: var(--accent-yellow); }
+
 /* TOGGLE SWITCH */
 .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
 .switch input { opacity: 0; width: 0; height: 0; }
@@ -1581,6 +1598,7 @@ body.knowyork-theme {
 .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
 input:checked + .slider { background-color: var(--hero-red); }
 input:checked + .slider:before { transform: translateX(24px); }
+input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
 
 .sim-desc { font-size: 0.95rem; color: #CCC; margin-bottom: 1.5rem; }
 

@@ -850,7 +850,6 @@ function renderTradingCards() {
    ========================================================================== */
 
 function runAttackSimulation(type) {
-  const logBox = document.getElementById('simLogBox');
   const g1 = document.getElementById('gate1');
   const g2 = document.getElementById('gate2');
   const g3 = document.getElementById('gate3');
@@ -1097,7 +1096,9 @@ async function setAttackMode(toggle) {
   const result = await WebPassApi.setAttackMode(enabled);
   if (result.status === 404) {
     toggle.checked = false;
+    toggle.disabled = true;
     attackModeActive = false;
+    setAttackModeNote('Not available: server is not running with NODE_ENV=test.', 'unavailable');
     addSimLog('[SYSTEM] /test/attack does not exist on this server (404): the policy bypass is only mounted in test mode (NODE_ENV=test).', 'warning');
     setSpideyBotState('ready', '"No bypass switch on a normal server. That is the point!"');
     return;
@@ -1109,11 +1110,46 @@ async function setAttackMode(toggle) {
   }
   attackModeActive = Boolean(result.body && result.body.policyBypassEnabled);
   if (attackModeActive) {
+    setAttackModeNote('LIVE: policy engine bypassed on the server.', 'unavailable');
     addSimLog('[SYSTEM] POST /test/attack: policy bypass enabled on the server. Submissions now skip the policy engine.', 'warning');
     setSpideyBotState('sentinel_blocked', '"WARNING: Test attack mode enabled! Only the XRPL ledger limits stand between the agent and the treasury now."');
   } else {
+    setAttackModeNote('Available (NODE_ENV=test): policy bypass is off.', 'available');
     addSimLog('[SYSTEM] DELETE /test/attack: normal policy mode restored.', 'success');
     setSpideyBotState('ready', '"Normal policy guardrails restored!"');
+  }
+}
+
+/** Update the small status line under the Test Attack Mode toggle.
+
+Args:
+    text (string): What to show.
+    variant ('available'|'unavailable'|undefined): Color to use, if any.
+*/
+function setAttackModeNote(text, variant) {
+  const note = document.getElementById('attackModeNote');
+  if (!note) return;
+  note.textContent = text;
+  note.className = `attack-mode-note${variant ? ` ${variant}` : ''}`;
+}
+
+/** Check whether this server supports Test Attack Mode (NODE_ENV=test) and
+set the toggle's initial state accordingly, so clicking it never silently
+snaps back with no explanation. Called once on page load. */
+async function initAttackModeAvailability() {
+  const toggle = document.getElementById('testAttackToggle');
+  if (!toggle) return;
+  const result = await WebPassApi.health();
+  if (!result.ok) {
+    setAttackModeNote('Could not reach the server.', 'unavailable');
+    toggle.disabled = true;
+    return;
+  }
+  if (result.body && result.body.testMode) {
+    setAttackModeNote('Available (NODE_ENV=test): policy bypass is off.', 'available');
+  } else {
+    toggle.disabled = true;
+    setAttackModeNote('Not available: server is not running with NODE_ENV=test.', 'unavailable');
   }
 }
 
@@ -1173,6 +1209,7 @@ function setupEventListeners() {
 
   // Test Attack Mode Toggle
   document.getElementById('testAttackToggle')?.addEventListener('change', (e) => setAttackMode(e.target));
+  initAttackModeAvailability();
 
   // Modal Controls (the mission form itself is wired in submission.js)
   document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
