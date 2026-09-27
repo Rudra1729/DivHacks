@@ -15,7 +15,7 @@ const place: Place = {
   longitude: -73.95,
   radiusMeters: 150,
   baseReward: 2,
-  collectionAddress: 'collection1',
+  solanaCollectionAddress: 'collection1',
   imageUrl: 'https://example.com/apollo.png',
 };
 
