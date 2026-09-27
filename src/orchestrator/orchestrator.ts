@@ -1,9 +1,13 @@
 /**Submission orchestrator.
 
 Runs one submission through the pipeline in a fixed order: duplicate check,
-Sentinel, pending claim, agent, policy, XRPL payment, Solana stamp, save.
-Money moves only after every earlier gate passes, and a payment is never
+solvency, Sentinel, pending claim, agent, policy, XRPL payment, Solana stamp,
+save. Money moves only after every earlier gate passes, and a payment is never
 repeated because a stamp mint failed: the mint is queued for retry instead.
+
+Solvency runs before Sentinel on purpose. Sentinel records the photo as used
+when a submission passes, so a wallet that cannot pay must be caught first,
+or a visitor blocked for something that is not their fault could not retry.
 
 A payment that is submitted but not yet confirmed is never treated as
 failed, since it may still land. The submission is saved as
@@ -14,6 +18,7 @@ ID again re-checks the ledger and carries on.
 import { randomUUID } from 'crypto';
 import { AgentProposal, PayoutAgent } from '../agent/types';
 import { evaluatePolicy } from '../policy/policy';
+import { checkSolvency, rewardFor } from '../solvency/solvency';
 import { Sentinel } from '../sentinel/types';
 import { MintStampInput, MintStampResult, StampService } from '../solana/types';
 import { StorageLayer } from '../storage/types';
@@ -31,6 +36,9 @@ export interface OrchestratorDeps {
   storage: StorageLayer;
   /** Gates the policy bypass. Outside test mode the bypass is ignored. */
   isTestMode: boolean;
+  /** Multiplier on each place's reward, the same one the agent is given.
+      Defaults to 1. */
+  rewardScale?: number;
   /** How often to re-check an unconfirmed payment before giving up for now. */
   unconfirmedRecheck?: { attempts: number; delayMs: number };
 }
@@ -62,6 +70,10 @@ export class Orchestrator {
   Raises:
       Error: If a dependency throws before any payment was made. The pending
           claim is marked failed first so it does not block the user forever.
+
+  A request that was stopped by the solvency gate is not final: the wallet may
+  be topped up a minute later, so sending the same request ID again runs it
+  afresh under the same decision ID.
   */
   async runSubmission(input: SubmissionInput, options: RunOptions = {}): Promise<DecisionResult> {
     const { sentinel, agent, xrpl, storage } = this.deps;
@@ -73,11 +85,11 @@ export class Orchestrator {
       resumed.add('orchestrator', true, 'repeat request for an unconfirmed payment: checking the ledger again');
       return this.settle(input, earlier.decisionId, earlier.proposal, earlier.policyVersion, notes, resumed);
     }
-    if (earlier) {
+    if (earlier && earlier.status !== 'BLOCKED_SOLVENCY') {
       return earlier;
     }
 
-    const decisionId = randomUUID();
+    const decisionId = earlier?.decisionId ?? randomUUID();
     const trail = new AuditTrail();
 
     const place = await storage.getPlace(input.placeId);
@@ -88,6 +100,27 @@ export class Orchestrator {
         reasons: [`unknown place: ${input.placeId}`],
       }, trail);
     }
+
+    const reward = rewardFor(place, this.deps.rewardScale);
+    const solvency = await checkSolvency(xrpl, reward);
+    if (!solvency.ok) {
+      const detail =
+        solvency.reason === 'insufficient'
+          ? `the agent wallet holds ${solvency.balance} RLUSD, which cannot cover this place's ${solvency.needed} RLUSD reward`
+          : `the agent wallet balance could not be read from the ledger (${solvency.error})`;
+      trail.add('solvency', false, detail);
+      return this.save(input, decisionId, {
+        status: 'BLOCKED_SOLVENCY',
+        reasons: [
+          solvency.reason === 'insufficient'
+            ? `the agent wallet holds ${solvency.balance} RLUSD, which cannot cover this place's ${solvency.needed} RLUSD reward, so no reward can be promised right now. ` +
+              'Nothing was used up, so try again later.'
+            : 'could not read the agent wallet balance from the ledger, so no reward can be promised right now. ' +
+              'Nothing was used up, so try again later.',
+        ],
+      }, trail);
+    }
+    trail.add('solvency', true, `agent wallet holds ${solvency.balance} RLUSD, enough to cover the ${reward} RLUSD reward`);
 
     const verification = await sentinel.verify(input, place);
     if (!verification.ok) {

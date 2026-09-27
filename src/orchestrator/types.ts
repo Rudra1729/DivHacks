@@ -10,6 +10,7 @@ import { AgentProposal } from '../agent/types';
 /** How a submission ended. */
 export type DecisionStatus =
   | 'OK'
+  | 'BLOCKED_SOLVENCY'
   | 'BLOCKED_SENTINEL'
   | 'BLOCKED_POLICY'
   | 'REJECTED_BY_LEDGER'

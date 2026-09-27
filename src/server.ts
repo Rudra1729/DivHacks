@@ -31,6 +31,7 @@ const orchestrator = new Orchestrator({
   solana: solanaStamps,
   storage: new SqliteStorage(db),
   isTestMode: config.isTestMode,
+  rewardScale: config.rewardScale,
 });
 
 const app = createApp(config, db, orchestrator);
