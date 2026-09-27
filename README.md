@@ -65,7 +65,7 @@ src/
   orchestrator/  runs one submission through the full pipeline
   policy/        fixed spending rules (no AI)
   routes/        Express route handlers
-  sentinel/      location/freshness/replay/once-per-place checks
+  sentinel/      location/freshness/replay/once-per-place and GPS plausibility checks
   solana/        Solana stamp minting (real + fake)
   storage/       StorageLayer implementation used by the orchestrator
   testMode/      test-only policy-bypass flag
@@ -91,6 +91,30 @@ tasks/           local planning notes (not committed)
 `GET /places` also reports whether each place is currently payable from the
 agent wallet. The ledger-backed `payable` value is cached briefly, and
 `payableCheck` explains whether the ledger read succeeded.
+
+## Location checks
+
+A single latitude and longitude is easy to fake, so each submission also
+carries `locationTrail`: a JSON array of the GPS readings the phone took while
+the camera was open (`{ latitude, longitude, accuracy, timestamp }`, oldest
+first, timestamps in epoch ms). The submitted location must be the last
+reading. `frontend/locationCapture.js` collects and sends it.
+
+Sentinel blocks a submission (422 `BLOCKED_SENTINEL`) when:
+
+- there is no trail, it has fewer than 5 readings, covers under 10 seconds, is
+  out of time order, or its last reading is over 5 minutes old
+- the readings never move at all, which is what a browser location override does
+- a reading claims 1 m accuracy or better, or is worse than 200 m
+- the coordinates have 4 or fewer decimals, or sit within 1 m of the place's pin
+- the wallet (XRPL or Solana) moved faster than 80 km/h since its last passed
+  check-in, ignoring moves under 500 m
+- two other wallets already sent the exact same point in the last 24 hours
+
+Only passed submissions are recorded as check-ins, so blocked attempts cannot
+be used to frame another wallet. Set `LOCATION_CHECKS=off` to skip these checks.
+A determined attacker can still script a moving fake trail; these checks stop
+the cheap tricks (DevTools overrides, typed coordinates, shared spoofing setups).
 
 ## Status
 

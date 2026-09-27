@@ -2,6 +2,8 @@
 
 Tables mirror the "Data and audit trail" section of the PRD: decisions,
 audit events, photo fingerprints, claims, request IDs, and stamp retries.
+location_history keeps where each wallet was when a submission passed
+Sentinel, for the impossible-travel and cluster checks.
 The decision ID is the shared key linking SQLite, XRPL, and Solana records.
 */
 
@@ -88,7 +90,21 @@ CREATE TABLE IF NOT EXISTS otp_codes (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+CREATE TABLE IF NOT EXISTS location_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  place_id TEXT NOT NULL,
+  xrpl_address TEXT NOT NULL,
+  solana_address TEXT NOT NULL,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  point_key TEXT NOT NULL,
+  recorded_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_audit_events_decision_id ON audit_events(decision_id);
+CREATE INDEX IF NOT EXISTS idx_location_history_xrpl ON location_history(xrpl_address, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_location_history_solana ON location_history(solana_address, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_location_history_point ON location_history(point_key, recorded_at);
 CREATE INDEX IF NOT EXISTS idx_claims_place_id ON claims(place_id);
 CREATE INDEX IF NOT EXISTS idx_claims_xrpl_address ON claims(xrpl_address);
 CREATE INDEX IF NOT EXISTS idx_claims_solana_address ON claims(solana_address);

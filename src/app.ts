@@ -4,6 +4,7 @@ Keeping app construction separate from server.ts lets tests import the
 Express app directly with supertest, without binding a real port.
 */
 
+import cors from 'cors';
 import express, { Express, NextFunction, Request, Response } from 'express';
 import multer from 'multer';
 import Database from 'better-sqlite3';
@@ -42,6 +43,9 @@ export function createApp(
 ): Express {
   const app = express();
 
+  // The frontend is served from a different origin (npm run dev under
+  // frontend/), so it needs CORS to call this API from the browser.
+  app.use(cors());
   app.use(express.json());
 
   app.get('/health', (_req, res) => {

@@ -30,6 +30,7 @@
     "@metaplex-foundation/umi": "^1.6.0",
     "@metaplex-foundation/umi-bundle-defaults": "^1.6.0",
     "better-sqlite3": "^11.3.0",
+    "cors": "^2.8.6",
     "dotenv": "^18.0.4",
     "express": "^4.19.2",
     "multer": "^1.4.5-lts.1",
@@ -38,6 +39,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
+    "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
     "@types/multer": "^1.4.11",

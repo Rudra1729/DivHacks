@@ -4,6 +4,7 @@ import { createPendingClaimForDecision } from '../../src/db/claims';
 import { Place, SubmissionInput } from '../../src/orchestrator/types';
 import { RealSentinel } from '../../src/sentinel/realSentinel';
 import { FakeStampService } from '../../src/solana/fakeStamps';
+import { endOf, realisticTrail } from '../testHelpers/locationTrail';
 
 const PLACE: Place = {
   id: 'apollo-theater',
@@ -21,12 +22,13 @@ const XRPL = 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe';
 const SOLANA = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
 
 function input(overrides: Partial<SubmissionInput> = {}): SubmissionInput {
+  const trail = realisticTrail(PLACE);
   return {
     requestId: 'req-1',
     placeId: PLACE.id,
     photo: Buffer.from(`photo-${Math.random()}`),
-    latitude: PLACE.latitude,
-    longitude: PLACE.longitude,
+    ...endOf(trail),
+    locationTrail: trail,
     timestamp: Date.now(),
     xrplAddress: XRPL,
     solanaAddress: SOLANA,

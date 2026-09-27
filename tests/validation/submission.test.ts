@@ -57,6 +57,17 @@ describe('validateSubmission', () => {
     expect(result.errors).toContain('photo must be an image, got application/pdf');
   });
 
+  it('accepts a well formed location trail', () => {
+    const trail = JSON.stringify([{ latitude: 40.81034, longitude: -73.95012, accuracy: 12, timestamp: Date.now() }]);
+    expect(validateSubmission({ ...VALID_INPUT, locationTrail: trail }, VALID_FILE).valid).toBe(true);
+  });
+
+  it('rejects a malformed location trail', () => {
+    const result = validateSubmission({ ...VALID_INPUT, locationTrail: 'not json' }, VALID_FILE);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('location trail must be a JSON array of GPS readings');
+  });
+
   it('rejects an oversized image', () => {
     const result = validateSubmission(VALID_INPUT, { mimetype: 'image/jpeg', size: 6 * 1024 * 1024 });
     expect(result.valid).toBe(false);

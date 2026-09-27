@@ -6,6 +6,7 @@ Sentinel, applied here at the intake layer too.
 */
 
 import { getPlaceById } from '../data/places';
+import { parseLocationTrail } from './locationTrail';
 
 const XRPL_ADDRESS_PATTERN = /^r[1-9A-HJ-NP-Za-km-z]{24,34}$/;
 const SOLANA_ADDRESS_PATTERN = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
@@ -18,6 +19,7 @@ export interface SubmissionInput {
   xrplAddress?: unknown;
   solanaAddress?: unknown;
   caption?: unknown;
+  locationTrail?: unknown;
 }
 
 export interface SubmissionFile {
@@ -76,6 +78,11 @@ export function validateSubmission(
 
   if (!isNonEmptyString(input.timestamp) || Number.isNaN(Date.parse(input.timestamp))) {
     errors.push('timestamp is required and must be a valid date');
+  }
+
+  const trail = parseLocationTrail(input.locationTrail);
+  if (!trail.ok) {
+    errors.push(trail.error);
   }
 
   if (!isNonEmptyString(input.xrplAddress)) {

@@ -2,13 +2,20 @@ import request from 'supertest';
 import { Express } from 'express';
 import { buildTestApp } from '../testHelpers/buildTestApp';
 import { FakePaymentService } from '../../src/xrpl/fakePayments';
+import { endOf, realisticTrail } from '../testHelpers/locationTrail';
 
 function submitApolloTheater(app: Express, overrides: Record<string, string> = {}) {
+  const trail = realisticTrail({
+    latitude: Number(overrides.latitude ?? '40.8102'),
+    longitude: Number(overrides.longitude ?? '-73.95'),
+  });
+  const { latitude, longitude } = endOf(trail);
   return request(app)
     .post('/submissions')
     .field('placeId', overrides.placeId ?? 'apollo-theater')
-    .field('latitude', overrides.latitude ?? '40.8102')
-    .field('longitude', overrides.longitude ?? '-73.95')
+    .field('latitude', String(latitude))
+    .field('longitude', String(longitude))
+    .field('locationTrail', JSON.stringify(trail))
     .field('timestamp', overrides.timestamp ?? new Date().toISOString())
     .field('xrplAddress', overrides.xrplAddress ?? 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe')
     .field('solanaAddress', overrides.solanaAddress ?? '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM')

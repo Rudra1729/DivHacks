@@ -38,8 +38,49 @@ For complete component specifications, animation triggers, Spidey-Bot expression
 ## Backend API Dependencies
 
 * `GET /places` — Load spiderweb nodes & mission places
-* `POST /submissions` — Submit photo, location, wallet addresses, and optional caption
+* `POST /submissions` — Submit photo, location, GPS trail, wallet addresses, and optional caption (see below)
 * `GET /users/:wallet/stamps` — Fetch Solana soulbound stamps
 * `GET /decisions/:id` — Inspect submission audit trail
 * `GET /events` — Real-time decision stream (Server-Sent Events)
 * `POST /test/attack` / `DELETE /test/attack` — Toggle policy-bypass test mode for demo attacks
+
+---
+
+## Submitting a Visit: Camera and GPS Trail
+
+The server no longer trusts a single latitude and longitude. While the camera
+is open, the page must sample the phone's GPS every couple of seconds for about
+20 seconds and send those readings as `locationTrail` (a JSON array of
+`{ latitude, longitude, accuracy, timestamp }`, oldest first, timestamps in
+epoch ms). The submitted `latitude` and `longitude` must be the last reading.
+A submission without a trail is blocked with 422 `BLOCKED_SENTINEL`.
+
+`locationCapture.js` does all of this and exposes `window.WebPassCapture`:
+
+```js
+const result = await WebPassCapture.verifyVisit({
+  apiBase: 'http://localhost:3000',
+  placeId: 'apollo-theater',
+  video: document.querySelector('video'),
+  xrplAddress,
+  solanaAddress,
+  caption,
+  onProgress: ({ readings, secondsLeft }) => showProgress(readings, secondsLeft),
+});
+// result.status is 202 when paid, 422 with result.body.reasons when blocked
+```
+
+The smaller pieces (`openCamera`, `collectTrail`, `capturePhoto`,
+`buildSubmission`) can be used on their own for a custom flow.
+
+Notes:
+
+* Camera and location only work on `https://` pages or `http://localhost`.
+* The backend does not send CORS headers yet, so the page must be served from
+  the same origin as the API, or the API needs CORS enabled, before the browser
+  can read its answers.
+* What gets blocked: no trail, fewer than 5 readings or under 10 seconds,
+  readings that never move (a browser location override), accuracy of 1 m or
+  better or worse than 200 m, coordinates with 4 or fewer decimals or exactly on
+  the place's pin, a wallet moving faster than 80 km/h since its last check-in,
+  and a third wallet sending the exact same point as two others within 24 hours.

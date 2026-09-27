@@ -11,7 +11,9 @@ describe('e2e: Solana failure', () => {
   let stack: E2eStack;
 
   beforeEach(() => {
-    stack = buildE2eStack();
+    // One user visits several places a kilometer apart within milliseconds here,
+    // which the impossible-travel check would block. Location checks have their own suite.
+    stack = buildE2eStack({ locationChecks: false });
   });
   afterEach(resetGlobalTestState);
 

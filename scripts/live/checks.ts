@@ -15,6 +15,7 @@ import { Place, PLACES } from '../../src/data/places';
 import { explorerAccountUrl, explorerTxUrl as xrplTxUrl } from '../xrpl/common';
 import { explorerAddressUrl as solAddressUrl, explorerTxUrl as solTxUrl } from '../solana/common';
 import { Chains } from './lib/chains';
+import { frozenTrail, phoneTrail } from './lib/gps';
 import { freshPhoto, getJson, post, submit, Submission } from './lib/http';
 import { LiveServer, startExpectingRefusal } from './lib/server';
 import { Assertions, CheckOutcome, Link } from './lib/types';
@@ -511,9 +512,12 @@ export const CHECKS: Check[] = [
       const user = ctx.users['user-3'];
       const photo = freshPhoto();
       const requestId = `live-idempotent-${ctx.runId}`;
+      // Apollo is 285 m from Studio Museum, where this user checked in during C14,
+      // so the impossible travel check has no reason to block it.
+      const trail = phoneTrail(APOLLO.latitude, APOLLO.longitude);
       const before = ctx.real ? await ctx.chains!.rlusd(user.xrpl) : null;
       const send = (): ReturnType<typeof submit> =>
-        submit(ctx.serverA.baseUrl, { ...at(MARCUS), xrplAddress: user.xrpl, solanaAddress: user.solana, requestId, photo });
+        submit(ctx.serverA.baseUrl, { ...at(APOLLO), xrplAddress: user.xrpl, solanaAddress: user.solana, requestId, photo, trail });
       const first = await send();
       const second = await send();
       a.that('the first request paid', first.body?.status === 'OK', first.body?.status);
@@ -881,6 +885,36 @@ export const CHECKS: Check[] = [
         evidence: { testedWith: 'a dummy AGENT_SEED value, not a real key', exitCode, message: output.slice(0, 400) },
         links: [],
         summary: exitCode !== 0 ? 'The guardian refused to start with an agent key present, as designed.' : 'The guardian ran with an agent key present, which it must not.',
+      };
+    },
+  },
+
+  {
+    id: 'C26',
+    title: 'A faked GPS location is rejected',
+    proves:
+      'A browser location override that pins the phone exactly on the place is caught by the location plausibility checks: the readings never wobble and sit exactly on the map pin, which real GPS never does.',
+    cost: 'none',
+    async run(ctx) {
+      const a = new Assertions();
+      const place = PLACES[5];
+      const res = await submit(ctx.serverA.baseUrl, {
+        ...at(place),
+        xrplAddress: ctx.attacker.xrpl,
+        solanaAddress: ctx.attacker.solana,
+        trail: frozenTrail(place.latitude, place.longitude),
+      });
+      const reasons: string[] = res.body?.reasons ?? [];
+      a.that('server answered 422', res.status === 422, res.status);
+      a.that('status is BLOCKED_SENTINEL', res.body?.status === 'BLOCKED_SENTINEL', res.body?.status);
+      a.that('the frozen GPS trail was caught', reasons.some((r) => r.startsWith('location trail:')), reasons);
+      a.that('the exact map pin coordinates were caught', reasons.some((r) => r.startsWith('coordinates:')), reasons);
+      a.that('no payment was made', !res.body?.xrplTxHash, res.body?.xrplTxHash);
+      return {
+        assertions: a.list,
+        evidence: { attempt: `10 identical GPS readings on ${place.name}'s map pin, like Chrome's location override`, response: res.body },
+        links: [],
+        summary: `Blocked: ${reasons.join('; ')}`,
       };
     },
   },

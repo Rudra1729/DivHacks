@@ -438,6 +438,51 @@
     </div>
   </section>
 
+  <!-- LOGIN MODAL: EMAIL OTP -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal-content comic-box">
+      <button class="modal-close-btn" id="closeLoginModalBtn">&times;</button>
+
+      <div class="modal-header">
+        <span class="comic-tag red-tag"><i data-lucide="mail"></i> HERO LOGIN</span>
+        <h3 class="modal-title">Sign In With Email</h3>
+        <p class="modal-sub" id="loginModalSub">We'll email you a one-time code. No password needed.</p>
+      </div>
+
+      <div class="modal-body">
+        <!-- STEP 1: EMAIL -->
+        <form id="loginEmailForm">
+          <div class="form-group">
+            <label class="form-label"><i data-lucide="at-sign"></i> Email Address</label>
+            <input type="email" class="comic-input" id="loginEmailInput" placeholder="you@example.com" required>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="comic-btn hero-red-btn full-btn" id="sendCodeBtn">
+              <i data-lucide="send"></i> SEND LOGIN CODE
+            </button>
+          </div>
+        </form>
+
+        <!-- STEP 2: CODE -->
+        <form id="loginCodeForm" style="display:none;">
+          <div class="form-group">
+            <label class="form-label"><i data-lucide="key-round"></i> 6-Digit Code</label>
+            <input type="text" class="comic-input" id="loginCodeInput" maxlength="6" inputmode="numeric" placeholder="000000" required>
+            <small class="upload-note">Sent to <strong id="loginCodeEmailLabel"></strong></small>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="comic-btn hero-red-btn full-btn" id="verifyCodeBtn">
+              <i data-lucide="check-circle"></i> VERIFY & LOG IN
+            </button>
+          </div>
+          <p class="upload-note" id="loginBackLink" style="text-align:center; cursor:pointer; margin-top:0.75rem;">&larr; Use a different email</p>
+        </form>
+
+        <p class="upload-note error-line" id="loginErrorText" style="display:none; margin-top:0.75rem;"></p>
+      </div>
+    </div>
+  </div>
+
   <!-- SUBMISSION MODAL DRAWER -->
   <div class="modal-overlay" id="submissionModal">
     <div class="modal-content comic-box">
@@ -525,6 +570,7 @@
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
   <script src="map.js"></script>
+  <script src="locationCapture.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

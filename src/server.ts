@@ -21,7 +21,7 @@ const config = loadConfig();
 const db = openDatabase(config.dbPath);
 
 const orchestrator = new Orchestrator({
-  sentinel: new RealSentinel(db, solanaStamps),
+  sentinel: new RealSentinel(db, solanaStamps, { locationChecks: config.locationChecks }),
   agent: new GrokAgent({
     apiKey: config.grokApiKey,
     model: config.grokModel,
