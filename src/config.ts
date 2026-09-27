@@ -34,6 +34,29 @@ export interface AppConfig {
   grokApiKey?: string;
   grokModel: string;
   grokEndpoint: string;
+  /** Multiplier on each place's base reward before Grok sees it, in (0, 1].
+      Lets test runs pay proportionally less while Grok still decides. */
+  rewardScale: number;
+}
+
+/** Read REWARD_SCALE, defaulting to 1 (full rewards).
+
+Returns:
+    number: The scale, greater than 0 and at most 1.
+
+Raises:
+    ConfigError: If REWARD_SCALE is not a number in (0, 1].
+*/
+function loadRewardScale(): number {
+  const raw = process.env.REWARD_SCALE;
+  if (raw === undefined || raw.trim() === '') {
+    return 1;
+  }
+  const scale = Number(raw);
+  if (!Number.isFinite(scale) || scale <= 0 || scale > 1) {
+    throw new ConfigError(`REWARD_SCALE must be a number greater than 0 and at most 1, got '${raw}'`);
+  }
+  return scale;
 }
 
 /** Build the app configuration from environment variables.
@@ -42,7 +65,8 @@ Returns:
     AppConfig: The resolved configuration.
 
 Raises:
-    ConfigError: If a treasury key is present in the environment.
+    ConfigError: If a treasury key is present in the environment, or
+        REWARD_SCALE is invalid.
 */
 export function loadConfig(): AppConfig {
   assertNoTreasuryKey();
@@ -55,5 +79,6 @@ export function loadConfig(): AppConfig {
     grokApiKey: process.env.GROK_API_KEY,
     grokModel: process.env.GROK_MODEL ?? 'grok-4',
     grokEndpoint: process.env.GROK_ENDPOINT ?? 'https://api.x.ai/v1/chat/completions',
+    rewardScale: loadRewardScale(),
   };
 }
