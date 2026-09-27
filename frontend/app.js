@@ -934,7 +934,10 @@ function initCrowdCanvas() {
   }
 
   const img = new Image();
-  img.crossOrigin = 'anonymous';
+  // No crossOrigin here: the sprite sheet's CDN doesn't send CORS headers,
+  // and drawImage() doesn't need them (only reading pixels back would).
+  // Setting crossOrigin on a non-CORS image makes the browser refuse to
+  // load it at all, which is why the crowd rendered as an empty canvas.
   img.onload = () => {
     const { naturalWidth: width, naturalHeight: height } = img;
     const total = ROWS * COLS;

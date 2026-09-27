@@ -425,14 +425,20 @@ body.knowyork-theme {
 
 /* CROWD CANVAS HERO: an animated crowd of New Yorkers walking past the title */
 .crowd-hero-stage {
+  /* Breaks out of .hero-section's centered max-width so the crowd spans
+     the full viewport width, edge to edge, regardless of ancestor padding. */
   position: relative;
-  width: 100%;
+  left: 50%;
+  right: 50%;
+  width: 100vw;
+  margin-left: -50vw;
+  margin-right: -50vw;
   height: 46vh;
   min-height: 320px;
   max-height: 460px;
   margin-top: 1rem;
-  border: var(--comic-border);
-  border-radius: 16px;
+  border-top: var(--comic-border);
+  border-bottom: var(--comic-border);
   overflow: hidden;
   background: linear-gradient(180deg, var(--paper-cream) 0%, var(--paper-white) 100%);
   box-shadow: var(--comic-shadow-lg);
