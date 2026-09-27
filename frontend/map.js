@@ -4,6 +4,9 @@
    Base maps: Streets (OpenFreeMap vector style, looks like Google Maps),
    Satellite (Esri imagery) and Classic (OpenStreetMap).
 
+   Pins: red teardrops, blue with a check once explored. Hovering a pin previews its
+   card, clicking pins it open.
+
    Loaded before app.js. It uses PLACES and selectedNodeId from app.js, which
    are only read after the page has loaded.
    ========================================================================== */
@@ -14,18 +17,15 @@ const placeMarkers = new Map();
 const geofenceCircles = new Map();
 let webLinesLayer = null;
 let webThreadLayer = null;
-let idleGeofenceColor = '#4b5563'; // white on satellite, where grey would vanish
 
-// Which side of its marker each label sits on, so nearby labels do not overlap.
-const LABEL_SIDE = {
-  'apollo-theater': 'top',
-  'studio-museum-harlem': 'right',
-  'marcus-garvey-park': 'right',
-  'hamilton-grange': 'top',
-  'malcolm-shabazz-market': 'bottom',
-  'morningside-park': 'left'
-};
-const LABEL_OFFSET = { top: [0, -18], bottom: [0, 18], left: [-18, 0], right: [18, 0] };
+// The card is pinned open by a click. A hover only previews it and closes again.
+let pinnedPlaceId = null;
+let cardCloseTimer = null;
+
+const PIN_HTML = '<div class="place-pin"><svg class="pin-svg" viewBox="0 0 34 46" width="34" height="46">' +
+  '<path class="pin-body" d="M17 1C8.2 1 1 8.1 1 16.9c0 11.9 16 28.1 16 28.1s16-16.2 16-28.1C33 8.1 25.8 1 17 1z"/>' +
+  '<circle class="pin-dot" cx="17" cy="16.5" r="6.2"/>' +
+  '<path class="pin-check" d="M12.2 16.8l3.6 3.6 6.4-6.8"/></svg></div>';
 
 /** Build the map, the place markers and their geofence circles. */
 function initRealMap() {
@@ -43,28 +43,32 @@ function initRealMap() {
   const defaultBase = baseMaps['Streets'] || baseMaps['Classic'];
   defaultBase.addTo(realMap);
   L.control.layers(baseMaps, null, { position: 'bottomright', collapsed: false }).addTo(realMap);
-  realMap.on('baselayerchange', event => {
-    idleGeofenceColor = event.name === 'Satellite' ? '#ffffff' : '#4b5563';
-    refreshMap();
-  });
+  realMap.on('click', closeCard); // clicking empty map closes the card
 
   drawGeofences();
   webLinesLayer = L.layerGroup().addTo(realMap);
   webThreadLayer = L.layerGroup().addTo(realMap);
 
   PLACES.forEach(place => {
-    const icon = L.divIcon({
-      className: '',
-      html: '<div class="place-marker"><span class="halo"></span><span class="dot"><span class="core"></span></span></div>',
-      iconSize: [44, 44],
-      iconAnchor: [22, 22]
-    });
-    const marker = L.marker([place.lat, place.lng], { icon, title: place.name }).addTo(realMap);
-    const side = LABEL_SIDE[place.id] || 'bottom';
-    marker.bindTooltip(place.name, { permanent: true, direction: side, offset: LABEL_OFFSET[side], className: 'place-label' });
-    marker.on('click', () => selectNode(place.id));
+    const icon = L.divIcon({ className: 'place-pin-icon', html: PIN_HTML, iconSize: [34, 46], iconAnchor: [17, 46] });
+    const marker = L.marker([place.lat, place.lng], { icon, riseOnHover: true }).addTo(realMap);
+    const markerEl = marker.getElement();
+    markerEl.setAttribute('role', 'button');
+    markerEl.setAttribute('aria-label', place.name);
+    marker.on('mouseover', () => { if (!pinnedPlaceId) openPlaceCard(place.id); });
+    marker.on('mouseout', scheduleCloseCard);
+    marker.on('click', () => pinPlaceCard(place.id));
     placeMarkers.set(place.id, marker);
   });
+
+  // The card stays open while the pointer is on it, and closes with the X or Escape.
+  const card = document.getElementById('nodeDetailPanel');
+  if (card) {
+    card.addEventListener('mouseenter', () => clearTimeout(cardCloseTimer));
+    card.addEventListener('mouseleave', scheduleCloseCard);
+  }
+  document.getElementById('nodeCloseBtn')?.addEventListener('click', closeCard);
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') closeCard(); });
 
   refreshMap();
   fitToPlaces();
@@ -216,49 +220,94 @@ function buildBaseMaps() {
   return maps;
 }
 
-/** Draw each place's geofence circle, using the radius the backend enforces. */
+/** Create each place's geofence circle, using the radius the backend enforces. They stay hidden until a card is open. */
 function drawGeofences() {
   PLACES.forEach(place => {
     const circle = L.circle([place.lat, place.lng], {
       radius: place.radius,
-      color: '#4b5563',
-      weight: 1.5,
-      dashArray: '5 4',
-      fillColor: '#4b5563',
-      fillOpacity: 0.1,
+      color: '#EA4335',
+      weight: 2,
+      dashArray: '6 5',
+      opacity: 0,
+      fillOpacity: 0,
       interactive: false
     }).addTo(realMap);
     geofenceCircles.set(place.id, circle);
   });
 }
 
-/** Repaint markers, geofence circles and web lines from the current state. */
+/** Whether the place card is showing. */
+function isCardOpen() {
+  return !!document.getElementById('nodeDetailPanel')?.classList.contains('open');
+}
+
+/** Show a place's card as a hover preview. It closes again unless it is pinned.
+
+Args:
+    placeId (string): The place to show.
+*/
+function openPlaceCard(placeId) {
+  clearTimeout(cardCloseTimer);
+  selectNode(placeId, { pan: false });
+  document.getElementById('nodeDetailPanel')?.classList.add('open');
+  refreshMap();
+}
+
+/** Show a place's card and keep it open until it is closed.
+
+Args:
+    placeId (string): The place to show.
+*/
+function pinPlaceCard(placeId) {
+  pinnedPlaceId = placeId;
+  openPlaceCard(placeId);
+}
+
+/** Close a hover preview shortly after the pointer leaves, unless the card is pinned. */
+function scheduleCloseCard() {
+  if (pinnedPlaceId) return;
+  clearTimeout(cardCloseTimer);
+  cardCloseTimer = setTimeout(closeCard, 350);
+}
+
+/** Close the card, including a pinned one. */
+function closeCard() {
+  clearTimeout(cardCloseTimer);
+  pinnedPlaceId = null;
+  document.getElementById('nodeDetailPanel')?.classList.remove('open');
+  refreshMap();
+}
+
+/** Repaint pins, the open place's geofence circle, and web lines from the current state. */
 function refreshMap() {
   if (!realMap) return;
+  const cardOpen = isCardOpen();
 
   PLACES.forEach(place => {
     const marker = placeMarkers.get(place.id);
-    const markerEl = marker?.getElement()?.querySelector('.place-marker');
-    if (markerEl) {
-      markerEl.classList.toggle('discovered', !!place.discovered);
-      markerEl.classList.toggle('selected', place.id === selectedNodeId);
+    const focused = cardOpen && place.id === selectedNodeId;
+    const pinEl = marker?.getElement()?.querySelector('.place-pin');
+    if (pinEl) {
+      pinEl.classList.toggle('discovered', !!place.discovered);
+      pinEl.classList.toggle('selected', focused);
     }
-    marker?.getTooltip()?.getElement()?.classList.toggle('discovered', !!place.discovered);
+    marker?.setZIndexOffset(focused ? 1000 : 0);
 
+    const color = place.discovered ? '#0055A5' : '#EA4335';
     geofenceCircles.get(place.id)?.setStyle(
-      place.discovered
-        ? { color: '#E52421', fillColor: '#E52421', fillOpacity: 0.15, weight: 2 }
-        : { color: idleGeofenceColor, fillColor: idleGeofenceColor, fillOpacity: 0.1, weight: 1.5 }
+      focused
+        ? { color, fillColor: color, opacity: 0.9, fillOpacity: 0.15, weight: 2 }
+        : { opacity: 0, fillOpacity: 0 }
     );
   });
 
-  // The web: a red thread between every pair of explored places.
+  // The web: a blue thread between every pair of explored places.
   webLinesLayer.clearLayers();
   const explored = PLACES.filter(place => place.discovered);
   for (let i = 0; i < explored.length; i++) {
     for (let j = i + 1; j < explored.length; j++) {
       L.polyline([[explored[i].lat, explored[i].lng], [explored[j].lat, explored[j].lng]], {
-        color: '#E52421', weight: 2, opacity: 0.6, interactive: false
+        color: '#0055A5', weight: 3, opacity: 0.7, interactive: false
       }).addTo(webLinesLayer);
     }
   }

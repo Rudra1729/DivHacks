@@ -211,11 +211,13 @@ function selectNode(placeId, { pan = true } = {}) {
 }
 
 function selectAndScrollNode(placeId) {
-  selectNode(placeId);
   const mapElem = document.getElementById('spiderweb');
   if (mapElem) {
     mapElem.scrollIntoView({ behavior: 'smooth' });
   }
+  const place = PLACES.find(p => p.id === placeId);
+  if (typeof pinPlaceCard === 'function') pinPlaceCard(placeId); else selectNode(placeId);
+  if (realMap && place) realMap.flyTo([place.lat, place.lng], Math.max(realMap.getZoom(), 15));
 }
 
 function triggerThwipUnlock(placeId) {
@@ -223,7 +225,7 @@ function triggerThwipUnlock(placeId) {
   if (!place) return;
 
   place.discovered = true;
-  selectNode(place.id);
+  selectNode(place.id, { pan: false });
 
   // Shoot a web thread from the nearest other explored place (or the map center) to this one
   const others = PLACES.filter(p => p.discovered && p.id !== place.id);
@@ -483,14 +485,14 @@ function setupEventListeners() {
   // Reset Web Button
   document.getElementById('resetWebBtn')?.addEventListener('click', () => {
     PLACES.forEach(p => p.discovered = false);
-    selectNode(selectedNodeId);
+    selectNode(selectedNodeId, { pan: false });
     setSpideyBotState('ready', '"NYC Spiderweb map reset! Ready for new hero discoveries!"');
   });
 
   // Unlock All Button
   document.getElementById('unlockAllBtn')?.addEventListener('click', () => {
     PLACES.forEach(p => p.discovered = true);
-    selectNode(selectedNodeId);
+    selectNode(selectedNodeId, { pan: false });
     setSpideyBotState('approved', '"THWIP THWIP! All NYC neighborhoods illuminated!"');
   });
 
