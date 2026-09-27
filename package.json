@@ -11,7 +11,8 @@
     "test": "jest",
     "lint": "eslint \"src/**/*.ts\"",
     "xrpl:setup": "tsx scripts/xrpl/setup.ts",
-    "xrpl:pay-test": "tsx --env-file=.env scripts/xrpl/payTest.ts"
+    "xrpl:pay-test": "tsx --env-file=.env scripts/xrpl/payTest.ts",
+    "xrpl:recycle": "tsx scripts/xrpl/recycle.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.3.0",
