@@ -11,7 +11,7 @@ import path from 'path';
 import Database from 'better-sqlite3';
 import { AppConfig } from './config';
 import { Orchestrator } from './orchestrator/orchestrator';
-import { placesRouter } from './routes/places';
+import { createPlacesRouter } from './routes/places';
 import { createSubmissionsRouter } from './routes/submissions';
 import { createMetadataRouter } from './routes/metadata';
 import { createDecisionsRouter } from './routes/decisions';
@@ -48,7 +48,7 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
     res.status(200).json({ status: 'ok', testMode: config.isTestMode });
   });
 
-  app.use(placesRouter);
+  app.use(createPlacesRouter(config));
   app.use(createSubmissionsRouter(config, orchestrator));
   app.use(createMetadataRouter(db));
   app.use(createDecisionsRouter(db));
