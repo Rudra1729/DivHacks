@@ -19,7 +19,6 @@ Attributes:
     issuerKeypairPath (string): JSON keypair file for the issuer wallet.
     collections (object): Collection addresses for Harlem and Morningside Heights.
     metadataBaseUrl (string): Base URL of the metadata pages, without a trailing slash.
-    placesPath (string): Path to the shared places JSON file.
     forceFail (boolean): When true, every mint fails. Used by the Solana-failure test.
 */
 export interface SolanaConfig {
@@ -28,7 +27,6 @@ export interface SolanaConfig {
   issuerKeypairPath: string;
   collections: { harlem: string; morningside: string };
   metadataBaseUrl: string;
-  placesPath: string;
   forceFail: boolean;
 }
 
@@ -61,7 +59,6 @@ export function loadSolanaConfig(env: NodeJS.ProcessEnv = process.env): SolanaCo
       morningside: env.COLLECTION_MORNINGSIDE ?? '',
     },
     metadataBaseUrl: (env.METADATA_BASE_URL || 'http://localhost:3000/metadata').replace(/\/+$/, ''),
-    placesPath: env.PLACES_PATH || 'data/places.json',
     forceFail: env.SOLANA_FORCE_FAIL === 'true',
   };
 

@@ -200,10 +200,9 @@ export class RealStampService implements StampService {
       Promise<MintStampResult>: Asset address and signature, or an error message.
   */
   async mintStamp(input: MintStampInput): Promise<MintStampResult> {
-    const config = loadSolanaConfig();
-    const place = findPlace(config, input.placeId);
+    const place = findPlace(input.placeId);
     if (!place) {
-      return { ok: false, error: `stamp mint failed: unknown place '${input.placeId}' in ${config.placesPath}` };
+      return { ok: false, error: `stamp mint failed: unknown place '${input.placeId}'` };
     }
     return mintStampForPlace(input, place);
   }
