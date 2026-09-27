@@ -5,3 +5,6 @@ dist/
 *.sqlite
 *.sqlite-journal
 .env
+.env.*
+!.env.example
+.keys/
