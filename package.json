@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "test": "jest",
     "test:e2e": "jest tests/e2e",
+    "db:reset": "node -e \"const fs=require('fs');const p=process.env.DB_PATH||'webpass.sqlite';for (const f of [p,p+'-wal',p+'-shm']) fs.rmSync(f,{force:true});console.log('Deleted local database:',p);\"",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.scripts.json",
     "solana:setup": "tsx scripts/solana/setup.ts",

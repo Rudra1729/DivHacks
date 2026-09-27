@@ -34,16 +34,23 @@ npm test         # run the Jest test suite
 npm run lint     # lint src/
 npm run test:e2e # end-to-end tests only
 npm run grok:try # try the Grok agent against the real API (needs GROK_API_KEY in .env)
+npm run db:reset # delete your local SQLite file (see note below)
 ```
 
 The server reads settings from `.env` in the folder it runs from.
+
+> **After pulling schema changes:** the SQLite tables are created with
+> `CREATE TABLE IF NOT EXISTS`, so a local `webpass.sqlite` from before a
+> schema change won't get the new columns automatically and queries
+> against it will fail with `no such column`. Run `npm run db:reset` (or
+> just delete `webpass.sqlite`) after pulling if you hit that.
 
 ## Project layout
 
 ```
 src/
   agent/         Grok payout agent
-  claims/        legacy per-request claim/lock helpers (superseded by storage + orchestrator)
+  claims/        per-user submission lock
   data/          shared places list
   db/            SQLite schema and data access
   events/        server-sent-events bus
