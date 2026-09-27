@@ -30,6 +30,11 @@ blocked. The runner now creates fresh Solana wallets each run so it can be
 repeated. The other passed 24 checks and skipped the audit history, which had not
 been merged yet, and is superseded by the final run.
 
+Check C26 (a faked GPS location is rejected) was added after the final run and
+has not been run live yet. C15 now claims Apollo Theater instead of Marcus
+Garvey Park, because the impossible travel check would block the same wallet
+moving 550 m from C14's Studio Museum check-in within seconds.
+
 The two runs number their checks differently, because the "empty database" check
 was moved so it is measured after the "blocked attempts move no money" check.
 In the first run it is C08. In the final run it is C13.

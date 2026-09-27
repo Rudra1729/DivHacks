@@ -3,16 +3,20 @@ import { Express } from 'express';
 import { PayoutAgent } from '../../src/agent/types';
 import { Sentinel } from '../../src/sentinel/types';
 import { buildTestApp } from '../testHelpers/buildTestApp';
+import { endOf, realisticTrail } from '../testHelpers/locationTrail';
 
 const WALLET_X = 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe';
 const WALLET_S = '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM';
 
 function submit(app: Express) {
+  const trail = realisticTrail({ latitude: 40.8102, longitude: -73.95 });
+  const { latitude, longitude } = endOf(trail);
   return request(app)
     .post('/submissions')
     .field('placeId', 'apollo-theater')
-    .field('latitude', '40.8102')
-    .field('longitude', '-73.95')
+    .field('latitude', String(latitude))
+    .field('longitude', String(longitude))
+    .field('locationTrail', JSON.stringify(trail))
     .field('timestamp', new Date().toISOString())
     .field('xrplAddress', WALLET_X)
     .field('solanaAddress', WALLET_S)

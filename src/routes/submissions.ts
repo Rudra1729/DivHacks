@@ -13,6 +13,7 @@ import multer from 'multer';
 import { randomUUID } from 'crypto';
 import { AppConfig } from '../config';
 import { validateSubmission } from '../validation/submission';
+import { parseLocationTrail } from '../validation/locationTrail';
 import { Orchestrator } from '../orchestrator/orchestrator';
 import { DecisionStatus } from '../orchestrator/types';
 import { withLock } from '../claims/lock';
@@ -62,6 +63,7 @@ export function createSubmissionsRouter(config: AppConfig, orchestrator: Orchest
     }
 
     const xrplAddress = String(req.body.xrplAddress);
+    const locationTrail = parseLocationTrail(req.body.locationTrail);
     const requestId = typeof req.body.requestId === 'string' && req.body.requestId
       ? req.body.requestId
       : randomUUID();
@@ -81,6 +83,7 @@ export function createSubmissionsRouter(config: AppConfig, orchestrator: Orchest
           xrplAddress,
           solanaAddress: String(req.body.solanaAddress),
           caption: typeof req.body.caption === 'string' ? req.body.caption : undefined,
+          locationTrail: locationTrail.ok ? locationTrail.trail : undefined,
         },
         { bypassPolicy: isPolicyBypassEnabled() }
       )

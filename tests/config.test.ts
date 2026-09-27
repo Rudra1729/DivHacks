@@ -42,4 +42,22 @@ describe('loadConfig', () => {
     process.env.REWARD_SCALE = value;
     expect(() => loadConfig()).toThrow(ConfigError);
   });
+
+  it('turns location checks on by default', () => {
+    delete process.env.LOCATION_CHECKS;
+    expect(loadConfig().locationChecks).toBe(true);
+  });
+
+  it.each([
+    ['on', true],
+    ['OFF', false],
+  ])('reads LOCATION_CHECKS=%s', (value, expected) => {
+    process.env.LOCATION_CHECKS = value;
+    expect(loadConfig().locationChecks).toBe(expected);
+  });
+
+  it('rejects an unknown LOCATION_CHECKS value', () => {
+    process.env.LOCATION_CHECKS = 'maybe';
+    expect(() => loadConfig()).toThrow(ConfigError);
+  });
 });
