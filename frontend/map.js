@@ -49,17 +49,7 @@ function initRealMap() {
   webLinesLayer = L.layerGroup().addTo(realMap);
   webThreadLayer = L.layerGroup().addTo(realMap);
 
-  PLACES.forEach(place => {
-    const icon = L.divIcon({ className: 'place-pin-icon', html: PIN_HTML, iconSize: [34, 46], iconAnchor: [17, 46] });
-    const marker = L.marker([place.lat, place.lng], { icon, riseOnHover: true }).addTo(realMap);
-    const markerEl = marker.getElement();
-    markerEl.setAttribute('role', 'button');
-    markerEl.setAttribute('aria-label', place.name);
-    marker.on('mouseover', () => { if (!pinnedPlaceId) openPlaceCard(place.id); });
-    marker.on('mouseout', scheduleCloseCard);
-    marker.on('click', () => pinPlaceCard(place.id));
-    placeMarkers.set(place.id, marker);
-  });
+  PLACES.forEach(addPlaceMarker);
 
   // The card stays open while the pointer is on it, and closes with the X or Escape.
   const card = document.getElementById('nodeDetailPanel');
@@ -176,6 +166,49 @@ function fitToPlaces() {
   realMap.fitBounds(L.latLngBounds(PLACES.map(p => [p.lat, p.lng])), { padding: [70, 70], maxZoom: 15, animate: false });
 }
 
+/** Add one place's pin to the map, wired up to open its card on hover/click.
+
+Args:
+    place (Object): A PLACES entry with lat, lng, id and name already set.
+
+Returns:
+    Object: The Leaflet marker, already added to placeMarkers.
+*/
+function addPlaceMarker(place) {
+  const icon = L.divIcon({ className: 'place-pin-icon', html: PIN_HTML, iconSize: [34, 46], iconAnchor: [17, 46] });
+  const marker = L.marker([place.lat, place.lng], { icon, riseOnHover: true }).addTo(realMap);
+  const markerEl = marker.getElement();
+  markerEl.setAttribute('role', 'button');
+  markerEl.setAttribute('aria-label', place.name);
+  marker.on('mouseover', () => { if (!pinnedPlaceId) openPlaceCard(place.id); });
+  marker.on('mouseout', scheduleCloseCard);
+  marker.on('click', () => pinPlaceCard(place.id));
+  placeMarkers.set(place.id, marker);
+  return marker;
+}
+
+/** Add one place's geofence circle. Stays hidden (opacity 0) until its card is open.
+
+Args:
+    place (Object): A PLACES entry with lat, lng, id and radius already set.
+
+Returns:
+    Object: The Leaflet circle, already added to geofenceCircles.
+*/
+function addGeofenceCircle(place) {
+  const circle = L.circle([place.lat, place.lng], {
+    radius: place.radius,
+    color: '#EA4335',
+    weight: 2,
+    dashArray: '6 5',
+    opacity: 0,
+    fillOpacity: 0,
+    interactive: false
+  }).addTo(realMap);
+  geofenceCircles.set(place.id, circle);
+  return circle;
+}
+
 /** Whether this browser can draw the vector map, which needs WebGL. */
 function webglAvailable() {
   try {
@@ -220,20 +253,9 @@ function buildBaseMaps() {
   return maps;
 }
 
-/** Create each place's geofence circle, using the radius the backend enforces. They stay hidden until a card is open. */
+/** Create every place's geofence circle, using the radius the backend enforces. */
 function drawGeofences() {
-  PLACES.forEach(place => {
-    const circle = L.circle([place.lat, place.lng], {
-      radius: place.radius,
-      color: '#EA4335',
-      weight: 2,
-      dashArray: '6 5',
-      opacity: 0,
-      fillOpacity: 0,
-      interactive: false
-    }).addTo(realMap);
-    geofenceCircles.set(place.id, circle);
-  });
+  PLACES.forEach(addGeofenceCircle);
 }
 
 /** Whether the place card is showing. */
