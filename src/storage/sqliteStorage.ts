@@ -4,7 +4,7 @@ orchestrator depends on (src/storage/types.ts), replacing FakeStorage.
 
 import Database from 'better-sqlite3';
 import { DecisionResult, Place } from '../orchestrator/types';
-import { ClaimInput, ClaimStatus, StorageLayer } from './types';
+import { AuditEntry, ClaimInput, ClaimStatus, StorageLayer } from './types';
 import { MintStampInput } from '../solana/types';
 import { getPlaceById, PLACES } from '../data/places';
 import {
@@ -19,6 +19,8 @@ import {
   updateClaimStatusByDecisionId,
 } from '../db/claims';
 import { queueStampRetryWithInput } from '../db/stampRetries';
+import { addAuditEvent } from '../db/auditEvents';
+import { publishEvent } from '../events/bus';
 
 /** Look up a place in the shared list and convert it to the shape the orchestrator uses.
 
@@ -97,6 +99,25 @@ export class SqliteStorage implements StorageLayer {
 
   async queueStampRetry(input: MintStampInput): Promise<void> {
     queueStampRetryWithInput(this.db, input, 'mint failed, queued for retry');
+  }
+
+  /** Save a decision's history and announce each step on the live event stream.
+
+  Args:
+      decisionId (string): The saved decision the steps belong to.
+      events (AuditEntry[]): The steps, in the order they happened.
+  */
+  async recordAuditEvents(decisionId: string, events: AuditEntry[]): Promise<void> {
+    const insertAll = this.db.transaction((entries: AuditEntry[]) => {
+      for (const entry of entries) {
+        addAuditEvent(this.db, decisionId, entry.layer, entry.passed, entry.message);
+      }
+    });
+    insertAll(events);
+
+    for (const entry of events) {
+      publishEvent({ type: `audit.${entry.layer}`, decisionId, message: entry.message });
+    }
   }
 
   async saveDecision(requestId: string, decision: DecisionResult): Promise<void> {
