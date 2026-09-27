@@ -91,4 +91,25 @@ describe('POST /submissions', () => {
     expect(response.status).toBe(422);
     expect(response.body.reasons.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('blocks a second claim for the same place with a new photo', async () => {
+    const first = await submitApolloTheater(app, { photoContent: 'first-visit-photo' });
+    expect(first.status).toBe(202);
+
+    const second = await submitApolloTheater(app, { photoContent: 'second-visit-new-photo' });
+    expect(second.status).toBe(422);
+    expect(second.body.reasons.some((r: string) => r.startsWith('once per place:'))).toBe(true);
+  });
+
+  it('does not block a different user claiming the same place', async () => {
+    const first = await submitApolloTheater(app, { photoContent: 'user-a-photo' });
+    expect(first.status).toBe(202);
+
+    const second = await submitApolloTheater(app, {
+      photoContent: 'user-b-photo',
+      xrplAddress: 'rQT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe',
+      solanaAddress: '8WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
+    });
+    expect(second.status).toBe(202);
+  });
 });

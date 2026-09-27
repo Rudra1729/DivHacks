@@ -13,6 +13,8 @@ import { validateSubmission } from '../validation/submission';
 import { getPlaceById } from '../data/places';
 import { runSentinelChecks, BLOCKED_SENTINEL } from '../sentinel';
 import { recordPhotoHash } from '../db/photoFingerprints';
+import { checkOncePerPlace, markClaimPending } from '../claims';
+import { withLock } from '../claims/lock';
 
 /** Build the /submissions router.
 
@@ -30,7 +32,7 @@ export function createSubmissionsRouter(config: AppConfig, db: Database.Database
     limits: { fileSize: config.maxUploadBytes },
   });
 
-  router.post('/submissions', upload.single('photo'), (req, res) => {
+  router.post('/submissions', upload.single('photo'), async (req, res) => {
     const validation = validateSubmission(req.body, req.file);
 
     if (!validation.valid) {
@@ -38,9 +40,13 @@ export function createSubmissionsRouter(config: AppConfig, db: Database.Database
       return;
     }
 
-    const place = getPlaceById(String(req.body.placeId));
+    const xrplAddress = String(req.body.xrplAddress);
+    const solanaAddress = String(req.body.solanaAddress);
+    const placeId = String(req.body.placeId);
+    const place = getPlaceById(placeId)!;
+
     const sentinel = runSentinelChecks(db, {
-      place: place!,
+      place,
       latitude: Number(req.body.latitude),
       longitude: Number(req.body.longitude),
       timestamp: String(req.body.timestamp),
@@ -55,8 +61,21 @@ export function createSubmissionsRouter(config: AppConfig, db: Database.Database
       return;
     }
 
-    recordPhotoHash(db, sentinel.photoHash);
-    res.status(202).json({ accepted: true, photoHash: sentinel.photoHash });
+    // One submission per user at a time: the once-per-place check and the
+    // pending-claim write must not interleave with another submission from
+    // the same user's wallets.
+    await withLock(xrplAddress, async () => {
+      const oncePerPlace = checkOncePerPlace(db, placeId, xrplAddress, solanaAddress);
+
+      if (!oncePerPlace.passed) {
+        res.status(422).json({ status: BLOCKED_SENTINEL, reasons: [oncePerPlace.message] });
+        return;
+      }
+
+      recordPhotoHash(db, sentinel.photoHash);
+      const claim = markClaimPending(db, placeId, xrplAddress, solanaAddress);
+      res.status(202).json({ accepted: true, photoHash: sentinel.photoHash, claimId: claim.id });
+    });
   });
 
   return router;
