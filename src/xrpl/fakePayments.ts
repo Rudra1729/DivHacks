@@ -23,14 +23,19 @@ Attributes:
     balances (Map<string, number>): Balances of wallets paid by the agent.
     payments (FakePayment[]): Successful payments, in order.
     txCount (number): Number of fake transactions, used for fake hashes.
+    results (Map<string, SendPaymentResult>): First result per decision ID.
 */
 export class FakePaymentService implements PaymentService {
   private agentBalance: number | null = null;
   private balances = new Map<string, number>();
   private payments: FakePayment[] = [];
   private txCount = 0;
+  private results = new Map<string, SendPaymentResult>();
 
   /** Pay a reward from the fake agent wallet.
+
+  Calling it again with the same decision ID returns the first result and
+  moves no money.
 
   Args:
       input (SendPaymentInput): Decision ID, recipient, and amount.
@@ -45,6 +50,24 @@ export class FakePaymentService implements PaymentService {
       return { ok: false, reason: 'invalid_input', error: problem };
     }
 
+    const previous = this.results.get(input.decisionId);
+    if (previous) {
+      return previous;
+    }
+    const result = this.pay(input);
+    this.results.set(input.decisionId, result);
+    return result;
+  }
+
+  /** Move fake money for a new decision.
+
+  Args:
+      input (SendPaymentInput): Decision ID, recipient, and amount.
+
+  Returns:
+      SendPaymentResult: Success, or a ledger-style rejection.
+  */
+  private pay(input: SendPaymentInput): SendPaymentResult {
     const balance = this.currentAgentBalance();
     this.txCount += 1;
     const txHash = `FAKE${String(this.txCount).padStart(60, '0')}`;
@@ -60,9 +83,9 @@ export class FakePaymentService implements PaymentService {
     }
 
     this.agentBalance = balance - input.amount;
-    const received = this.balances.get(input.userXrplAddress) ?? 0;
-    this.balances.set(input.userXrplAddress, received + input.amount);
-    this.payments.push({ to: input.userXrplAddress, amount: input.amount, at: new Date() });
+    const received = this.balances.get(input.recipient) ?? 0;
+    this.balances.set(input.recipient, received + input.amount);
+    this.payments.push({ to: input.recipient, amount: input.amount, at: new Date() });
     return { ok: true, txHash, resultCode: 'tesSUCCESS' };
   }
 
@@ -102,6 +125,7 @@ export class FakePaymentService implements PaymentService {
     this.balances.clear();
     this.payments = [];
     this.txCount = 0;
+    this.results.clear();
   }
 
   private currentAgentBalance(): number {

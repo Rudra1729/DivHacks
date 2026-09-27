@@ -7,7 +7,7 @@ RLUSD from the agent wallet on XRPL testnet.
 Example:
     import { sendPayment } from './xrpl';
 
-    const result = await sendPayment({ decisionId, userXrplAddress, amount: 2 });
+    const result = await sendPayment({ decisionId, recipient, amount: 2 });
     if (!result.ok && result.reason === 'ledger_rejected') status = 'REJECTED_BY_LEDGER';
 */
 
@@ -34,9 +34,10 @@ function activeService(): PaymentService {
 
 /** Pay a reward in RLUSD from the agent wallet.
 
-Never throws. Payments are sent one at a time inside the module, so callers
-can call this concurrently. On network_error the outcome is unknown: do not
-retry automatically, or the user could be paid twice.
+Never throws, even on a bad config. Payments are sent one at a time inside
+the module, so callers can call this concurrently. The decision ID is the
+idempotency key: calling again with the same ID returns the first outcome
+(re-checking the ledger if it was unconfirmed) and never pays twice.
 
 Args:
     input (SendPaymentInput): Decision ID, recipient, and amount.
@@ -44,8 +45,12 @@ Args:
 Returns:
     Promise<SendPaymentResult>: Transaction hash, or a failure reason.
 */
-export function sendPayment(input: SendPaymentInput): Promise<SendPaymentResult> {
-  return activeService().sendPayment(input);
+export async function sendPayment(input: SendPaymentInput): Promise<SendPaymentResult> {
+  try {
+    return await activeService().sendPayment(input);
+  } catch (error) {
+    return { ok: false, reason: 'network_error', error: `payment not sent: ${String(error)}` };
+  }
 }
 
 /** Read a wallet's RLUSD balance from the ledger.
