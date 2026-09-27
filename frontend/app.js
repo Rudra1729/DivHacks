@@ -11,7 +11,7 @@ const PLACES = [
     x: 450,
     y: 180,
     radius: 150,
-    reward: '1.0 RLUSD',
+    rewardRlusd: 0,
     type: 'cultural',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80',
@@ -24,7 +24,7 @@ const PLACES = [
     x: 580,
     y: 220,
     radius: 150,
-    reward: '1.0 RLUSD',
+    rewardRlusd: 0,
     type: 'cultural',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&w=600&q=80',
@@ -37,7 +37,7 @@ const PLACES = [
     x: 650,
     y: 320,
     radius: 150,
-    reward: '2.0 RLUSD',
+    rewardRlusd: 0.01,
     type: 'civic',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=600&q=80',
@@ -50,7 +50,7 @@ const PLACES = [
     x: 280,
     y: 140,
     radius: 150,
-    reward: '1.0 RLUSD',
+    rewardRlusd: 0,
     type: 'cultural',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=600&q=80',
@@ -63,7 +63,7 @@ const PLACES = [
     x: 520,
     y: 350,
     radius: 150,
-    reward: '1.5 RLUSD',
+    rewardRlusd: 0.01,
     type: 'civic',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=600&q=80',
@@ -76,7 +76,7 @@ const PLACES = [
     x: 350,
     y: 300,
     radius: 150,
-    reward: '1.0 RLUSD',
+    rewardRlusd: 0,
     type: 'cultural',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
@@ -89,7 +89,7 @@ const PLACES = [
     x: 240,
     y: 260,
     radius: 200,
-    reward: '1.0 RLUSD',
+    rewardRlusd: 0,
     type: 'cultural',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80',
@@ -112,6 +112,11 @@ const PLACE_COORDS = {
   'mudd-building':          { lat: 40.81005, lng: -73.96030 }
 };
 PLACES.forEach(place => Object.assign(place, PLACE_COORDS[place.id]));
+
+/** What a verified visit to this place earns, e.g. "0.01 RLUSD" or "Stamp only". */
+function rewardLabel(place) {
+  return place.rewardRlusd > 0 ? `${place.rewardRlusd} RLUSD + stamp` : 'Stamp only';
+}
 
 // Explored places are remembered in this browser between page loads.
 const DISCOVERED_KEY = 'webpass.discovered';
@@ -385,7 +390,7 @@ function selectNode(placeId, { pan = true } = {}) {
   document.getElementById('nodeTitle').innerText = place.name;
   document.getElementById('nodeNeighborhood').innerHTML = `<i data-lucide="map-pin"></i> ${place.neighborhood}`;
   document.getElementById('nodeGeofence').innerText = `${place.radius} Meters`;
-  document.getElementById('nodeReward').innerText = place.reward;
+  document.getElementById('nodeReward').innerText = rewardLabel(place);
   document.getElementById('nodeDesc').innerText = place.desc;
   document.getElementById('nodeImage').src = place.image;
 
@@ -500,7 +505,7 @@ function renderMissions(filter) {
       <div class="mission-banner">
         <img src="${place.image}" alt="${place.name}">
         <span class="mission-tag-badge ${place.type}">${place.type === 'cultural' ? 'CULTURAL' : 'CIVIC BOUNTY'}</span>
-        <span class="mission-reward-chip">+${place.reward}</span>
+        <span class="mission-reward-chip">${place.rewardRlusd > 0 ? `+${place.rewardRlusd} RLUSD` : 'STAMP ONLY'}</span>
       </div>
       <div class="mission-body">
         <h4 class="mission-title">${place.name}</h4>
@@ -537,7 +542,7 @@ function stampCard(stamp) {
     image: escapeHtml(place ? place.image : ''),
     decisionId: escapeHtml(stamp.decisionId),
     mint: escapeHtml(shortHash(stamp.assetAddress)),
-    tx: escapeHtml(shortHash(stamp.xrplTxHash)),
+    tx: escapeHtml(stamp.xrplTxHash ? shortHash(stamp.xrplTxHash) : 'None, cultural visits earn the stamp only'),
     rarity: escapeHtml(stamp.tier ? `${stamp.tier}, found #${stamp.serial}` : 'Unranked')
   };
 }
@@ -654,7 +659,7 @@ function runAttackSimulation(type) {
 
     setTimeout(() => {
       g4.className = 'gate-step blocked';
-      addSimLog('[GATE 4 - POLICY ENGINE] BLOCKED_POLICY: Proposal $100 exceeds fixed task limit of $5.00 RLUSD!', 'error');
+      addSimLog('[GATE 4 - POLICY ENGINE] BLOCKED_POLICY: Proposal $100 exceeds the per-task cap!', 'error');
       setSpideyBotState('policy_blocked', '"GUARDRAIL HELD! Even though Grok proposed $100, my Policy Engine blocked it automatically!"');
       addTickerItem('GUARDRAIL HELD! $100 prompt injection blocked by Policy Engine');
     }, 1800);
@@ -714,7 +719,8 @@ async function loadPlacesFromServer() {
     const place = PLACES.find(p => p.id === serverPlace.id);
     if (!place) return;
     place.name = serverPlace.name;
-    place.reward = `${serverPlace.baseRewardRlusd} RLUSD`;
+    place.rewardRlusd = serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd;
+    if (serverPlace.kind) place.type = serverPlace.kind;
     place.radius = serverPlace.geofenceRadiusMeters;
     if (typeof geofenceCircles !== 'undefined') geofenceCircles.get(place.id)?.setRadius(place.radius);
   });
@@ -857,7 +863,7 @@ function openSubmissionModal(placeId) {
   const place = PLACES.find(p => p.id === placeId);
   if (place) {
     document.getElementById('modalMissionTitle').innerText = place.name;
-    document.getElementById('modalMissionSub').innerText = `${place.neighborhood} • ${place.reward} Reward`;
+    document.getElementById('modalMissionSub').innerText = `${place.neighborhood} • Reward: ${rewardLabel(place)}`;
   }
   document.getElementById('submissionModal')?.classList.add('open');
   prepareSubmission(placeId);
