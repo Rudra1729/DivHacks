@@ -1,0 +1,86 @@
+{
+  "id": "C15",
+  "title": "Repeating a request never pays twice",
+  "proves": "Sending the exact same request twice returns the same decision and pays once, so a retry or a double-tap cannot double-pay.",
+  "cost": "0.01 RLUSD + devnet mint fee",
+  "status": "pass",
+  "summary": "Both requests returned decision 44fa7c1f-a65c-4369-8928-51a75f70c01d; one payment.",
+  "assertions": [
+    {
+      "description": "the first request paid",
+      "passed": true,
+      "actual": "OK"
+    },
+    {
+      "description": "the second request returned the same decision ID",
+      "passed": true,
+      "actual": "44fa7c1f-a65c-4369-8928-51a75f70c01d"
+    },
+    {
+      "description": "the second request returned the same payment hash",
+      "passed": true,
+      "actual": "1E78386A9498B99160747AC09CDA04AD442CEC445C17E5696012BA16FE589359"
+    },
+    {
+      "description": "the visitor received the reward exactly once",
+      "passed": true,
+      "actual": {
+        "gained": 0.010000000000000009,
+        "reward": 0.01
+      }
+    }
+  ],
+  "evidence": {
+    "first": {
+      "decisionId": "44fa7c1f-a65c-4369-8928-51a75f70c01d",
+      "stampFailed": false,
+      "status": "OK",
+      "reasons": [],
+      "proposal": {
+        "amount": 0.01,
+        "recipient": "rpU5YrQxWdm7So1tLC9vxyVMqhgVVCbTbY",
+        "reason": "Visit to Marcus Garvey Park"
+      },
+      "policyVersion": "1.0.0",
+      "xrplTxHash": "1E78386A9498B99160747AC09CDA04AD442CEC445C17E5696012BA16FE589359",
+      "solanaAssetAddress": "24DdJaWmY8xDcCTxXMhhYpYtuRvhvFNpFFZogr3ZaVSx",
+      "solanaSignature": "5GFR1omgCPbFNV6X6sx1r8FRnwW2aTFNZVXcpoQvCergCgrpaGsuaMZWZNG38xTyfb4kE8phtiDPCpbPXSsrnvJT",
+      "stampSerial": 4,
+      "stampTier": "Legendary"
+    },
+    "second": {
+      "decisionId": "44fa7c1f-a65c-4369-8928-51a75f70c01d",
+      "status": "OK",
+      "reasons": [],
+      "proposal": {
+        "amount": 0.01,
+        "recipient": "rpU5YrQxWdm7So1tLC9vxyVMqhgVVCbTbY",
+        "reason": "Visit to Marcus Garvey Park"
+      },
+      "policyVersion": "1.0.0",
+      "xrplTxHash": "1E78386A9498B99160747AC09CDA04AD442CEC445C17E5696012BA16FE589359",
+      "solanaAssetAddress": "24DdJaWmY8xDcCTxXMhhYpYtuRvhvFNpFFZogr3ZaVSx",
+      "solanaSignature": "5GFR1omgCPbFNV6X6sx1r8FRnwW2aTFNZVXcpoQvCergCgrpaGsuaMZWZNG38xTyfb4kE8phtiDPCpbPXSsrnvJT",
+      "stampSerial": 4,
+      "stampTier": "Legendary",
+      "stampFailed": false
+    },
+    "balanceBefore": 0.12,
+    "balanceAfter": 0.13
+  },
+  "links": [
+    {
+      "label": "XRPL payment on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/1E78386A9498B99160747AC09CDA04AD442CEC445C17E5696012BA16FE589359"
+    },
+    {
+      "label": "Solana stamp (asset) on the devnet explorer",
+      "url": "https://explorer.solana.com/address/24DdJaWmY8xDcCTxXMhhYpYtuRvhvFNpFFZogr3ZaVSx?cluster=devnet"
+    },
+    {
+      "label": "Solana mint transaction on the devnet explorer",
+      "url": "https://explorer.solana.com/tx/5GFR1omgCPbFNV6X6sx1r8FRnwW2aTFNZVXcpoQvCergCgrpaGsuaMZWZNG38xTyfb4kE8phtiDPCpbPXSsrnvJT?cluster=devnet"
+    }
+  ],
+  "durationMs": 14397
+}

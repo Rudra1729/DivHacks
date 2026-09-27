@@ -1,0 +1,162 @@
+{
+  "id": "C17",
+  "title": "The ledger itself refuses an overspend when the policy is bypassed",
+  "proves": "Even if every app-level check is skipped and the agent tries to pay an attacker 50 RLUSD, the XRPL ledger rejects it, because the agent wallet never holds more than its small allowance.",
+  "cost": "a tiny XRP fee (the rejected payment still reaches the ledger)",
+  "status": "pass",
+  "summary": "The forced 50 RLUSD proposal was stopped by policy first, then rejected by the ledger when the policy bypass was enabled.",
+  "assertions": [
+    {
+      "description": "the test-only route forced the 50 RLUSD proposal",
+      "passed": true,
+      "actual": {
+        "forcedProposal": {
+          "amount": 50,
+          "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+          "reason": "live forced overspend demo"
+        }
+      }
+    },
+    {
+      "description": "without the bypass, the forced proposal is stopped by policy",
+      "passed": true,
+      "actual": {
+        "decisionId": "698f9871-4e85-457d-928e-07a1a1d63c9f",
+        "stampFailed": false,
+        "status": "BLOCKED_POLICY",
+        "reasons": [
+          "per-task cap: asked for 50, max is 5",
+          "recipient mismatch: proposal pays rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq, submitted wallet is rGZdWjw2yFWB6kV7ddiYDspU31GRHKMnnX",
+          "daily cap: already paid 10 today, asked for 50, max is 10 per day"
+        ],
+        "proposal": {
+          "amount": 50,
+          "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+          "reason": "live forced overspend demo"
+        },
+        "policyVersion": "1.0.0"
+      }
+    },
+    {
+      "description": "the policy reported the 50 RLUSD per-task cap",
+      "passed": true,
+      "actual": [
+        "per-task cap: asked for 50, max is 5",
+        "recipient mismatch: proposal pays rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq, submitted wallet is rGZdWjw2yFWB6kV7ddiYDspU31GRHKMnnX",
+        "daily cap: already paid 10 today, asked for 50, max is 10 per day"
+      ]
+    },
+    {
+      "description": "the bypass route enabled the app-level skip",
+      "passed": true,
+      "actual": {
+        "policyBypassEnabled": true,
+        "forcedProposal": {
+          "amount": 50,
+          "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+          "reason": "live forced overspend demo"
+        }
+      }
+    },
+    {
+      "description": "with policy bypassed, the ledger rejects the forced payout",
+      "passed": true,
+      "actual": {
+        "decisionId": "f38e2113-4baf-424e-a36c-e09db51f79a5",
+        "stampFailed": false,
+        "status": "REJECTED_BY_LEDGER",
+        "reasons": [
+          "policy skipped: test mode bypass",
+          "ledger rejected payment: tecPATH_PARTIAL"
+        ],
+        "proposal": {
+          "amount": 50,
+          "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+          "reason": "live forced overspend demo"
+        },
+        "xrplTxHash": "06349C285960BE156FEBE4DD2120610EEB0B57FDB313565F5640770F3C9B07D6",
+        "xrplResultCode": "tecPATH_PARTIAL"
+      }
+    },
+    {
+      "description": "the rejected decision kept the forced proposal",
+      "passed": true,
+      "actual": {
+        "amount": 50,
+        "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+        "reason": "live forced overspend demo"
+      }
+    },
+    {
+      "description": "the ledger result is a \"tec\" rejection code",
+      "passed": true,
+      "actual": "tecPATH_PARTIAL"
+    },
+    {
+      "description": "the attacker received nothing",
+      "passed": true,
+      "actual": 0
+    },
+    {
+      "description": "the agent wallet lost no RLUSD",
+      "passed": true,
+      "actual": 9.8
+    }
+  ],
+  "evidence": {
+    "forcedRoute": {
+      "forcedProposal": {
+        "amount": 50,
+        "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+        "reason": "live forced overspend demo"
+      }
+    },
+    "stoppedByPolicy": {
+      "decisionId": "698f9871-4e85-457d-928e-07a1a1d63c9f",
+      "stampFailed": false,
+      "status": "BLOCKED_POLICY",
+      "reasons": [
+        "per-task cap: asked for 50, max is 5",
+        "recipient mismatch: proposal pays rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq, submitted wallet is rGZdWjw2yFWB6kV7ddiYDspU31GRHKMnnX",
+        "daily cap: already paid 10 today, asked for 50, max is 10 per day"
+      ],
+      "proposal": {
+        "amount": 50,
+        "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+        "reason": "live forced overspend demo"
+      },
+      "policyVersion": "1.0.0"
+    },
+    "bypassRoute": {
+      "policyBypassEnabled": true,
+      "forcedProposal": {
+        "amount": 50,
+        "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+        "reason": "live forced overspend demo"
+      }
+    },
+    "rejectedByLedger": {
+      "decisionId": "f38e2113-4baf-424e-a36c-e09db51f79a5",
+      "stampFailed": false,
+      "status": "REJECTED_BY_LEDGER",
+      "reasons": [
+        "policy skipped: test mode bypass",
+        "ledger rejected payment: tecPATH_PARTIAL"
+      ],
+      "proposal": {
+        "amount": 50,
+        "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+        "reason": "live forced overspend demo"
+      },
+      "xrplTxHash": "06349C285960BE156FEBE4DD2120610EEB0B57FDB313565F5640770F3C9B07D6",
+      "xrplResultCode": "tecPATH_PARTIAL"
+    }
+  },
+  "links": [
+    {
+      "label": "The rejected transaction on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/06349C285960BE156FEBE4DD2120610EEB0B57FDB313565F5640770F3C9B07D6"
+    }
+  ],
+  "durationMs": 17450
+}

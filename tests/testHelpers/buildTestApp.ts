@@ -11,7 +11,7 @@ import { openDatabase } from '../../src/db';
 import { Orchestrator, OrchestratorDeps } from '../../src/orchestrator/orchestrator';
 import { RealSentinel } from '../../src/sentinel/realSentinel';
 import { SqliteStorage } from '../../src/storage/sqliteStorage';
-import { AgentInput, AgentProposal, PayoutAgent } from '../../src/agent/types';
+import { AgentInput, AgentProposal, PayoutAgent, PayoutReviewer, ReviewVerdict } from '../../src/agent/types';
 import { FakePaymentService } from '../../src/xrpl/fakePayments';
 import { FakeStampService } from '../../src/solana/fakeStamps';
 
@@ -19,6 +19,13 @@ import { FakeStampService } from '../../src/solana/fakeStamps';
 class BaseRewardAgent implements PayoutAgent {
   async propose(input: AgentInput): Promise<AgentProposal> {
     return { amount: input.place.baseReward, recipient: input.xrplAddress, reason: 'test agent' };
+  }
+}
+
+/** A reviewer that stays out of tests not focused on the review layer. */
+class ApprovingReviewer implements PayoutReviewer {
+  async review(): Promise<ReviewVerdict> {
+    return { decision: 'approve', reason: 'test reviewer' };
   }
 }
 
@@ -47,16 +54,18 @@ export function buildTestApp(
   const db = openDatabase(':memory:');
 
   const solana = deps.solana ?? new FakeStampService();
+  const xrpl = deps.xrpl ?? new FakePaymentService();
   const orchestrator = new Orchestrator({
     sentinel: new RealSentinel(db, solana, { locationChecks: config.locationChecks }),
     agent: new BaseRewardAgent(),
-    xrpl: new FakePaymentService(),
+    reviewer: new ApprovingReviewer(),
+    xrpl,
     solana,
     storage: new SqliteStorage(db),
     isTestMode: config.isTestMode,
     ...deps,
   });
 
-  const app = createApp(config, db, orchestrator);
+  const app = createApp(config, db, orchestrator, xrpl);
   return { app, db, orchestrator };
 }

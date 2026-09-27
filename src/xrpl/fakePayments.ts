@@ -128,6 +128,16 @@ export class FakePaymentService implements XrplService {
     return loadXrplConfig().agentAddress;
   }
 
+  /** Add RLUSD to the fake agent wallet, like a guardian top-up. For tests that
+  need more than the 10 RLUSD allowance, such as ones about the daily cap.
+
+  Args:
+      amount (number): RLUSD to add.
+  */
+  fundAgent(amount: number): void {
+    this.agentBalance = this.currentAgentBalance() + amount;
+  }
+
   /** Forget all fake state and restore the starting allowance. Used between tests. */
   reset(): void {
     this.agentBalance = null;

@@ -15,7 +15,7 @@ for commit/PR rules.
 - SQLite (`better-sqlite3`) for local storage
 - XRPL testnet (RLUSD payments)
 - Solana devnet (Metaplex Core soulbound stamps)
-- Grok (payout agent)
+- Grok (payout agent and independent payout reviewer)
 
 ## Getting started
 
@@ -57,7 +57,7 @@ for what each check proves and how to read the results. Use
 
 ```
 src/
-  agent/         Grok payout agent
+  agent/         Grok payout agent and payout reviewer
   claims/        per-user submission lock
   data/          shared places list
   db/            SQLite schema and data access
@@ -78,13 +78,19 @@ tasks/           local planning notes (not committed)
 
 1. `POST /submissions` validates the request (place, photo, location,
    timestamp, wallet addresses) and hands it to the orchestrator.
-2. The orchestrator runs, in order: duplicate-request check, Sentinel
-   verification, mark claim pending, Grok proposal, policy check, XRPL
-   payment, Solana stamp mint, save decision.
+2. The orchestrator runs, in order: duplicate-request check, solvency
+   check, Sentinel verification, mark claim pending, Grok proposal, policy
+   check, independent reviewer check, XRPL payment, Solana stamp mint, save
+   decision.
 3. The response is the saved `DecisionResult`: a `status`
-   (`OK`, `BLOCKED_SENTINEL`, `BLOCKED_POLICY`, `REJECTED_BY_LEDGER`, or
-   `STAMP_FAILED`) plus `reasons`, the XRPL tx hash, and the Solana asset
-   info when applicable.
+   (`OK`, `BLOCKED_SOLVENCY`, `BLOCKED_SENTINEL`, `BLOCKED_POLICY`,
+   `BLOCKED_REVIEW`, `REJECTED_BY_LEDGER`, `PAYMENT_UNCONFIRMED`,
+   `PAYMENT_FAILED`, or `STAMP_FAILED`) plus `reasons`, the XRPL tx hash,
+   and the Solana asset info when applicable.
+
+`GET /places` also reports whether each place is currently payable from the
+agent wallet. The ledger-backed `payable` value is cached briefly, and
+`payableCheck` explains whether the ledger read succeeded.
 
 ## Location checks
 

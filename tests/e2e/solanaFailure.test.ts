@@ -51,6 +51,7 @@ describe('e2e: Solana failure', () => {
 
   it('still counts the paid amount toward the daily cap', async () => {
     const user = makeUser(2);
+    stack.xrpl.fundAgent(5);
     stack.solana.setFailMints(true);
     await submit(stack.app, user, place(0), { caption: 'AMOUNT:5' });
     await submit(stack.app, user, place(1), { caption: 'AMOUNT:5' });

@@ -1,0 +1,43 @@
+{
+  "id": "C20",
+  "title": "Test-only attack routes do not exist in normal mode",
+  "proves": "The policy bypass switch used for the attack demo is not reachable on a normally running server.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "The attack routes are absent in normal mode and the forced-proposal route exists only in test mode.",
+  "assertions": [
+    {
+      "description": "POST /test/attack returns 404",
+      "passed": true,
+      "actual": 404
+    },
+    {
+      "description": "POST /test/attack/force-proposal returns 404",
+      "passed": true,
+      "actual": 404
+    },
+    {
+      "description": "the forced proposal route is reachable only on a test-mode server",
+      "passed": true,
+      "actual": 200
+    }
+  ],
+  "evidence": {
+    "normalMode": {
+      "bypassStatus": 404,
+      "forceStatus": 404
+    },
+    "testMode": {
+      "forceStatus": 200,
+      "response": {
+        "forcedProposal": {
+          "amount": 50,
+          "recipient": "rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq",
+          "reason": "test forced proposal"
+        }
+      }
+    }
+  },
+  "links": [],
+  "durationMs": 8235
+}
