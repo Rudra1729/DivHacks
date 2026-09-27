@@ -3,6 +3,8 @@ and starts listening.
 
 XRPL and Solana each pick their implementation from config: XRPL_MODE and
 SOLANA_MODE, both 'fake' by default, so the server runs with no keys.
+In real XRPL mode each user's custodial wallet is funded and given an RLUSD
+trust line right before its first payment.
 */
 
 import 'dotenv/config';
@@ -14,6 +16,7 @@ import { RealSentinel } from './sentinel/realSentinel';
 import { SqliteStorage } from './storage/sqliteStorage';
 import { GrokAgent } from './agent/grok';
 import { xrplService } from './xrpl';
+import { WalletActivator, withWalletActivation } from './xrpl/activation';
 import { solanaStamps } from './solana';
 
 const config = loadConfig();
@@ -27,7 +30,7 @@ const orchestrator = new Orchestrator({
     endpoint: config.grokEndpoint,
     rewardScale: config.rewardScale,
   }),
-  xrpl: xrplService,
+  xrpl: withWalletActivation(xrplService, new WalletActivator(db)),
   solana: solanaStamps,
   storage: new SqliteStorage(db),
   isTestMode: config.isTestMode,
