@@ -23,7 +23,7 @@ Usage:
     npm run grok:try
 */
 
-import { GrokAgent } from '../../src/agent/grok';
+import { GrokAgent, scaleReward } from '../../src/agent/grok';
 import { AgentInput, AgentProposal } from '../../src/agent/types';
 import { loadConfig } from '../../src/config';
 import { PLACES } from '../../src/data/places';
@@ -68,7 +68,8 @@ async function main(): Promise<void> {
   if (!place) {
     throw new Error('first place not found');
   }
-  console.log(`Place:    ${place.name}, base reward ${place.baseReward} RLUSD
+  console.log(`Place:    ${place.name}, base reward ${place.baseReward} RLUSD`);
+  console.log(`Scale:    ${config.rewardScale} (Grok sees ${scaleReward(place.baseReward, config.rewardScale)} RLUSD)
 `);
 
   let lastRaw = '';
@@ -76,6 +77,7 @@ async function main(): Promise<void> {
     apiKey: config.grokApiKey,
     model: config.grokModel,
     endpoint: config.grokEndpoint,
+    rewardScale: config.rewardScale,
     onRawReply: (text) => {
       lastRaw = text;
     },

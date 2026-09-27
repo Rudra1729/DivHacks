@@ -25,6 +25,7 @@ const orchestrator = new Orchestrator({
     apiKey: config.grokApiKey,
     model: config.grokModel,
     endpoint: config.grokEndpoint,
+    rewardScale: config.rewardScale,
   }),
   xrpl: xrplService,
   solana: solanaStamps,
