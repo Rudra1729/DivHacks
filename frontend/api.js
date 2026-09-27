@@ -116,5 +116,8 @@ Which server it talks to:
     submitVisit: (form) => request('/submissions', { method: 'POST', body: form }),
     getDecision: (decisionId) => request(`/decisions/${encodeURIComponent(decisionId)}`),
     setAttackMode: (enabled) => request('/test/attack', { method: enabled ? 'POST' : 'DELETE' }),
+    forceProposal: (recipient, amount, reason) =>
+      request('/test/attack/force-proposal', { method: 'POST', json: { recipient, amount, reason } }),
+    clearForcedProposal: () => request('/test/attack/force-proposal', { method: 'DELETE' }),
   };
 })();
