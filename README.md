@@ -35,6 +35,7 @@ npm run lint     # lint src/
 npm run test:e2e # end-to-end tests only
 npm run grok:try # try the Grok agent against the real API (needs GROK_API_KEY in .env)
 npm run missions:refresh # ask Grok for new overlooked NYC missions, add them to GET /places
+npm run missions:clear # remove every scouted mission (or pass IDs), leaving only the fixed places
 npm run db:reset # delete your local SQLite file (see note below)
 npm run reset:user -- you@example.com # let one account do every place again
 npm run season:new # restart every place at stamp #1 for everyone (see note below)
@@ -92,6 +93,13 @@ app. Restart the server afterwards. Most places pick their tier from the
 number (Legendary for #1 to #10, then Epic, Rare, Common), but a place can set
 a fixed tier: every Mudd Building stamp is Epic and every Mudd entrance stamp
 is Legendary.
+
+Scouted missions: "New Mission" adds a place to `data/generated-missions.json`.
+Before a demo, run `npm run missions:clear` to remove them all (or
+`npm run missions:clear -- waterfront-museum` for one), then press New Mission
+live. The fixed places are never removed. An open page drops the removed pins
+and cards when you switch back to its window, and the map re-centers on the
+places that are left.
 
 The page talks to the server it was loaded from. To point it at another
 server, add `?api=http://host:port` to the URL.
