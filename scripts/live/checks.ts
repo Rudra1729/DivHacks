@@ -762,7 +762,11 @@ export const CHECKS: Check[] = [
       const health = await getJson(ctx.serverA.baseUrl, '/health');
       const places = await getJson(ctx.serverA.baseUrl, '/places');
       a.that('health check is ok', health.body?.status === 'ok', health.body);
-      a.that('the places list has 6 places', places.body?.places?.length === 6, places.body?.places?.length);
+      a.that(
+        `the places list has ${PLACES.length} places`,
+        places.body?.places?.length === PLACES.length,
+        places.body?.places?.length
+      );
       const evidence: Record<string, unknown> = { health: health.body, places: (places.body?.places ?? []).map((p: Place) => ({ id: p.id, name: p.name, neighborhood: p.neighborhood })) };
       if (ctx.real && ctx.state.happy?.user) {
         const stamps = await getJson(ctx.serverA.baseUrl, `/users/${ctx.state.happy.user.solana}/stamps`);
