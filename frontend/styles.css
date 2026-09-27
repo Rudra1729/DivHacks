@@ -45,40 +45,46 @@ body.knowyork-theme {
   position: relative;
 }
 
-/* HALFTONE OVERLAY & SUNBURST RAYS */
+/* SUBTLE CITY BLUEPRINT / MAP LINEWORK OVERLAY
+   Faint grid + street-line pattern standing in for an architectural
+   blueprint, tying the background to "mapping the city" instead of a
+   generic dot texture. */
 .halftone-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-image: radial-gradient(var(--ink-black) 1px, transparent 1px);
-  background-size: 16px 16px;
-  opacity: 0.04;
+  background-image:
+    linear-gradient(rgba(0, 85, 165, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 85, 165, 0.10) 1px, transparent 1px),
+    linear-gradient(rgba(0, 85, 165, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 85, 165, 0.16) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px, 200px 200px, 200px 200px;
+  opacity: 0.55;
   pointer-events: none;
-  z-index: 1;
+  z-index: 50;
 }
 
-.sunburst-rays {
+/* Soft page-wide gradient wash, static, sits over everything (including
+   the crowd banner) the same way .halftone-overlay does. */
+.page-gradient-overlay {
   position: fixed;
-  top: -50vh;
-  left: -50vw;
-  width: 200vw;
-  height: 200vh;
-  background: repeating-conic-gradient(
-    from 0deg,
-    rgba(229, 36, 33, 0.05) 0deg 15deg,
-    transparent 15deg 30deg
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(
+    180deg,
+    rgba(229, 36, 33, 0.05) 0%,
+    rgba(255, 204, 0, 0.04) 45%,
+    rgba(0, 240, 255, 0.04) 100%
   );
-  animation: rotateRays 120s linear infinite;
   pointer-events: none;
-  z-index: 0;
+  z-index: 50;
+  mix-blend-mode: multiply;
 }
 
-@keyframes rotateRays {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 
 /* NAVIGATION BAR */
 .navbar {
@@ -142,11 +148,12 @@ body.knowyork-theme {
 }
 
 .brand-title {
-  font-family: var(--font-comic);
+  font-family: 'Anton', sans-serif;
   font-size: 1.75rem;
   color: var(--hero-red);
   letter-spacing: 1.5px;
   line-height: 1;
+  text-transform: none;   /* K and Y uppercase = visually larger than lowercase */
   text-shadow: 2px 2px 0px #000;
 }
 
@@ -291,10 +298,21 @@ body.knowyork-theme {
 /* HERO SECTION: MARVEL NEWSPAPER COLLAGE STYLE */
 .hero-section {
   position: relative;
-  padding: 3rem 1.5rem 4rem 1.5rem;
+  /* Full-width so crowd canvas can be a direct child without any breakout hack */
+  width: 100%;
+  padding: 0;
+  z-index: 5;
+}
+
+/* Inner wrapper that constrains title and CTA content to the readable max-width */
+.hero-content-inner {
   max-width: 1280px;
   margin: 0 auto;
-  z-index: 5;
+  padding: 1.75rem 1.5rem 0;
+}
+
+.hero-cta-inner {
+  padding: 0 1.5rem 3rem;
 }
 
 .collage-hero-wrapper {
@@ -309,7 +327,7 @@ body.knowyork-theme {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1rem;
 }
 
 .title-tape-box {
@@ -360,12 +378,13 @@ body.knowyork-theme {
 .knowyork-title {
   font-family: 'Anton', var(--font-fun), var(--font-comic), sans-serif;
   font-weight: 900;
-  font-size: 5.5rem;
+  font-size: 6.3rem;
   letter-spacing: 4px;
   line-height: 1;
   color: var(--hero-red);
-  text-transform: uppercase;
-  -webkit-text-stroke: 2px var(--ink-black);
+  /* Allow mixed-case so K and Y are visually large, rest small */
+  text-transform: none;
+  -webkit-text-stroke: 3px var(--ink-black);
   cursor: pointer;
 }
 
@@ -388,13 +407,13 @@ body.knowyork-theme {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.6rem;
+  gap: 1.1rem;
   background: transparent;
   border: none;
   box-shadow: none;
   transform: rotate(-1deg);
   padding: 0;
-  margin-top: -6px;
+  margin-top: 14px;
 }
 
 .tagline-block {
@@ -418,41 +437,52 @@ body.knowyork-theme {
   transform: rotate(-2deg);
 }
 
+.knowyork-subtagline {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-style: italic;
+  font-size: 1.9rem;
+  color: var(--ink-black);
+  text-align: center;
+  max-width: 46rem;
+  width: 100%;
+  margin: 3rem auto 0;
+  line-height: 1.5;
+}
+
 @media (max-width: 992px) {
-  .knowyork-title { font-size: 3rem; }
+  .knowyork-title { font-size: 4.5rem; }
   .tagline-block { font-size: 1.1rem; }
+  .knowyork-subtagline { font-size: 1.4rem; padding: 0 1rem; }
 }
 
-/* CROWD CANVAS HERO: an animated crowd of New Yorkers walking past the title */
+/* CROWD CANVAS HERO: full-bleed, direct child of .hero-section so
+   it naturally spans 100% width with zero alignment tricks needed. */
 .crowd-hero-stage {
-  /* Breaks out of .hero-section's centered max-width so the crowd spans
-     the full viewport width, edge to edge, regardless of ancestor padding. */
   position: relative;
-  left: 50%;
-  right: 50%;
-  width: 100vw;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  height: 46vh;
-  min-height: 320px;
-  max-height: 460px;
-  margin-top: 1rem;
-  border-top: var(--comic-border);
-  border-bottom: var(--comic-border);
+  width: 100%;
+  height: 40vh;
+  min-height: 280px;
+  max-height: 400px;
+  margin-top: 1.5rem;
   overflow: hidden;
-  background: linear-gradient(180deg, var(--paper-cream) 0%, var(--paper-white) 100%);
-  box-shadow: var(--comic-shadow-lg);
+  /* Seamless gradient — no borders or shadows */
+  background: linear-gradient(180deg, var(--paper-cream) 0%, var(--paper-cream) 55%, var(--paper-white) 100%);
 }
 
+/* Sunburst ray overlay — static conic gradient sits on top of the
+   walking crowd, blending with the characters via multiply mode for a
+   comic-book action-lines feel. No animation — fixed texture only. */
 .crowd-canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  z-index: 0;
 }
 
 @media (max-width: 700px) {
-  .crowd-hero-stage { height: 34vh; min-height: 220px; }
+  .crowd-hero-stage { height: 32vh; min-height: 220px; margin-top: -0.5rem; }
 }
 
 /* PUSHPIN ACCENTS */
@@ -764,12 +794,23 @@ body.knowyork-theme {
   opacity: 1;
 }
 
+/* SPIDEY-BOT SECTION: full-width strip that centres the card */
+.spidey-bot-section {
+  background: var(--paper-cream);
+  padding: 2.5rem 1.5rem;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 5;
+}
+
 /* SPIDEY-BOT CARD & DIALOGUE BUBBLE */
 .spidey-bot-card {
   display: flex;
   align-items: center;
   gap: 2rem;
   max-width: 900px;
+  margin: 0 auto;          /* centres the card horizontally */
   background: var(--paper-white);
   border: var(--comic-border);
   border-radius: 16px;

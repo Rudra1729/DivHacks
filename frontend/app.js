@@ -857,7 +857,7 @@ function initCrowdCanvas() {
 
   function resetPeep(peep) {
     const direction = Math.random() > 0.5 ? 1 : -1;
-    const offsetY = 100 - 250 * gsap.parseEase('power2.in')(Math.random());
+    const offsetY = 50 - 120 * gsap.parseEase('power2.in')(Math.random());
     const startY = stage.height - peep.height + offsetY;
     let startX, endX;
 

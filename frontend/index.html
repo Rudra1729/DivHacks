@@ -24,9 +24,9 @@
 </head>
 <body class="knowyork-theme">
 
-  <!-- BACKGROUND ROTATING ACTION RAYS & HALFTONE -->
+  <!-- BACKGROUND: HALFTONE DOTS & PAGE-WIDE GRADIENT WASH -->
   <div class="halftone-overlay"></div>
-  <div class="sunburst-rays"></div>
+  <div class="page-gradient-overlay"></div>
 
   <!-- NAVIGATION BAR -->
   <header class="navbar">
@@ -36,7 +36,7 @@
           <span class="ny-logo-mark">NY</span>
         </div>
         <div class="brand-text">
-          <span class="brand-title">KNOWYORK</span>
+          <span class="brand-title">KnowYork</span>
           <span class="brand-sub">CITY GUIDE</span>
         </div>
       </div>
@@ -58,50 +58,41 @@
     </div>
   </header>
 
-  <!-- LIVE TICKER MARQUEE -->
-  <div class="ticker-wrap">
-    <div class="ticker-title"><i data-lucide="activity"></i> LIVE ACTIVITY STREAM:</div>
-    <div class="ticker-content" id="tickerStream">
-      <span class="ticker-item"><strong class="highlight-yellow">UNLOCKED!</strong> User <code>rP9x...2a</code> unlocked Apollo Theater (+1.0 RLUSD)</span>
-      <span class="ticker-item"><strong class="highlight-red">SNAG!</strong> Duplicate photo attempt blocked by Sentinel</span>
-      <span class="ticker-item"><strong class="highlight-cyan">CARD MINTED!</strong> Harlem Cultural Passport #042 minted on Solana</span>
-      <span class="ticker-item"><strong class="highlight-yellow">VERIFIED!</strong> Wheelchair Ramp Inspection verified in Morningside Heights</span>
-      <span class="ticker-item"><strong class="highlight-red">GUARDRAIL HELD!</strong> Policy engine blocked prompt injection overspend</span>
-    </div>
-  </div>
-
   <!-- HERO SECTION: MARVEL NEWSPAPER COLLAGE STYLE -->
   <section class="hero-section" id="hero">
-    <div class="collage-hero-wrapper">
-      
-      <!-- TOP MAIN COLLAGE TITLE BANNER -->
-      <div class="collage-title-banner">
-        <div class="pushpin pushpin-top-left"></div>
-        <div class="pushpin pushpin-top-right"></div>
-        <div class="title-tape-box title-black-box knowyork-title-box">
-          <span
-            class="knowyork-title"
-            data-z
-            data-z-layers="14"
-            data-z-depth="0.65rem"
-            data-z-event="pointer"
-            data-z-event-rotation="18deg"
-            data-z-fade="true"
-          >KNOWYORK</span>
-        </div>
-        <div class="title-tape-box title-white-box knowyork-tagline-box">
-          <span class="tagline-block">KNOW</span>
-          <span class="tagline-block">NEW YORK</span>
-          <span class="tagline-block">CITY</span>
+
+    <!-- Constrained inner: title banner -->
+    <div class="hero-content-inner">
+      <div class="collage-hero-wrapper">
+        <div class="collage-title-banner">
+          <div class="title-tape-box title-black-box knowyork-title-box">
+            <span
+              class="knowyork-title"
+              data-z
+              data-z-layers="14"
+              data-z-depth="0.65rem"
+              data-z-event="pointer"
+              data-z-event-rotation="18deg"
+              data-z-fade="true"
+            >KnowYork</span>
+          </div>
+          <div class="title-tape-box title-white-box knowyork-tagline-box">
+            <span class="tagline-block">BLOCK</span>
+            <span class="tagline-block">BY</span>
+            <span class="tagline-block">BLOCK</span>
+          </div>
+          <p class="knowyork-subtagline">Explore NYC's hidden gems, verified on-chain, rewarded in real time.</p>
         </div>
       </div>
+    </div>
 
-      <!-- CROWD CANVAS: an animated crowd of New Yorkers walking past -->
-      <div class="crowd-hero-stage">
-        <canvas id="crowdCanvas" class="crowd-canvas"></canvas>
-      </div>
+    <!-- CROWD CANVAS: full-bleed, direct child of section so no breakout hack needed -->
+    <div class="crowd-hero-stage">
+      <canvas id="crowdCanvas" class="crowd-canvas"></canvas>
+    </div>
 
-      <!-- HERO CTA BUTTONS -->
+    <!-- Constrained inner: CTA buttons -->
+    <div class="hero-content-inner hero-cta-inner">
       <div class="collage-cta-group">
         <a href="#spiderweb" class="comic-btn hero-red-btn big-btn">
           <i data-lucide="compass"></i> EXPLORE THE NYC MAP
@@ -110,13 +101,14 @@
           <i data-lucide="bot"></i> MEET THE AI GUIDE
         </a>
       </div>
-
     </div>
+
   </section>
 
-      <!-- SPIDEY-BOT FLOATING MASCOT & DIALOGUE -->
-      <div class="spidey-bot-card">
-        <div class="spidey-bot-avatar" id="spideyBotAvatar">
+  <!-- SPIDEY-BOT AI GUIDE: centred section between hero and map -->
+  <div class="spidey-bot-section">
+    <div class="spidey-bot-card">
+      <div class="spidey-bot-avatar" id="spideyBotAvatar">
           <svg viewBox="0 0 120 120" class="spidey-head-svg">
             <!-- Mask Base -->
             <path d="M60 10 C25 10 15 45 15 75 C15 100 40 115 60 115 C80 115 105 100 105 75 C105 45 95 10 60 10 Z" fill="#E52421" stroke="#121212" stroke-width="4"/>
@@ -143,7 +135,8 @@
             <button class="comic-chip-btn" id="spideyExplainBtn"><i data-lucide="info"></i> How Guardrails Work</button>
           </div>
         </div>
-      </div>
+    </div>
+  </div>
 
   <!-- SECTION 1: THE INTERACTIVE SPIDERWEB MAP -->
   <section class="section-container map-fullbleed" id="spiderweb">
@@ -495,7 +488,7 @@
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-brand">
-        <span class="brand-title">KNOWYORK</span>
+        <span class="brand-title">KnowYork</span>
         <p>Built for DivHacks 2026 • Powered by Express, XRPL RLUSD & Solana Metaplex</p>
       </div>
       <div class="footer-links">
