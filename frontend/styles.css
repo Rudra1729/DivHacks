@@ -1203,6 +1203,18 @@ body.spidey-theme {
 }
 
 .card-meta { font-size: 0.8rem; font-weight: 700; color: #666; }
+.card-reward {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.2rem 0.55rem;
+  border: 2px solid #111;
+  border-radius: 6px;
+  font-family: var(--font-comic);
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+.card-reward.paid { background: #2E7D32; color: #fff; }
+.card-reward.stamp-only { background: #eee; color: #444; }
 
 .card-back-title {
   font-family: var(--font-comic);

@@ -643,6 +643,8 @@ function stampCard(stamp) {
     decisionId: escapeHtml(stamp.decisionId),
     mint: escapeHtml(shortHash(stamp.assetAddress)),
     tx: escapeHtml(stamp.xrplTxHash ? shortHash(stamp.xrplTxHash) : 'None, cultural visits earn the stamp only'),
+    reward: stamp.rewardRlusd > 0 ? `EARNED +${stamp.rewardRlusd} RLUSD` : 'STAMP ONLY, NO RLUSD',
+    rewardClass: stamp.rewardRlusd > 0 ? 'paid' : 'stamp-only',
     rarity: escapeHtml(stamp.tier ? `${stamp.tier}, finder #${stamp.serial} of ${STAMP_SUPPLY}` : 'Unranked')
   };
 }
@@ -678,6 +680,7 @@ function renderTradingCards() {
             </div>
             <h4 class="card-name">${stamp.name}</h4>
             <div class="card-meta">${stamp.place}</div>
+            <span class="card-reward ${stamp.rewardClass}">${stamp.reward}</span>
           </div>
           <div style="text-align:right; font-size:0.75rem; font-weight:800; color:#555;">
             CLICK TO FLIP <i data-lucide="rotate-cw" style="vertical-align:middle;"></i>
@@ -695,6 +698,10 @@ function renderTradingCards() {
             <div class="audit-field">
               <div class="audit-label">Solana Stamp Address</div>
               <div class="audit-val">${stamp.mint}</div>
+            </div>
+            <div class="audit-field">
+              <div class="audit-label">Reward</div>
+              <div class="audit-val">${stamp.reward}</div>
             </div>
             <div class="audit-field">
               <div class="audit-label">XRPL Payment Tx</div>
