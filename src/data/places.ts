@@ -6,7 +6,14 @@ placeholders until real photos exist. Solana collection addresses stay null
 until collections are set up. This module
 is the single source of truth other modules should import from, so
 updating it updates the whole backend.
+
+PLACES itself never changes at runtime. Places added later by the weekly
+mission scout (src/missions) live in a separate generated file and are
+merged in only by getAllPlaces() and getPlaceById(), so anything reading
+PLACES directly keeps seeing exactly this fixed list.
 */
+
+import { readGeneratedMissions } from '../missions/store';
 
 export interface Place {
   id: string;
@@ -18,6 +25,8 @@ export interface Place {
   baseRewardRlusd: number;
   solanaCollectionAddress: string | null;
   imageUrl: string;
+  /** One-line description shown to visitors. Optional: the fixed places below do not set it. */
+  description?: string;
 }
 
 export const PLACES: Place[] = [
@@ -89,7 +98,29 @@ export const PLACES: Place[] = [
   },
 ];
 
-/** Look up a place by ID.
+/** Places added since launch by the weekly mission scout (src/missions).
+
+Read fresh on every call: the file is tiny and this keeps a freshly
+generated mission visible immediately, with no cache to invalidate.
+
+Returns:
+    Place[]: Generated places, [] if none have been added yet.
+*/
+export function getGeneratedPlaces(): Place[] {
+  return readGeneratedMissions();
+}
+
+/** Every place a user can currently complete a mission at: the fixed list plus
+anything the weekly mission scout has generated since.
+
+Returns:
+    Place[]: PLACES followed by any generated places, fixed places first.
+*/
+export function getAllPlaces(): Place[] {
+  return [...PLACES, ...getGeneratedPlaces()];
+}
+
+/** Look up a place by ID, fixed or generated.
 
 Args:
     placeId (string): The place's ID.
@@ -98,5 +129,5 @@ Returns:
     Place | undefined: The place, or undefined if the ID is unknown.
 */
 export function getPlaceById(placeId: string): Place | undefined {
-  return PLACES.find((place) => place.id === placeId);
+  return getAllPlaces().find((place) => place.id === placeId);
 }
