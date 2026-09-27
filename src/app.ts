@@ -18,6 +18,7 @@ import { eventsRouter } from './routes/events';
 import { createTestAttackRouter } from './routes/testAttack';
 import { createAuthRouter } from './routes/auth';
 import { createWalletRouter } from './routes/wallet';
+import { finalErrorHandler } from './routes/errorHandler';
 import { xrplService } from './xrpl';
 
 /** Build the Express application.
@@ -60,35 +61,7 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
     next(err);
   });
 
-  // Last stop for any error nothing else handled. The visitor gets a short,
-  // safe message, and the real error goes to the server log.
-  app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
-    if (res.headersSent) {
-      next(err);
-      return;
-    }
-    const status = clientErrorStatus(err);
-    if (status) {
-      res.status(status).json({ error: 'bad request' });
-      return;
-    }
-    // eslint-disable-next-line no-console
-    console.error(`Unhandled error in ${req.method} ${req.path}:`, err);
-    res.status(500).json({ error: 'something went wrong on our side, please try again' });
-  });
+  app.use(finalErrorHandler);
 
   return app;
-}
-
-/** The HTTP status of an error caused by the request itself, such as malformed JSON.
-
-Args:
-    err (unknown): An error passed to Express's error handling.
-
-Returns:
-    number | undefined: A 4xx status if the error carries one, otherwise undefined.
-*/
-function clientErrorStatus(err: unknown): number | undefined {
-  const status = (err as { status?: unknown; statusCode?: unknown } | null)?.status ?? (err as { statusCode?: unknown } | null)?.statusCode;
-  return typeof status === 'number' && status >= 400 && status < 500 ? status : undefined;
 }
