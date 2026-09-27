@@ -13,14 +13,26 @@ import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 Attributes:
     stampsByOwner (Map<string, Stamp[]>): Minted stamps per wallet.
     mintCount (number): Number of successful fake mints, used for fake IDs.
+    failMints (boolean): When true, every mint fails.
 */
 export class FakeStampService implements StampService {
   private stampsByOwner = new Map<string, Stamp[]>();
   private mintCount = 0;
+  private failMints = false;
+
+  /** Make every following mint fail, to exercise the payment-then-mint-failure path.
+
+  Args:
+      fail (boolean): True to fail mints, false to succeed again.
+  */
+  setFailMints(fail: boolean): void {
+    this.failMints = fail;
+  }
 
   /** Record a fake stamp for the user.
 
-  Honors SOLANA_FORCE_FAIL so the Solana-failure test also works in fake mode.
+  Fails when setFailMints(true) was called or SOLANA_FORCE_FAIL is set, so the
+  Solana-failure test also works in fake mode.
 
   Args:
       input (MintStampInput): Decision, place, wallet, and XRPL hash.
@@ -30,13 +42,13 @@ export class FakeStampService implements StampService {
   */
   async mintStamp(input: MintStampInput): Promise<MintStampResult> {
     const config = loadSolanaConfig();
-    if (config.forceFail) {
-      return { ok: false, error: 'forced mint failure (SOLANA_FORCE_FAIL=true)' };
+    if (this.failMints || config.forceFail) {
+      return { ok: false, error: 'forced mint failure' };
     }
 
     this.mintCount += 1;
     const assetAddress = `fake-asset-${this.mintCount}`;
-    const place = findPlace(config, input.placeId);
+    const place = findPlace(input.placeId);
     const stamp: Stamp = {
       assetAddress,
       owner: input.userSolanaAddress,
@@ -80,10 +92,11 @@ export class FakeStampService implements StampService {
     return [...(this.stampsByOwner.get(solanaAddress) ?? [])];
   }
 
-  /** Forget every fake stamp. Used between tests. */
+  /** Forget every fake stamp and stop failing mints. Used between tests. */
   reset(): void {
     this.stampsByOwner.clear();
     this.mintCount = 0;
+    this.failMints = false;
   }
 }
 

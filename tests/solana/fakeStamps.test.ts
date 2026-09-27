@@ -1,7 +1,7 @@
 /**Tests for the fake stamp service and the SOLANA_MODE switch.*/
 
-import { fakeStampService } from '../../src/solana/fakeStamps';
-import { getStamps, hasStampForPlace, mintStamp } from '../../src/solana';
+import { FakeStampService, fakeStampService } from '../../src/solana/fakeStamps';
+import { getStamps, hasStampForPlace, mintStamp, solanaStamps } from '../../src/solana';
 
 const input = {
   decisionId: 'dec-1',
@@ -14,7 +14,7 @@ describe('fake stamps', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
-    process.env = { ...originalEnv, SOLANA_MODE: 'fake', PLACES_PATH: 'does-not-exist.json' };
+    process.env = { ...originalEnv, SOLANA_MODE: 'fake' };
     delete process.env.SOLANA_FORCE_FAIL;
     fakeStampService.reset();
   });
@@ -44,5 +44,21 @@ describe('fake stamps', () => {
     const result = await mintStamp(input);
     expect(result).toEqual({ ok: false, error: expect.stringContaining('forced') });
     expect(await getStamps('user-wallet')).toHaveLength(0);
+  });
+
+  it('fails mints on demand with setFailMints and recovers', async () => {
+    const solana = new FakeStampService();
+    solana.setFailMints(true);
+    expect((await solana.mintStamp(input)).ok).toBe(false);
+    expect(await solana.getStamps('user-wallet')).toEqual([]);
+
+    solana.setFailMints(false);
+    expect((await solana.mintStamp(input)).ok).toBe(true);
+  });
+
+  it('exposes the same functions as an injectable solanaStamps object', async () => {
+    expect((await solanaStamps.mintStamp(input)).ok).toBe(true);
+    expect(await solanaStamps.hasStampForPlace('user-wallet', 'apollo-theater')).toBe(true);
+    expect(await solanaStamps.getStamps('user-wallet')).toHaveLength(1);
   });
 });
