@@ -77,7 +77,10 @@ describe('GET /places', () => {
 
   it('reports the scaled reward for cultural places when cultural rewards are on', async () => {
     const places = await placesWith({ rewardScale: 0.1, culturalRewards: true });
-    expect(places.every((p) => p.rewardRlusd === 0.1)).toBe(true);
+    const fixedIds = new Set(PLACES.map((place) => place.id));
+    const fixed = places.filter((p) => fixedIds.has(p.id));
+    expect(fixed).toHaveLength(PLACES.length);
+    expect(fixed.every((p) => p.rewardRlusd === 0.1)).toBe(true);
   });
 });
 
