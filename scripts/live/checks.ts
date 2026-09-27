@@ -52,7 +52,7 @@ export interface Check {
 const near = (a: number, b: number): boolean => Math.abs(a - b) < 1e-6;
 const APOLLO = PLACES[0];
 const STUDIO = PLACES[1];
-const MARCUS = PLACES[2];
+const BUTLER = PLACES[2];
 const HAMILTON = PLACES[3];
 const MALCOLM = PLACES[4];
 
@@ -334,8 +334,8 @@ export const CHECKS: Check[] = [
       const a = new Assertions();
       const user = ctx.users['user-3'];
       const res = await submit(ctx.serverA.baseUrl, {
-        ...at(MARCUS),
-        latitude: MARCUS.latitude + 0.02,
+        ...at(BUTLER),
+        latitude: BUTLER.latitude + 0.02,
         xrplAddress: user.xrpl,
         solanaAddress: user.solana,
       });
@@ -355,7 +355,7 @@ export const CHECKS: Check[] = [
       const a = new Assertions();
       const user = ctx.users['user-3'];
       const res = await submit(ctx.serverA.baseUrl, {
-        ...at(MARCUS),
+        ...at(BUTLER),
         timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
         xrplAddress: user.xrpl,
         solanaAddress: user.solana,
@@ -375,8 +375,8 @@ export const CHECKS: Check[] = [
       const a = new Assertions();
       const user = ctx.users['user-3'];
       const res = await submit(ctx.serverA.baseUrl, {
-        ...at(MARCUS),
-        latitude: MARCUS.latitude + 0.02,
+        ...at(BUTLER),
+        latitude: BUTLER.latitude + 0.02,
         timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
         xrplAddress: user.xrpl,
         solanaAddress: user.solana,
@@ -397,13 +397,13 @@ export const CHECKS: Check[] = [
     async run(ctx) {
       const a = new Assertions();
       const user = ctx.users['user-3'];
-      const badAddress = await submit(ctx.serverA.baseUrl, { ...at(MARCUS), xrplAddress: 'not-an-address', solanaAddress: user.solana });
+      const badAddress = await submit(ctx.serverA.baseUrl, { ...at(BUTLER), xrplAddress: 'not-an-address', solanaAddress: user.solana });
       a.that('a malformed XRPL address gets 400', badAddress.status === 400, badAddress.status);
       a.that('the error says the address is malformed', JSON.stringify(badAddress.body).includes('malformed'), badAddress.body);
-      const noPhoto = await submit(ctx.serverA.baseUrl, { ...at(MARCUS), xrplAddress: user.xrpl, solanaAddress: user.solana, photo: null });
+      const noPhoto = await submit(ctx.serverA.baseUrl, { ...at(BUTLER), xrplAddress: user.xrpl, solanaAddress: user.solana, photo: null });
       a.that('a missing photo gets 400', noPhoto.status === 400, noPhoto.status);
       a.that('the error says the photo is required', JSON.stringify(noPhoto.body).includes('photo is required'), noPhoto.body);
-      const unknown = await submit(ctx.serverA.baseUrl, { ...at(MARCUS), placeId: 'not-a-real-place', xrplAddress: user.xrpl, solanaAddress: user.solana });
+      const unknown = await submit(ctx.serverA.baseUrl, { ...at(BUTLER), placeId: 'not-a-real-place', xrplAddress: user.xrpl, solanaAddress: user.solana });
       a.that('an unknown place gets 400', unknown.status === 400, unknown.status);
       return {
         assertions: a.list,

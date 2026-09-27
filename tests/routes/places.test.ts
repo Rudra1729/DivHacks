@@ -32,7 +32,7 @@ describe('GET /places', () => {
     const places = await placesWith({ rewardScale: 0.01, culturalRewards: false });
     const byId = Object.fromEntries(places.map((p) => [p.id, p.rewardRlusd]));
     expect(byId['apollo-theater']).toBe(0);
-    expect(byId['marcus-garvey-park']).toBe(0.01);
+    expect(byId['butler-library']).toBe(0.01);
     expect(byId['mudd-entrance']).toBe(0.01);
   });
 
@@ -40,6 +40,7 @@ describe('GET /places', () => {
     const places = await placesWith({ rewardScale: 0.01, culturalRewards: false });
     const byId = Object.fromEntries(places.map((p) => [p.id, p.sponsor]));
     expect(byId['mudd-entrance']).toBe('Columbia Engineering');
+    expect(byId['butler-library']).toBe('Columbia University Libraries');
     expect(byId['apollo-theater']).toBeNull();
   });
 
