@@ -9,7 +9,7 @@ For complete component specifications, animation triggers, Spidey-Bot expression
 ## Spider-Man Theme & Visual Aesthetic
 
 * **Comic Art Design:** Bold halftone dot background textures, radial action burst rays, torn paper collage banners, and comic sound callouts (*THWIP! POW! BOOM! GUARDRAIL HELD!*).
-* **Color System:** Hero Red (`#E52421`), Web Blue (`#0055A5`), Ink Black (`#121212`), Off-White Paper (`#F7F4EB`), Neon Web Cyan (`#00F0FF`), Accent Yellow (`#FFCC00`).
+* **Color System:** Hero Red (`#E52421`), Web Blue (`#0055A5`), Ink Black (`#121212`), Off-White Paper (`#F7F4EB`), Accent Yellow (`#FFCC00`).
 * **Spidey-Bot (Grok AI Referee):** Animated Spider-Man mask avatar with dynamic eye lenses that react to verification gates in real-time (narrowing on evaluation, glowing white on approval, flashing red on sentinel/policy blocks).
 
 ---

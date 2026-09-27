@@ -641,6 +641,28 @@ function triggerThwipUnlock(placeId) {
    SPIDEY-BOT AVATAR LOGIC & SPEECH BUBBLE
    ========================================================================== */
 
+let spideyTypeInterval = null;
+
+// Types text into the speech bubble one character at a time instead of
+// swapping it in all at once. Cancels any typing already in progress so
+// rapid clicks don't overlap.
+function typeBubbleText(el, text) {
+  if (spideyTypeInterval) {
+    clearInterval(spideyTypeInterval);
+    spideyTypeInterval = null;
+  }
+  el.innerText = '';
+  let i = 0;
+  spideyTypeInterval = setInterval(() => {
+    i += 1;
+    el.innerText = text.slice(0, i);
+    if (i >= text.length) {
+      clearInterval(spideyTypeInterval);
+      spideyTypeInterval = null;
+    }
+  }, 18);
+}
+
 function setSpideyBotState(state, text) {
   const leftEye = document.getElementById('leftEye');
   const rightEye = document.getElementById('rightEye');
@@ -648,13 +670,14 @@ function setSpideyBotState(state, text) {
   const stateBadge = document.getElementById('botStateBadge');
   const statusDot = document.getElementById('botStatusDot');
 
-  talkText.innerText = text;
+  typeBubbleText(talkText, text);
 
   if (state === 'approved') {
-    leftEye.setAttribute('fill', '#00F0FF');
-    rightEye.setAttribute('fill', '#00F0FF');
+    leftEye.setAttribute('fill', '#0055A5');
+    rightEye.setAttribute('fill', '#0055A5');
     stateBadge.innerText = 'THWIP! APPROVED';
-    stateBadge.style.background = '#00F0FF';
+    stateBadge.style.background = '#0055A5';
+    stateBadge.style.color = 'white';
     statusDot.className = 'bot-status-indicator online';
   } else if (state === 'sentinel_blocked') {
     leftEye.setAttribute('fill', '#E52421');
@@ -674,8 +697,8 @@ function setSpideyBotState(state, text) {
     leftEye.setAttribute('fill', '#FFF');
     rightEye.setAttribute('fill', '#FFF');
     stateBadge.innerText = 'READY TO VERIFY';
-    stateBadge.style.background = '#00F0FF';
-    stateBadge.style.color = 'black';
+    stateBadge.style.background = '#0055A5';
+    stateBadge.style.color = 'white';
     statusDot.className = 'bot-status-indicator online';
   }
 }
@@ -819,7 +842,7 @@ function renderTradingCards() {
               <div class="audit-val">${stamp.rarity}</div>
             </div>
           </div>
-          <div style="font-size:0.75rem; color:var(--neon-cyan); text-align:center;">
+          <div style="font-size:0.75rem; color:var(--web-blue); text-align:center;">
             LOCKED TO ACCOUNT FOREVER
           </div>
         </div>
