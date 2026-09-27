@@ -42,6 +42,7 @@ function build(overrides: {
   sentinel?: FakeSentinel;
   isTestMode?: boolean;
   xrpl?: FakeXrpl;
+  recheck?: { attempts: number; delayMs: number };
 } = {}) {
   const xrpl = overrides.xrpl ?? new FakeXrpl(10);
   const solana = new FakeStampService();
@@ -54,6 +55,7 @@ function build(overrides: {
     solana,
     storage,
     isTestMode: overrides.isTestMode ?? true,
+    unconfirmedRecheck: overrides.recheck ?? { attempts: 2, delayMs: 0 },
   });
   return { orchestrator, xrpl, solana, storage, agent };
 }
@@ -245,6 +247,116 @@ describe('Orchestrator', () => {
       await expect(orchestrator.runSubmission(submission)).rejects.toThrow('agent down');
       expect(storage.getClaims()[0].status).toBe('failed');
       expect(await xrpl.getRlusdBalance('rUser')).toBe(0);
+    });
+  });
+
+  describe('payment outcomes', () => {
+    const unconfirmed = {
+      ok: false,
+      reason: 'unconfirmed',
+      txHash: 'TXU',
+      error: 'not validated yet',
+    } as const;
+
+    it('keeps re-checking an unconfirmed payment and finishes when it confirms', async () => {
+      const { orchestrator, xrpl, solana } = build();
+      const send = jest.spyOn(xrpl, 'sendPayment');
+      const real = send.getMockImplementation() ?? xrpl.sendPayment.bind(xrpl);
+      send.mockResolvedValueOnce(unconfirmed).mockImplementation(real);
+
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('OK');
+      expect(send).toHaveBeenCalledTimes(2);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
+      expect(await solana.getStamps('solUser')).toHaveLength(1);
+    });
+
+    it('leaves the claim pending and mints nothing while a payment stays unconfirmed', async () => {
+      const { orchestrator, xrpl, solana, storage } = build();
+      const send = jest.spyOn(xrpl, 'sendPayment').mockResolvedValue(unconfirmed);
+
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('PAYMENT_UNCONFIRMED');
+      expect(result.xrplTxHash).toBe('TXU');
+      expect(send).toHaveBeenCalledTimes(3);
+      expect(storage.getClaims()[0].status).toBe('pending');
+      expect(await solana.getStamps('solUser')).toEqual([]);
+      expect(await storage.getDailyTotal('rUser')).toBe(2);
+    });
+
+    it('resumes an unconfirmed payment when the same request is sent again', async () => {
+      const { orchestrator, xrpl, solana, storage, agent } = build();
+      const send = jest.spyOn(xrpl, 'sendPayment').mockResolvedValue(unconfirmed);
+      const stuck = await orchestrator.runSubmission(submission);
+      expect(stuck.status).toBe('PAYMENT_UNCONFIRMED');
+
+      send.mockRestore();
+      const resumed = await orchestrator.runSubmission(submission);
+
+      expect(resumed.status).toBe('OK');
+      expect(resumed.decisionId).toBe(stuck.decisionId);
+      expect(agent.propose).toHaveBeenCalledTimes(1);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
+      expect(storage.getClaims()).toHaveLength(1);
+      expect(storage.getClaims()[0].status).toBe('paid');
+      const [stamp] = await solana.getStamps('solUser');
+      expect(stamp.decisionId).toBe(stuck.decisionId);
+    });
+
+    it('treats a network error as nothing paid and frees the claim', async () => {
+      const { orchestrator, xrpl, solana, storage } = build();
+      jest
+        .spyOn(xrpl, 'sendPayment')
+        .mockResolvedValue({ ok: false, reason: 'network_error', error: 'node unreachable' });
+
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('PAYMENT_FAILED');
+      expect(result.reasons[0]).toContain('network_error');
+      expect(storage.getClaims()[0].status).toBe('failed');
+      expect(await solana.getStamps('solUser')).toEqual([]);
+    });
+
+    it('treats a payment call that throws as unconfirmed, not failed', async () => {
+      const { orchestrator, xrpl, storage } = build();
+      jest.spyOn(xrpl, 'sendPayment').mockRejectedValue(new Error('socket hang up'));
+
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('PAYMENT_UNCONFIRMED');
+      expect(result.reasons[0]).toContain('socket hang up');
+      expect(storage.getClaims()[0].status).toBe('pending');
+    });
+
+    it('reports invalid input from the XRPL module as a failed payment', async () => {
+      const { orchestrator, storage } = build({
+        agent: stubAgent({ ...goodProposal, amount: 1.234 }),
+      });
+
+      const result = await orchestrator.runSubmission(submission, { bypassPolicy: true });
+
+      expect(result.status).toBe('PAYMENT_FAILED');
+      expect(result.reasons).toContain('policy skipped: test mode bypass');
+      expect(storage.getClaims()[0].status).toBe('failed');
+    });
+
+    it('keeps the hash of a rejected payment but does not count it as paid', async () => {
+      const { orchestrator, xrpl, storage } = build();
+      jest.spyOn(xrpl, 'sendPayment').mockResolvedValue({
+        ok: false,
+        reason: 'ledger_rejected',
+        resultCode: 'tecPATH_PARTIAL',
+        txHash: 'TXR',
+        error: 'short',
+      });
+
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('REJECTED_BY_LEDGER');
+      expect(result.xrplTxHash).toBe('TXR');
+      expect(await storage.getDailyTotal('rUser')).toBe(0);
     });
   });
 });

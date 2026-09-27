@@ -59,6 +59,25 @@ describe('FakeStorage', () => {
     expect(await storage.getDailyTotal('nobody')).toBe(0);
   });
 
+  it('counts unconfirmed payments toward the daily total but not rejected ones', async () => {
+    const storage = new FakeStorage();
+    const base = { reasons: [], stampFailed: false, xrplTxHash: 'TX' };
+    await storage.saveDecision('r1', {
+      ...base,
+      decisionId: 'unconfirmed',
+      status: 'PAYMENT_UNCONFIRMED',
+      proposal: { amount: 2, recipient: 'rUser', reason: 'test' },
+    });
+    await storage.saveDecision('r2', {
+      ...base,
+      decisionId: 'rejected',
+      status: 'REJECTED_BY_LEDGER',
+      proposal: { amount: 4, recipient: 'rUser', reason: 'test' },
+    });
+
+    expect(await storage.getDailyTotal('rUser')).toBe(2);
+  });
+
   it('tracks claim status changes', async () => {
     const storage = new FakeStorage();
     await storage.markClaimPending({

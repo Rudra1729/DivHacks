@@ -13,6 +13,8 @@ export type DecisionStatus =
   | 'BLOCKED_SENTINEL'
   | 'BLOCKED_POLICY'
   | 'REJECTED_BY_LEDGER'
+  | 'PAYMENT_FAILED'
+  | 'PAYMENT_UNCONFIRMED'
   | 'STAMP_FAILED';
 
 /** An opted-in cultural site or small business. */
@@ -56,6 +58,8 @@ export interface DecisionResult {
   proposal?: AgentProposal;
   /** Version of the policy rules that judged the proposal. */
   policyVersion?: string;
+  /** Payment hash. Also set when the ledger rejected the payment or it is
+      still unconfirmed, so it can be found on the explorer. */
   xrplTxHash?: string;
   /** Ledger result code when XRPL rejected the payment. */
   xrplResultCode?: string;

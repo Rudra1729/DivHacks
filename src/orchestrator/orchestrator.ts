@@ -4,6 +4,11 @@ Runs one submission through the pipeline in a fixed order: duplicate check,
 Sentinel, pending claim, agent, policy, XRPL payment, Solana stamp, save.
 Money moves only after every earlier gate passes, and a payment is never
 repeated because a stamp mint failed: the mint is queued for retry instead.
+
+A payment that is submitted but not yet confirmed is never treated as
+failed, since it may still land. The submission is saved as
+PAYMENT_UNCONFIRMED with its claim left pending, and sending the same request
+ID again re-checks the ledger and carries on.
 */
 
 import { randomUUID } from 'crypto';
@@ -12,8 +17,10 @@ import { evaluatePolicy } from '../policy/policy';
 import { Sentinel } from '../sentinel/types';
 import { MintStampInput, MintStampResult, StampService } from '../solana/types';
 import { StorageLayer } from '../storage/types';
-import { XrplService } from '../xrpl/types';
+import { SendPaymentResult, XrplService } from '../xrpl/types';
 import { DecisionResult, SubmissionInput } from './types';
+
+const BYPASS_NOTE = 'policy skipped: test mode bypass';
 
 export interface OrchestratorDeps {
   sentinel: Sentinel;
@@ -23,6 +30,8 @@ export interface OrchestratorDeps {
   storage: StorageLayer;
   /** Gates the policy bypass. Outside test mode the bypass is ignored. */
   isTestMode: boolean;
+  /** How often to re-check an unconfirmed payment before giving up for now. */
+  unconfirmedRecheck?: { attempts: number; delayMs: number };
 }
 
 export interface RunOptions {
@@ -30,6 +39,10 @@ export interface RunOptions {
       layer stops an overspend on its own. */
   bypassPolicy?: boolean;
 }
+
+type Outcome = Omit<DecisionResult, 'decisionId' | 'stampFailed'> & { stampFailed?: boolean };
+
+const DEFAULT_RECHECK = { attempts: 3, delayMs: 3000 };
 
 export class Orchestrator {
   constructor(private deps: OrchestratorDeps) {}
@@ -42,32 +55,30 @@ export class Orchestrator {
 
   Returns:
       DecisionResult: The saved outcome. A repeated request ID returns the
-          earlier outcome without running anything again.
+          earlier outcome without running anything again, except that an
+          earlier PAYMENT_UNCONFIRMED outcome is re-checked and resumed.
 
   Raises:
       Error: If a dependency throws before any payment was made. The pending
           claim is marked failed first so it does not block the user forever.
   */
   async runSubmission(input: SubmissionInput, options: RunOptions = {}): Promise<DecisionResult> {
-    const { sentinel, agent, xrpl, solana, storage } = this.deps;
+    const { sentinel, agent, xrpl, storage } = this.deps;
 
     const earlier = await storage.getDecisionByRequestId(input.requestId);
+    if (earlier && earlier.status === 'PAYMENT_UNCONFIRMED' && earlier.proposal) {
+      const notes = earlier.reasons.filter((reason) => reason === BYPASS_NOTE);
+      return this.settle(input, earlier.decisionId, earlier.proposal, earlier.policyVersion, notes);
+    }
     if (earlier) {
       return earlier;
     }
 
     const decisionId = randomUUID();
-    const finish = async (result: Omit<DecisionResult, 'decisionId' | 'stampFailed'> & {
-      stampFailed?: boolean;
-    }): Promise<DecisionResult> => {
-      const decision: DecisionResult = { decisionId, stampFailed: false, ...result };
-      await storage.saveDecision(input.requestId, decision);
-      return decision;
-    };
 
     const place = await storage.getPlace(input.placeId);
     if (!place) {
-      return finish({
+      return this.save(input, decisionId, {
         status: 'BLOCKED_SENTINEL',
         reasons: [`unknown place: ${input.placeId}`],
       });
@@ -75,7 +86,10 @@ export class Orchestrator {
 
     const verification = await sentinel.verify(input, place);
     if (!verification.ok) {
-      return finish({ status: 'BLOCKED_SENTINEL', reasons: verification.failures });
+      return this.save(input, decisionId, {
+        status: 'BLOCKED_SENTINEL',
+        reasons: verification.failures,
+      });
     }
 
     await storage.markClaimPending({
@@ -86,7 +100,7 @@ export class Orchestrator {
     });
 
     const bypass = options.bypassPolicy === true && this.deps.isTestMode;
-    const notes = bypass ? ['policy skipped: test mode bypass'] : [];
+    const notes = bypass ? [BYPASS_NOTE] : [];
 
     let proposal: AgentProposal;
     let policyVersion: string | undefined;
@@ -113,7 +127,7 @@ export class Orchestrator {
 
         if (!policy.ok) {
           await storage.updateClaimStatus(decisionId, 'failed');
-          return finish({
+          return this.save(input, decisionId, {
             status: 'BLOCKED_POLICY',
             reasons: policy.violations,
             proposal,
@@ -126,20 +140,53 @@ export class Orchestrator {
       throw error;
     }
 
-    const payment = await xrpl.sendPayment({
-      decisionId,
-      recipient: proposal.recipient,
-      amount: proposal.amount,
-    });
+    return this.settle(input, decisionId, proposal, policyVersion, notes);
+  }
+
+  /** Pay, stamp, and save. Safe to run again for an unconfirmed payment,
+      because the XRPL module never pays twice for one decision ID. */
+  private async settle(
+    input: SubmissionInput,
+    decisionId: string,
+    proposal: AgentProposal,
+    policyVersion: string | undefined,
+    notes: string[]
+  ): Promise<DecisionResult> {
+    const { solana, storage } = this.deps;
+
+    const payment = await this.pay(decisionId, proposal);
     if (!payment.ok) {
-      await storage.updateClaimStatus(decisionId, 'failed');
-      return finish({
-        status: 'REJECTED_BY_LEDGER',
-        reasons: [...notes, `ledger rejected payment: ${(payment.resultCode ?? payment.reason)}`],
+      const details = {
         proposal,
         policyVersion,
-        xrplResultCode: (payment.resultCode ?? payment.reason),
-      });
+        xrplTxHash: payment.txHash,
+        xrplResultCode: payment.resultCode,
+      };
+
+      switch (payment.reason) {
+        case 'unconfirmed':
+          // Leave the claim pending: the payment may still land.
+          return this.save(input, decisionId, {
+            status: 'PAYMENT_UNCONFIRMED',
+            reasons: [...notes, `payment submitted but not confirmed yet: ${payment.error}`],
+            ...details,
+          });
+        case 'ledger_rejected':
+          await storage.updateClaimStatus(decisionId, 'failed');
+          return this.save(input, decisionId, {
+            status: 'REJECTED_BY_LEDGER',
+            reasons: [...notes, `ledger rejected payment: ${payment.resultCode ?? payment.error}`],
+            ...details,
+          });
+        default:
+          // network_error and invalid_input: nothing was paid.
+          await storage.updateClaimStatus(decisionId, 'failed');
+          return this.save(input, decisionId, {
+            status: 'PAYMENT_FAILED',
+            reasons: [...notes, `payment not sent (${payment.reason}): ${payment.error}`],
+            ...details,
+          });
+      }
     }
     await storage.updateClaimStatus(decisionId, 'paid');
 
@@ -158,7 +205,7 @@ export class Orchestrator {
 
     if (!mint.ok) {
       await storage.queueStampRetry(mintInput);
-      return finish({
+      return this.save(input, decisionId, {
         status: 'STAMP_FAILED',
         reasons: [...notes, `stamp mint failed, queued for retry: ${mint.error}`],
         proposal,
@@ -168,7 +215,7 @@ export class Orchestrator {
       });
     }
 
-    return finish({
+    return this.save(input, decisionId, {
       status: 'OK',
       reasons: notes,
       proposal,
@@ -177,5 +224,42 @@ export class Orchestrator {
       solanaAssetAddress: mint.assetAddress,
       solanaSignature: mint.signature,
     });
+  }
+
+  /** Send the payment, re-checking a few times while it is unconfirmed.
+
+  A throw is treated as unconfirmed, the cautious reading: we cannot tell
+  whether anything was sent, and re-sending the same decision ID is safe. */
+  private async pay(decisionId: string, proposal: AgentProposal): Promise<SendPaymentResult> {
+    const { attempts, delayMs } = this.deps.unconfirmedRecheck ?? DEFAULT_RECHECK;
+    const send = async (): Promise<SendPaymentResult> => {
+      try {
+        return await this.deps.xrpl.sendPayment({
+          decisionId,
+          recipient: proposal.recipient,
+          amount: proposal.amount,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { ok: false, reason: 'unconfirmed', error: `payment call threw: ${message}` };
+      }
+    };
+
+    let result = await send();
+    for (let i = 0; i < attempts && !result.ok && result.reason === 'unconfirmed'; i++) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      result = await send();
+    }
+    return result;
+  }
+
+  private async save(
+    input: SubmissionInput,
+    decisionId: string,
+    outcome: Outcome
+  ): Promise<DecisionResult> {
+    const decision: DecisionResult = { decisionId, stampFailed: false, ...outcome };
+    await this.deps.storage.saveDecision(input.requestId, decision);
+    return decision;
   }
 }
