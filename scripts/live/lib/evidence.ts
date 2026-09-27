@@ -15,6 +15,7 @@ export interface RunInfo {
   finishedAt: string;
   gitCommit: string;
   gitBranch: string;
+  gitDirty: boolean;
   nodeVersion: string;
   mode: 'real networks' | 'fake modes (dry run)';
   rewardScale: string;
@@ -93,7 +94,7 @@ export function buildReport(info: RunInfo, results: CheckResult[]): string {
   lines.push('| --- | --- |');
   lines.push(`| Run ID | ${info.runId} |`);
   lines.push(`| Started / finished (UTC) | ${info.startedAt} / ${info.finishedAt} |`);
-  lines.push(`| Code tested | ${info.gitBranch} @ ${info.gitCommit} |`);
+  lines.push(`| Code tested | ${info.gitBranch} @ ${info.gitCommit}${info.gitDirty ? ' (dirty working tree)' : ''} |`);
   lines.push(`| Node | ${info.nodeVersion} |`);
   lines.push(`| Reward scale | ${info.rewardScale} (a 1 RLUSD place pays that much) |`);
   lines.push('');

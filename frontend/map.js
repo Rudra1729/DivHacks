@@ -333,7 +333,6 @@ function refreshMap() {
       }).addTo(webLinesLayer);
     }
   }
-  saveDiscovered();
 }
 
 /** Animate a cyan web thread shooting from one point to another.

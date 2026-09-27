@@ -14,16 +14,24 @@ export function toCents(amount: number): number {
   return Math.round(amount * 100);
 }
 
-/** Amount must be a real number greater than 0 and at most the per-task cap. */
-export function checkAmountBounds(amount: number): string | undefined {
+/** Amount must be a real number greater than 0 and at most the per-task cap.
+
+Args:
+    amount (number): The proposed payout in RLUSD.
+    maxPerTask (number): The per-task cap in RLUSD. Defaults to MAX_PER_TASK.
+
+Returns:
+    string | undefined: The violation, or undefined if the amount is allowed.
+*/
+export function checkAmountBounds(amount: number, maxPerTask: number = MAX_PER_TASK): string | undefined {
   if (!Number.isFinite(amount)) {
     return `amount is not a valid number: got ${amount}`;
   }
   if (amount <= 0) {
     return `amount must be greater than 0: asked for ${amount}`;
   }
-  if (toCents(amount) > toCents(MAX_PER_TASK)) {
-    return `per-task cap: asked for ${amount}, max is ${MAX_PER_TASK}`;
+  if (toCents(amount) > toCents(maxPerTask)) {
+    return `per-task cap: asked for ${amount}, max is ${maxPerTask}`;
   }
   return undefined;
 }
@@ -37,12 +45,25 @@ export function checkDecimalPlaces(amount: number): string | undefined {
   return undefined;
 }
 
-/** Today's total plus this payout must stay within the daily cap. */
-export function checkDailyCap(amount: number, dailyTotal: number): string | undefined {
-  if (toCents(dailyTotal) + toCents(amount) > toCents(MAX_PER_DAY)) {
+/** Today's total plus this payout must stay within the daily cap.
+
+Args:
+    amount (number): The proposed payout in RLUSD.
+    dailyTotal (number): RLUSD already paid to this wallet today.
+    maxPerDay (number): The daily cap in RLUSD. Defaults to MAX_PER_DAY.
+
+Returns:
+    string | undefined: The violation, or undefined if the total stays in bounds.
+*/
+export function checkDailyCap(
+  amount: number,
+  dailyTotal: number,
+  maxPerDay: number = MAX_PER_DAY
+): string | undefined {
+  if (toCents(dailyTotal) + toCents(amount) > toCents(maxPerDay)) {
     return (
       `daily cap: already paid ${dailyTotal} today, asked for ${amount}, ` +
-      `max is ${MAX_PER_DAY} per day`
+      `max is ${maxPerDay} per day`
     );
   }
   return undefined;

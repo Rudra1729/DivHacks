@@ -13,6 +13,8 @@ describe('e2e: spending limits', () => {
   describe('daily cap of 10 RLUSD per user', () => {
     it('blocks a payout that would go over the cap and allows one that lands exactly on it', async () => {
       const user = makeUser(1);
+      // Topped up, so this test is about the daily cap and not the agent wallet running out.
+      stack.xrpl.fundAgent(10);
 
       const first = await submit(stack.app, user, place(0), { caption: 'AMOUNT:4' });
       const second = await submit(stack.app, user, place(1), { caption: 'AMOUNT:4' });
@@ -51,14 +53,15 @@ describe('e2e: spending limits', () => {
   });
 
   describe('agent wallet allowance', () => {
-    it('is a second cap: once the wallet is empty, a payout the policy allows is rejected by the ledger', async () => {
-      // Two users take the whole 10 RLUSD allowance.
+    it('is a second cap: a payout the policy allows is rejected by the ledger when the wallet holds less than it', async () => {
+      // Two users take 8.5 of the 10 RLUSD allowance, leaving 1.5: enough for the
+      // 1 RLUSD reward the solvency gate looks for, but not for the 2 RLUSD below.
       await submit(stack.app, makeUser(4), place(0), { caption: 'AMOUNT:5' });
-      await submit(stack.app, makeUser(5), place(1), { caption: 'AMOUNT:5' });
-      expect(await stack.xrpl.getRlusdBalance(stack.xrpl.getAgentAddress())).toBe(0);
+      await submit(stack.app, makeUser(5), place(1), { caption: 'AMOUNT:3.5' });
+      expect(await stack.xrpl.getRlusdBalance(stack.xrpl.getAgentAddress())).toBe(1.5);
 
       const third = makeUser(6);
-      const response = await submit(stack.app, third, place(2), { caption: 'AMOUNT:1' });
+      const response = await submit(stack.app, third, place(2), { caption: 'AMOUNT:2' });
 
       expect(response.status).toBe(402);
       expect(response.body.status).toBe('REJECTED_BY_LEDGER');
@@ -85,6 +88,7 @@ describe('e2e: spending limits', () => {
 
     it('lets only the allowed payouts through when three racing payouts would go over the cap', async () => {
       const user = makeUser(8);
+      stack.xrpl.fundAgent(5);
 
       const responses = await Promise.all([
         submit(stack.app, user, place(0), { caption: 'AMOUNT:5' }),

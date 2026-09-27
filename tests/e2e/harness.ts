@@ -17,7 +17,7 @@ import { PLACES, Place } from '../../src/data/places';
 import { FakeStampService } from '../../src/solana/fakeStamps';
 import { FakePaymentService } from '../../src/xrpl/fakePayments';
 import { SendPaymentInput, SendPaymentResult } from '../../src/xrpl/types';
-import { disablePolicyBypass } from '../../src/testMode/attackFlag';
+import { disableAttackFlags } from '../../src/testMode/attackFlag';
 import { LocationSample } from '../../src/orchestrator/types';
 import { buildTestApp } from '../testHelpers/buildTestApp';
 import { endOf, realisticTrail } from '../testHelpers/locationTrail';
@@ -131,7 +131,7 @@ export function buildE2eStack(
 
 /** Undo global state a test may have changed. Call from afterEach. */
 export function resetGlobalTestState(): void {
-  disablePolicyBypass();
+  disableAttackFlags();
 }
 
 /** The nth place from the shared places list. */

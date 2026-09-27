@@ -25,13 +25,15 @@ const submission = {
   camera: null,
   demo: false,
   submitting: false,
+  /** True once this place was verified, so the same proof is not sent again. */
+  done: false,
   statusTimer: null,
 };
 
 // Fixes in a row with an unchanged timestamp before the status calls GPS stuck.
 const STUCK_GPS_REPEATS = 4;
 
-const GATE_BY_LAYER = { sentinel: 'gate2', claim: 'gate2', agent: 'gate3', policy: 'gate4', xrpl: 'gate5', solana: 'gate5' };
+const GATE_BY_LAYER = { solvency: 'gate1', sentinel: 'gate2', photo: 'gate3', claim: 'gate2', agent: 'gate3', policy: 'gate4', review: 'gate4', xrpl: 'gate5', solana: 'gate5' };
 
 /** Distance between two points in meters (haversine).
 
@@ -57,6 +59,19 @@ function formatDistance(meters) {
 /** Shorten a hash or address for display, like rP9x9K...5Xz1. */
 function shortHash(value) {
   return value && value.length > 14 ? `${value.slice(0, 6)}...${value.slice(-4)}` : value || '';
+}
+
+/** Explorer link for a real XRPL testnet payment, or nothing for a fake one.
+
+Args:
+    txHash (string): The payment's transaction hash.
+
+Returns:
+    Array<{text: string, href: string}>: One link, or empty in fake mode.
+*/
+function explorerLink(txHash) {
+  if (!/^[0-9A-F]{64}$/i.test(txHash || '')) return [];
+  return [{ text: 'See the payment on the XRPL testnet explorer', href: `https://testnet.xrpl.org/transactions/${txHash}` }];
 }
 
 function missionPlace() {
@@ -155,6 +170,12 @@ function updateSubmitButton() {
   if (submission.submitting) {
     text = 'VERIFYING THROUGH ALL 5 GATES...';
     disabled = true;
+  } else if (submission.done) {
+    text = 'MISSION COMPLETE, STAMP IS IN YOUR PASSPORT';
+    disabled = true;
+  } else if (typeof myStampAt === 'function' && myStampAt(submission.placeId)) {
+    text = 'ALREADY COMPLETED, ONE STAMP PER PLACE';
+    disabled = true;
   } else if (!submission.photo) {
     text = 'TAKE OR UPLOAD A PHOTO FIRST';
     disabled = true;
@@ -223,12 +244,33 @@ async function snapSubmissionPhoto() {
   }
 }
 
+/** Re-encode an image the photo check cannot read (HEIC, WebP) as JPEG.
+
+Args:
+    file (File): The uploaded image.
+
+Returns:
+    Promise<Blob>: The same picture as a JPEG.
+*/
+async function toJpeg(file) {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('conversion failed'))), 'image/jpeg', 0.9);
+  });
+}
+
 /** Show the server's answer in the modal.
 
 Args:
     kind (string): 'ok', 'warn' or 'blocked', for colouring.
     title (string): Headline.
-    lines (string[]): Details, one bullet each.
+    lines (Array<string | {text: string, href: string}>): Details, one bullet
+        each. An object becomes a link that opens in a new tab.
 */
 function showSubmissionResult(kind, title, lines) {
   const box = document.getElementById('submissionResult');
@@ -242,7 +284,16 @@ function showSubmissionResult(kind, title, lines) {
     const list = document.createElement('ul');
     lines.forEach((line) => {
       const item = document.createElement('li');
-      item.textContent = line;
+      if (typeof line === 'string') {
+        item.textContent = line;
+      } else {
+        const link = document.createElement('a');
+        link.href = line.href;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = line.text;
+        item.appendChild(link);
+      }
       list.appendChild(item);
     });
     box.appendChild(list);
@@ -289,28 +340,54 @@ function handleSubmissionResult(place, result) {
     return;
   }
 
+  if (['OK', 'STAMP_FAILED', 'PAYMENT_UNCONFIRMED'].includes(body.status)) {
+    submission.done = true;
+    updateSubmitButton();
+  }
+
   const reasons = body.reasons || [];
   const amount = body.proposal ? `${body.proposal.amount} RLUSD` : 'the reward';
   const stamp = body.stampTier ? `${body.stampTier} stamp #${body.stampSerial}` : 'soulbound stamp';
 
-  if (body.status === 'OK') {
+  if (body.status === 'OK' && !body.xrplTxHash) {
+    triggerThwipUnlock(place.id);
+    setSpideyBotState('approved', `"THWIP! ${place.name} verified. A ${stamp} was added to your passport!"`);
+    showSubmissionResult('ok', 'THWIP! Visit verified', [
+      `Minted a ${stamp} on Solana (${shortHash(body.solanaAssetAddress)})`,
+      'Cultural visits earn the stamp only. Civic bounties also pay RLUSD.',
+    ]);
+  } else if (body.status === 'OK') {
     triggerThwipUnlock(place.id);
     setSpideyBotState('approved', `"THWIP! ${place.name} verified. ${amount} paid and a ${stamp} added to your passport!"`);
     showSubmissionResult('ok', 'THWIP! Visit verified', [
-      `Paid ${amount} on XRPL (transaction ${shortHash(body.xrplTxHash)})`,
+      `${sponsorName(place) || 'WebPass NYC'} paid you ${amount} on XRPL (transaction ${shortHash(body.xrplTxHash)})`,
+      ...explorerLink(body.xrplTxHash),
       `Minted a ${stamp} on Solana (${shortHash(body.solanaAssetAddress)})`,
       ...(body.proposal && body.proposal.reason ? [`Spidey-Bot: ${body.proposal.reason}`] : []),
     ]);
   } else if (body.status === 'STAMP_FAILED' || body.status === 'PAYMENT_UNCONFIRMED') {
     if (body.status === 'STAMP_FAILED') triggerThwipUnlock(place.id);
     setSpideyBotState('policy_blocked', `"${place.name} verified, but ${body.status === 'STAMP_FAILED' ? 'the stamp is queued for a retry' : 'the payment is still confirming'}."`);
-    showSubmissionResult('warn', body.status === 'STAMP_FAILED' ? 'Paid, stamp queued for retry' : 'Payment sent, waiting for the ledger', [
-      `Payment transaction ${shortHash(body.xrplTxHash)}`,
+    const paidTitle = body.xrplTxHash ? 'Paid, stamp queued for retry' : 'Verified, stamp queued for retry';
+    showSubmissionResult('warn', body.status === 'STAMP_FAILED' ? paidTitle : 'Payment sent, waiting for the ledger', [
+      ...(body.xrplTxHash ? [`Payment transaction ${shortHash(body.xrplTxHash)}`, ...explorerLink(body.xrplTxHash)] : []),
       ...reasons,
     ]);
   } else if (body.status === 'BLOCKED_SENTINEL') {
     setSpideyBotState('sentinel_blocked', `"SNAG! Sentinel blocked this visit: ${reasons[0] || 'verification failed'}"`);
     showSubmissionResult('blocked', 'SNAG! Sentinel blocked this visit', reasons);
+  } else if (body.status === 'BLOCKED_PHOTO') {
+    setSpideyBotState('sentinel_blocked', `"SNAG! I looked at your photo and it doesn't match ${place.name}. Nothing was paid."`);
+    showSubmissionResult('blocked', 'SNAG! Grok rejected the photo', [
+      ...reasons,
+      `Take a clear photo of ${place.name} itself and try again.`,
+    ]);
+  } else if (body.status === 'BLOCKED_SOLVENCY') {
+    setSpideyBotState('policy_blocked', `"The reward pool for ${place.name} is empty right now. Nothing was used up, try again later."`);
+    showSubmissionResult('warn', 'Reward pool empty, try again later', reasons);
+  } else if (body.status === 'BLOCKED_REVIEW') {
+    setSpideyBotState('policy_blocked', `"GUARDRAIL HELD! The payout reviewer refused this payout."`);
+    showSubmissionResult('blocked', 'GUARDRAIL HELD! Payout reviewer refused the payout', reasons);
   } else if (body.status === 'BLOCKED_POLICY') {
     setSpideyBotState('policy_blocked', `"GUARDRAIL HELD! ${reasons[0] || 'The policy engine refused the payout.'}"`);
     showSubmissionResult('blocked', 'GUARDRAIL HELD! Policy engine refused the payout', reasons);
@@ -366,6 +443,7 @@ function prepareSubmission(placeId) {
   submission.placeId = placeId;
   submission.photo = null;
   submission.submitting = false;
+  submission.done = false;
   const place = missionPlace();
 
   const img = document.getElementById('photoPreviewImg');
@@ -375,7 +453,7 @@ function prepareSubmission(placeId) {
   if (window.lucide) lucide.createIcons();
   document.getElementById('photoFileInput').value = '';
   document.getElementById('captionInput').value = '';
-  setPhotoNote('Take a photo at the place. Sentinel rejects photos it has seen before.');
+  setPhotoNote('Take a photo of the place itself. Grok checks that it matches, and Sentinel rejects photos it has seen before.');
   hideSubmissionResult();
 
   document.getElementById('demoLocationWrap').style.display = DEMO_LOCATION_ALLOWED ? 'flex' : 'none';
@@ -399,11 +477,18 @@ function setupSubmissionListeners() {
   document.getElementById('submissionForm')?.addEventListener('submit', submitMission);
   document.getElementById('openCameraBtn')?.addEventListener('click', openSubmissionCamera);
   document.getElementById('snapPhotoBtn')?.addEventListener('click', snapSubmissionPhoto);
-  document.getElementById('photoFileInput')?.addEventListener('change', (e) => {
+  document.getElementById('photoFileInput')?.addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
-    if (file) {
-      closeSubmissionCamera();
+    if (!file) return;
+    closeSubmissionCamera();
+    if (file.type === 'image/jpeg' || file.type === 'image/png') {
       setSubmissionPhoto(file, `Using ${file.name}.`);
+      return;
+    }
+    try {
+      setSubmissionPhoto(await toJpeg(file), `Using ${file.name}, converted to JPEG for the photo check.`);
+    } catch {
+      setPhotoNote(`Could not read ${file.name}. Use a JPEG or PNG, or take the photo with the camera.`);
     }
   });
   document.getElementById('demoLocationToggle')?.addEventListener('change', (e) => {

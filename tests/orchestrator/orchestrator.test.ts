@@ -1,5 +1,7 @@
 import { GrokAgent } from '../../src/agent/grok';
+import { PhotoChecker } from '../../src/agent/photoCheck';
 import { AgentProposal, PayoutAgent } from '../../src/agent/types';
+import { FakeReviewer } from '../../src/agent/fakeReviewer';
 import { Orchestrator } from '../../src/orchestrator/orchestrator';
 import { Place, SubmissionInput } from '../../src/orchestrator/types';
 import { FakeSentinel } from '../../src/sentinel/fakeSentinel';
@@ -43,18 +45,26 @@ function build(overrides: {
   isTestMode?: boolean;
   xrpl?: FakePaymentService;
   recheck?: { attempts: number; delayMs: number };
+  rewardScale?: number;
+  place?: Place;
+  culturalRewards?: boolean;
+  photoChecker?: PhotoChecker;
 } = {}) {
   const xrpl = overrides.xrpl ?? new FakePaymentService();
   const solana = new FakeStampService();
-  const storage = new FakeStorage([place]);
+  const storage = new FakeStorage([overrides.place ?? place]);
   const agent = overrides.agent ?? stubAgent(goodProposal);
   const orchestrator = new Orchestrator({
     sentinel: overrides.sentinel ?? new FakeSentinel(),
+    photoChecker: overrides.photoChecker,
     agent,
+    reviewer: new FakeReviewer(),
     xrpl,
     solana,
     storage,
     isTestMode: overrides.isTestMode ?? true,
+    rewardScale: overrides.rewardScale,
+    culturalRewards: overrides.culturalRewards,
     unconfirmedRecheck: overrides.recheck ?? { attempts: 2, delayMs: 0 },
   });
   return { orchestrator, xrpl, solana, storage, agent };
@@ -83,6 +93,42 @@ describe('Orchestrator', () => {
     });
   });
 
+  describe('cultural places', () => {
+    const cultural: Place = { ...place, kind: 'cultural' };
+
+    it('mints the stamp without asking the agent or paying anything', async () => {
+      const { orchestrator, xrpl, solana, storage, agent } = build({ place: cultural });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('OK');
+      expect(result.proposal).toBeUndefined();
+      expect(result.xrplTxHash).toBeUndefined();
+      expect(result.solanaAssetAddress).toBeDefined();
+      expect(agent.propose).not.toHaveBeenCalled();
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(0);
+
+      const [stamp] = await solana.getStamps('solUser');
+      expect(stamp.decisionId).toBe(result.decisionId);
+      expect(stamp.xrplTxHash).toBe('');
+      expect(storage.getClaims()[0].status).toBe('paid');
+    });
+
+    it('pays as usual when cultural rewards are on', async () => {
+      const { orchestrator, xrpl } = build({ place: cultural, culturalRewards: true });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('OK');
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
+    });
+
+    it('always pays at a civic bounty', async () => {
+      const { orchestrator, xrpl } = build({ place: { ...place, kind: 'civic' } });
+      await orchestrator.runSubmission(submission);
+
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
+    });
+  });
+
   describe('Sentinel gate', () => {
     it('stops before the agent or any payment when Sentinel fails', async () => {
       const { orchestrator, xrpl, agent, storage } = build({
@@ -107,6 +153,64 @@ describe('Orchestrator', () => {
     });
   });
 
+  describe('photo check', () => {
+    function checker(passed: boolean, message = passed ? 'photo check: matched' : 'photo check: not the place'): PhotoChecker & { check: jest.Mock } {
+      return { check: jest.fn().mockResolvedValue({ passed, message }) };
+    }
+
+    it('blocks a mismatched photo before any claim, proposal, or payment', async () => {
+      const agent = stubAgent(goodProposal);
+      const { orchestrator, xrpl, solana, storage } = build({ agent, photoChecker: checker(false) });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result).toMatchObject({ status: 'BLOCKED_PHOTO', reasons: ['photo check: not the place'] });
+      expect(agent.propose).not.toHaveBeenCalled();
+      expect(storage.getClaims()).toHaveLength(0);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(0);
+      expect(await solana.getStamps('solUser')).toHaveLength(0);
+      expect(storage.getAuditEvents(result.decisionId).at(-1)).toMatchObject({ layer: 'photo', passed: false });
+    });
+
+    it('passes a matching photo on to payment and records it', async () => {
+      const photoChecker = checker(true);
+      const { orchestrator, storage } = build({ photoChecker });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('OK');
+      expect(photoChecker.check).toHaveBeenCalledWith({ place, photo: submission.photo });
+      expect(storage.getAuditEvents(result.decisionId).map((e) => e.layer)).toEqual(
+        expect.arrayContaining(['sentinel', 'photo', 'claim', 'agent'])
+      );
+    });
+
+    it('checks the photo for stamp-only cultural visits too', async () => {
+      const cultural = { ...place, kind: 'cultural' as const };
+      const { orchestrator, solana } = build({ place: cultural, photoChecker: checker(false) });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('BLOCKED_PHOTO');
+      expect(await solana.getStamps('solUser')).toHaveLength(0);
+    });
+
+    it('treats a checker that throws as blocked', async () => {
+      const photoChecker = { check: jest.fn().mockRejectedValue(new Error('boom')) };
+      const { orchestrator } = build({ photoChecker });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('BLOCKED_PHOTO');
+      expect(result.reasons[0]).toContain('boom');
+    });
+
+    it('does not run the check when Sentinel already blocked the visit', async () => {
+      const photoChecker = checker(true);
+      const { orchestrator } = build({ photoChecker, sentinel: new FakeSentinel(['location: too far']) });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('BLOCKED_SENTINEL');
+      expect(photoChecker.check).not.toHaveBeenCalled();
+    });
+  });
+
   describe('policy gate', () => {
     it('blocks an injected proposal and moves no money', async () => {
       const { orchestrator, xrpl, solana, storage } = build({ agent: stubAgent(injectedProposal) });
@@ -123,6 +227,18 @@ describe('Orchestrator', () => {
       expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
       expect(await solana.getStamps('solUser')).toEqual([]);
       expect(storage.getClaims()[0].status).toBe('failed');
+    });
+
+    it('applies the reward scale to the caps', async () => {
+      const { orchestrator, xrpl } = build({ rewardScale: 0.01 });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('BLOCKED_POLICY');
+      expect(result.reasons).toEqual([
+        'per-task cap: asked for 2, max is 0.05',
+        'daily cap: already paid 0 today, asked for 2, max is 0.1 per day',
+      ]);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(0);
     });
 
     it('blocks a caption injection end to end through the Grok agent', async () => {
@@ -184,6 +300,37 @@ describe('Orchestrator', () => {
       const result = await orchestrator.runSubmission(submission, { bypassPolicy: true });
 
       expect(result.status).toBe('BLOCKED_POLICY');
+      expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
+    });
+
+    it('can force a 50 RLUSD proposal in test mode', async () => {
+      const agent = stubAgent(goodProposal);
+      const { orchestrator, xrpl } = build({ agent });
+
+      const result = await orchestrator.runSubmission(submission, {
+        bypassPolicy: true,
+        forceProposal: injectedProposal,
+      });
+
+      expect(result.status).toBe('REJECTED_BY_LEDGER');
+      expect(result.proposal).toMatchObject(injectedProposal);
+      expect(agent.propose).not.toHaveBeenCalled();
+      expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
+    });
+
+    it('ignores a forced proposal outside test mode', async () => {
+      const agent = stubAgent(goodProposal);
+      const { orchestrator, xrpl } = build({ agent, isTestMode: false });
+
+      const result = await orchestrator.runSubmission(submission, {
+        bypassPolicy: true,
+        forceProposal: injectedProposal,
+      });
+
+      expect(result.status).toBe('OK');
+      expect(result.proposal).toMatchObject(goodProposal);
+      expect(agent.propose).toHaveBeenCalledTimes(1);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
       expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
     });
   });

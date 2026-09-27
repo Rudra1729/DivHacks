@@ -14,7 +14,8 @@ Attributes:
     decisionId (string): Shared decision ID, also the SQLite key and XRPL memo.
     placeId (string): ID of the place in the shared places file.
     userSolanaAddress (string): Wallet that receives the stamp.
-    xrplTxHash (string): Hash of the RLUSD payment for this decision.
+    xrplTxHash (string): Hash of the RLUSD payment for this decision. Empty
+        for a stamp-only cultural visit, which pays nothing.
 */
 export interface MintStampInput {
   decisionId: string;

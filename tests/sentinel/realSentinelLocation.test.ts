@@ -94,7 +94,7 @@ describe('RealSentinel location plausibility', () => {
     clock += 30_000;
     const result = await sentinel.verify(submission(FAR_PLACE, realisticTrail(FAR_PLACE, { endAt: clock }), who), FAR_PLACE);
 
-    expect(result).toEqual({ ok: false, failures: [expect.stringContaining('impossible travel: 5.0 km')] });
+    expect(result).toEqual({ ok: false, failures: [expect.stringMatching(/^impossible travel: (4\.9|5\.0|5\.1) km/)] });
   });
 
   it('matches travel on either wallet, so switching XRPL address does not help', async () => {

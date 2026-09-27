@@ -11,7 +11,7 @@ const PLACES = [
     x: 450,
     y: 180,
     radius: 150,
-    reward: '1.0 RLUSD',
+    rewardRlusd: 0,
     type: 'cultural',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80',
@@ -24,7 +24,7 @@ const PLACES = [
     x: 580,
     y: 220,
     radius: 150,
-    reward: '1.0 RLUSD',
+    rewardRlusd: 0,
     type: 'cultural',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&w=600&q=80',
@@ -37,8 +37,9 @@ const PLACES = [
     x: 650,
     y: 320,
     radius: 150,
-    reward: '2.0 RLUSD',
+    rewardRlusd: 0.01,
     type: 'civic',
+    sponsor: 'Marcus Garvey Park Alliance',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=600&q=80',
     desc: 'CIVIC MISSION: Inspect and verify wheelchair ramp accessibility at the park entrance.'
@@ -50,7 +51,7 @@ const PLACES = [
     x: 280,
     y: 140,
     radius: 150,
-    reward: '1.0 RLUSD',
+    rewardRlusd: 0,
     type: 'cultural',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=600&q=80',
@@ -63,8 +64,9 @@ const PLACES = [
     x: 520,
     y: 350,
     radius: 150,
-    reward: '1.5 RLUSD',
+    rewardRlusd: 0.01,
     type: 'civic',
+    sponsor: 'Harlem Business Alliance',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=600&q=80',
     desc: 'Support local artisan merchants and check community fridge stock levels.'
@@ -76,11 +78,38 @@ const PLACES = [
     x: 350,
     y: 300,
     radius: 150,
-    reward: '1.0 RLUSD',
+    rewardRlusd: 0,
     type: 'cultural',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
     desc: 'Walk the scenic cliffside paths linking Columbia University and Harlem.'
+  },
+  {
+    id: 'mudd-building',
+    name: 'Seeley W. Mudd Building',
+    neighborhood: 'Morningside Heights',
+    x: 240,
+    y: 260,
+    radius: 200,
+    rewardRlusd: 0,
+    type: 'cultural',
+    discovered: false,
+    image: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80',
+    desc: 'DivHacks HQ: check in at Columbia Engineering, 500 W 120th St at Amsterdam Ave.'
+  },
+  {
+    id: 'mudd-entrance',
+    name: 'Mudd Building Entrance',
+    neighborhood: 'Morningside Heights',
+    x: 270,
+    y: 235,
+    radius: 200,
+    rewardRlusd: 0.01,
+    type: 'civic',
+    sponsor: 'Columbia Engineering',
+    discovered: false,
+    image: 'https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?auto=format&fit=crop&w=600&q=80',
+    desc: 'CIVIC MISSION: Check the Mudd entrance on 120th St. Are the doors, ramp and signs clear and working? Photograph it to report.'
   }
 ];
 
@@ -95,26 +124,108 @@ const PLACE_COORDS = {
   'marcus-garvey-park':     { lat: 40.8043,  lng: -73.9439 },
   'hamilton-grange':        { lat: 40.82138, lng: -73.94726 },
   'malcolm-shabazz-market': { lat: 40.80147, lng: -73.94886 },
-  'morningside-park':       { lat: 40.8065,  lng: -73.9585 }
+  'morningside-park':       { lat: 40.8065,  lng: -73.9585 },
+  'mudd-building':          { lat: 40.81005, lng: -73.96030 },
+  'mudd-entrance':          { lat: 40.8106,  lng: -73.9601 }
 };
 PLACES.forEach(place => Object.assign(place, PLACE_COORDS[place.id]));
 
-// Explored places are remembered in this browser between page loads.
-const DISCOVERED_KEY = 'webpass.discovered';
+// RARITY: the serial alone picks the tier, first finders get the rarest stamps.
+// These defaults match src/solana/rarity.ts and are replaced by GET /places.
+let RARITY_LADDER = [
+  { tier: 'Legendary', fromSerial: 1, toSerial: 10 },
+  { tier: 'Epic', fromSerial: 11, toSerial: 100 },
+  { tier: 'Rare', fromSerial: 101, toSerial: 400 },
+  { tier: 'Common', fromSerial: 401, toSerial: 1000 },
+  { tier: 'Late Explorer', fromSerial: 1001, toSerial: null }
+];
+let STAMP_SUPPLY = 1000;
+PLACES.forEach(place => { place.rarity = { found: 0, nextSerial: 1, nextTier: 'Legendary' }; });
 
-/** Restore which places were explored from localStorage. */
-function loadDiscovered() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(DISCOVERED_KEY) || '[]');
-    PLACES.forEach(place => { place.discovered = saved.includes(place.id); });
-  } catch (e) { /* storage unavailable: start with everything unexplored */ }
+/** CSS class for a tier, e.g. "tier-late-explorer". */
+function tierClass(tier) {
+  return `tier-${String(tier || 'common').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z-]/g, '')}`;
 }
 
-/** Remember which places are explored. */
-function saveDiscovered() {
-  try {
-    localStorage.setItem(DISCOVERED_KEY, JSON.stringify(PLACES.filter(p => p.discovered).map(p => p.id)));
-  } catch (e) { /* storage unavailable: ignore */ }
+/** The ladder rung a serial falls on. */
+function rungForSerial(serial) {
+  return RARITY_LADDER.find(rung => rung.toSerial === null || serial <= rung.toSerial) || RARITY_LADDER[RARITY_LADDER.length - 1];
+}
+
+/** The logged-in visitor's stamp for a place, if they have one. */
+function myStampAt(placeId) {
+  return myStamps.find(stamp => stamp.placeId === placeId);
+}
+
+/** A tier badge element, e.g. "EPIC #11". */
+function tierBadge(tier, serial, prefix = '') {
+  const badge = document.createElement('span');
+  badge.className = `tier-badge ${tierClass(tier)}`;
+  badge.textContent = `${prefix}${String(tier).toUpperCase()} #${serial}`;
+  return badge;
+}
+
+/** Fill the map card's rarity box: the visitor's own stamp here, or the tier
+    the next finder gets, plus the whole ladder with the current rung lit. */
+function renderPlaceRarity(place) {
+  const label = document.getElementById('nodeRarityLabel');
+  const tierEl = document.getElementById('nodeRarityTier');
+  const ladder = document.getElementById('nodeRarityLadder');
+  const note = document.getElementById('nodeRarityNote');
+  if (!label || !tierEl || !ladder || !note) return;
+
+  const { found, nextSerial, nextTier } = place.rarity;
+  const mine = myStampAt(place.id);
+  const shown = mine && mine.tier ? { tier: mine.tier, serial: mine.serial } : { tier: nextTier, serial: nextSerial };
+  label.textContent = mine && mine.tier ? 'Your stamp here' : 'Next stamp here';
+  tierEl.className = `tier-badge ${tierClass(shown.tier)}`;
+  tierEl.textContent = `${String(shown.tier).toUpperCase()} #${shown.serial}`;
+
+  const current = rungForSerial(nextSerial);
+  ladder.replaceChildren(...RARITY_LADDER.map(rung => {
+    const step = document.createElement('div');
+    const gone = rung.toSerial !== null && rung.toSerial < nextSerial;
+    step.className = `rarity-step ${tierClass(rung.tier)}${rung === current ? ' current' : ''}${gone ? ' gone' : ''}`;
+    step.title = `${rung.tier}: ${rung.toSerial === null ? `#${rung.fromSerial}+` : `#${rung.fromSerial}-${rung.toSerial}`}`;
+    const name = document.createElement('strong');
+    name.textContent = rung.tier === 'Late Explorer' ? 'Late' : rung.tier;
+    const range = document.createElement('small');
+    range.textContent = rung.toSerial === null ? `${rung.fromSerial}+` : `${rung.fromSerial}-${rung.toSerial}`;
+    step.append(name, range);
+    return step;
+  }));
+
+  const left = current.toSerial === null ? 0 : current.toSerial - found;
+  const nextFinder = mine && mine.tier ? `Next finder gets ${nextTier} #${nextSerial}. ` : '';
+  note.textContent = nextFinder + (current.toSerial === null
+    ? `All ${STAMP_SUPPLY} numbered stamps are found. New finders get Late Explorer.`
+    : `${found} of ${STAMP_SUPPLY} stamps found. ${left} ${current.tier} ${left === 1 ? 'stamp' : 'stamps'} left.`);
+}
+
+/** Explain the tiers above the passport cards. */
+function renderRarityLegend() {
+  const legend = document.getElementById('rarityLegend');
+  if (!legend) return;
+  const title = document.createElement('span');
+  title.className = 'rarity-legend-title';
+  title.textContent = 'Rarity by finder number:';
+  legend.replaceChildren(title, ...RARITY_LADDER.map(rung => {
+    const item = document.createElement('span');
+    item.className = `tier-badge ${tierClass(rung.tier)}`;
+    item.textContent = `${rung.tier} ${rung.toSerial === null ? `#${rung.fromSerial}+` : `#${rung.fromSerial}-${rung.toSerial}`}`;
+    return item;
+  }));
+}
+
+/** What a verified visit to this place earns, e.g. "0.01 RLUSD" or "Stamp only". */
+function rewardLabel(place) {
+  return place.rewardRlusd > 0 ? `${place.rewardRlusd} RLUSD + stamp` : 'Stamp only';
+}
+
+/** Who funds this place's RLUSD reward, or null for a stamp-only place. */
+function sponsorName(place) {
+  if (!(place.rewardRlusd > 0)) return null;
+  return place.sponsor || 'WebPass NYC community pool';
 }
 
 // APP STATE
@@ -193,6 +304,7 @@ async function refreshAccount() {
   if (!isLoggedIn()) {
     myStamps = [];
     myBalance = null;
+    markStampedPlaces();
     renderTradingCards();
     updateWalletUI();
     return;
@@ -207,9 +319,22 @@ async function refreshAccount() {
     refreshAccount();
     return;
   }
+  const serverWallets = {
+    solanaAddress: stamps.ok ? stamps.body.solanaAddress : undefined,
+    xrplAddress: balance.ok ? balance.body.xrplAddress : undefined
+  };
+  const staleWallet = Object.entries(serverWallets).some(([key, value]) => value && value !== currentAuth.user[key]);
+  if (staleWallet) {
+    saveAuth(currentAuth.token, {
+      ...currentAuth.user,
+      ...Object.fromEntries(Object.entries(serverWallets).filter(([, value]) => value))
+    });
+  }
   if (stamps.ok) {
     myStamps = stamps.body.stamps || [];
     markStampedPlaces();
+    renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
+    if (selectedNodeId) renderPlaceRarity(PLACES.find(p => p.id === selectedNodeId));
   }
   if (balance.ok) {
     myBalance = balance.body.balance;
@@ -218,12 +343,12 @@ async function refreshAccount() {
   updateWalletUI();
 }
 
-/** Light up every place the visitor holds a stamp for. */
+/** Light up exactly the places the logged-in visitor holds a stamp for, and none when logged out. */
 function markStampedPlaces() {
   const stamped = new Set(myStamps.map(stamp => stamp.placeId));
-  const newlyLit = PLACES.filter(place => stamped.has(place.id) && !place.discovered);
-  if (newlyLit.length === 0) return;
-  newlyLit.forEach(place => { place.discovered = true; });
+  const changed = PLACES.filter(place => place.discovered !== stamped.has(place.id));
+  if (changed.length === 0) return;
+  changed.forEach(place => { place.discovered = stamped.has(place.id); });
   renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
   selectNode(selectedNodeId, { pan: false });
 }
@@ -338,8 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAuthEventListeners();
   refreshAccount();
 
-  // Restore explored places, then set up the real NYC map (see map.js)
-  loadDiscovered();
+  // Set up the real NYC map (see map.js); places light up once the account's stamps load
   initRealMap();
   selectNode(selectedNodeId, { pan: false });
 
@@ -354,6 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
 
   // Live data from the backend
+  renderRarityLegend();
   loadPlacesFromServer();
   connectLiveStream();
 
@@ -371,7 +496,14 @@ function selectNode(placeId, { pan = true } = {}) {
   document.getElementById('nodeTitle').innerText = place.name;
   document.getElementById('nodeNeighborhood').innerHTML = `<i data-lucide="map-pin"></i> ${place.neighborhood}`;
   document.getElementById('nodeGeofence').innerText = `${place.radius} Meters`;
-  document.getElementById('nodeReward').innerText = place.reward;
+  document.getElementById('nodeReward').innerText = rewardLabel(place);
+  const sponsorRow = document.getElementById('nodeSponsor');
+  if (sponsorRow) {
+    const sponsor = sponsorName(place);
+    sponsorRow.style.display = sponsor ? '' : 'none';
+    document.getElementById('nodeSponsorName').innerText = sponsor || '';
+  }
+  renderPlaceRarity(place);
   document.getElementById('nodeDesc').innerText = place.desc;
   document.getElementById('nodeImage').src = place.image;
 
@@ -486,15 +618,17 @@ function renderMissions(filter) {
       <div class="mission-banner">
         <img src="${place.image}" alt="${place.name}">
         <span class="mission-tag-badge ${place.type}">${place.type === 'cultural' ? 'CULTURAL' : 'CIVIC BOUNTY'}</span>
-        <span class="mission-reward-chip">+${place.reward}</span>
+        <span class="mission-reward-chip">${place.rewardRlusd > 0 ? `+${place.rewardRlusd} RLUSD` : 'STAMP ONLY'}</span>
       </div>
       <div class="mission-body">
         <h4 class="mission-title">${place.name}</h4>
         <div class="mission-loc"><i data-lucide="map-pin"></i> ${place.neighborhood} • ${place.radius}m Geofence</div>
+        ${sponsorName(place) ? `<div class="mission-sponsor"><i data-lucide="building-2"></i> Paid by <strong>${escapeHtml(sponsorName(place))}</strong></div>` : ''}
+        <div class="mission-rarity">${missionRarityHtml(place)}</div>
         <p class="mission-desc">${place.desc}</p>
         <button class="comic-btn ${place.discovered ? 'hero-blue-btn' : 'hero-red-btn'} full-btn" onclick="openSubmissionModal('${place.id}')">
           <i data-lucide="${place.discovered ? 'check-circle-2' : 'zap'}"></i>
-          ${place.discovered ? 'COMPLETED (THWIP AGAIN)' : 'START MISSION'}
+          ${place.discovered ? 'COMPLETED, STAMP COLLECTED' : 'START MISSION'}
         </button>
       </div>
     `;
@@ -502,6 +636,17 @@ function renderMissions(filter) {
   });
 
   if (window.lucide) lucide.createIcons();
+}
+
+/** Rarity line for a mission card: the visitor's stamp here, or the next one up for grabs. */
+function missionRarityHtml(place) {
+  const mine = myStampAt(place.id);
+  if (mine && mine.tier) {
+    return `<span class="tier-badge ${tierClass(mine.tier)}">YOURS: ${escapeHtml(mine.tier.toUpperCase())} #${Number(mine.serial)}</span>`;
+  }
+  const { found, nextSerial, nextTier } = place.rarity;
+  return `<span class="tier-badge ${tierClass(nextTier)}">NEXT: ${escapeHtml(String(nextTier).toUpperCase())} #${Number(nextSerial)}</span>` +
+    `<small>${Number(found)} of ${STAMP_SUPPLY} found</small>`;
 }
 
 /* ==========================================================================
@@ -518,13 +663,16 @@ function stampCard(stamp) {
   const place = PLACES.find(p => p.id === stamp.placeId);
   return {
     badge: stamp.tier ? `${stamp.tier.toUpperCase()} #${stamp.serial}` : 'SOULBOUND STAMP',
+    tierClass: stamp.tier ? tierClass(stamp.tier) : '',
     name: escapeHtml(stamp.name),
     place: escapeHtml(`${place ? place.name : stamp.placeId} • ${stamp.neighborhood}`),
     image: escapeHtml(place ? place.image : ''),
     decisionId: escapeHtml(stamp.decisionId),
     mint: escapeHtml(shortHash(stamp.assetAddress)),
-    tx: escapeHtml(shortHash(stamp.xrplTxHash)),
-    rarity: escapeHtml(stamp.tier ? `${stamp.tier}, found #${stamp.serial}` : 'Unranked')
+    tx: escapeHtml(stamp.xrplTxHash ? shortHash(stamp.xrplTxHash) : 'None, cultural visits earn the stamp only'),
+    reward: stamp.rewardRlusd > 0 ? `EARNED +${stamp.rewardRlusd} RLUSD` : 'STAMP ONLY, NO RLUSD',
+    rewardClass: stamp.rewardRlusd > 0 ? 'paid' : 'stamp-only',
+    rarity: escapeHtml(stamp.tier ? `${stamp.tier}, finder #${stamp.serial} of ${STAMP_SUPPLY}` : 'Unranked')
   };
 }
 
@@ -545,7 +693,7 @@ function renderTradingCards() {
 
   myStamps.map(stampCard).forEach(stamp => {
     const cardWrap = document.createElement('div');
-    cardWrap.className = 'card-3d-wrapper';
+    cardWrap.className = `card-3d-wrapper ${stamp.tierClass}`;
     cardWrap.onclick = () => cardWrap.classList.toggle('flipped');
 
     cardWrap.innerHTML = `
@@ -553,12 +701,13 @@ function renderTradingCards() {
         <!-- FRONT FACE -->
         <div class="card-face card-face-front">
           <div>
-            <span class="card-stamp-badge">${escapeHtml(stamp.badge)}</span>
+            <span class="card-stamp-badge tier-badge ${stamp.tierClass}">${escapeHtml(stamp.badge)}</span>
             <div class="card-art-box">
               <img src="${stamp.image}" alt="${stamp.name}">
             </div>
             <h4 class="card-name">${stamp.name}</h4>
             <div class="card-meta">${stamp.place}</div>
+            <span class="card-reward ${stamp.rewardClass}">${stamp.reward}</span>
           </div>
           <div style="text-align:right; font-size:0.75rem; font-weight:800; color:#555;">
             CLICK TO FLIP <i data-lucide="rotate-cw" style="vertical-align:middle;"></i>
@@ -576,6 +725,10 @@ function renderTradingCards() {
             <div class="audit-field">
               <div class="audit-label">Solana Stamp Address</div>
               <div class="audit-val">${stamp.mint}</div>
+            </div>
+            <div class="audit-field">
+              <div class="audit-label">Reward</div>
+              <div class="audit-val">${stamp.reward}</div>
             </div>
             <div class="audit-field">
               <div class="audit-label">XRPL Payment Tx</div>
@@ -640,7 +793,7 @@ function runAttackSimulation(type) {
 
     setTimeout(() => {
       g4.className = 'gate-step blocked';
-      addSimLog('[GATE 4 - POLICY ENGINE] BLOCKED_POLICY: Proposal $100 exceeds fixed task limit of $5.00 RLUSD!', 'error');
+      addSimLog('[GATE 4 - POLICY ENGINE] BLOCKED_POLICY: Proposal $100 exceeds the per-task cap!', 'error');
       setSpideyBotState('policy_blocked', '"GUARDRAIL HELD! Even though Grok proposed $100, my Policy Engine blocked it automatically!"');
       addTickerItem('GUARDRAIL HELD! $100 prompt injection blocked by Policy Engine');
     }, 1800);
@@ -682,8 +835,8 @@ function addSimLog(msg, type = 'info') {
 
 // Final decision events from GET /events, with how the ticker labels them.
 const TICKER_LABELS = {
-  'decision.ok': ['THWIP!', 'highlight-yellow', 'A visit was verified: RLUSD paid and a soulbound stamp minted'],
-  'decision.stamp_failed': ['STAMP QUEUED', 'highlight-cyan', 'A visit was paid; its stamp will be minted on retry'],
+  'decision.ok': ['THWIP!', 'highlight-yellow', 'A visit was verified and a soulbound stamp minted'],
+  'decision.stamp_failed': ['STAMP QUEUED', 'highlight-cyan', 'A visit was verified; its stamp will be minted on retry'],
   'decision.payment_unconfirmed': ['CONFIRMING', 'highlight-cyan', 'A payment is waiting for the XRPL ledger'],
   'decision.blocked_sentinel': ['SNAG!', 'highlight-red'],
   'decision.blocked_policy': ['GUARDRAIL HELD!', 'highlight-red'],
@@ -759,8 +912,10 @@ function placeFromServer(serverPlace) {
     lat: serverPlace.latitude,
     lng: serverPlace.longitude,
     radius: serverPlace.geofenceRadiusMeters,
-    reward: `${serverPlace.baseRewardRlusd} RLUSD`,
-    type: 'cultural',
+    rewardRlusd: serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd,
+    type: serverPlace.kind || 'civic',
+    sponsor: serverPlace.sponsor ?? null,
+    rarity: serverPlace.rarity || { found: 0, nextSerial: 1, nextTier: 'Legendary' },
     discovered: false,
     image: serverPlace.imageUrl || 'https://placehold.co/600x600/png?text=' + encodeURIComponent(serverPlace.name),
     desc: serverPlace.description || `A newly added WebPass NYC mission in ${serverPlace.neighborhood}.`
@@ -775,12 +930,19 @@ async function loadPlacesFromServer() {
   const result = await WebPassApi.getPlaces();
   if (!result.ok || !result.body) return;
 
+  if (Array.isArray(result.body.rarityTiers)) RARITY_LADDER = result.body.rarityTiers;
+  if (result.body.stampSupply) STAMP_SUPPLY = result.body.stampSupply;
+  renderRarityLegend();
+
   let addedAny = false;
   result.body.places.forEach(serverPlace => {
     const place = PLACES.find(p => p.id === serverPlace.id);
     if (place) {
       place.name = serverPlace.name;
-      place.reward = `${serverPlace.baseRewardRlusd} RLUSD`;
+      if (serverPlace.rarity) place.rarity = serverPlace.rarity;
+      place.rewardRlusd = serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd;
+      if (serverPlace.kind) place.type = serverPlace.kind;
+      if ('sponsor' in serverPlace) place.sponsor = serverPlace.sponsor;
       place.radius = serverPlace.geofenceRadiusMeters;
       if (typeof geofenceCircles !== 'undefined') geofenceCircles.get(place.id)?.setRadius(place.radius);
       return;
@@ -820,6 +982,7 @@ async function connectLiveStream() {
   const source = await WebPassApi.subscribeEvents(event => {
     const label = TICKER_LABELS[event.type];
     if (label) addLiveTickerItem(label[0], label[1], label[2] || event.message);
+    if (event.type === 'decision.ok' || event.type === 'decision.stamp_failed') loadPlacesFromServer();
   });
   source.onopen = () => {
     if (stream && stream.dataset.live !== 'true') {
@@ -933,7 +1096,7 @@ function openSubmissionModal(placeId) {
   const place = PLACES.find(p => p.id === placeId);
   if (place) {
     document.getElementById('modalMissionTitle').innerText = place.name;
-    document.getElementById('modalMissionSub').innerText = `${place.neighborhood} • ${place.reward} Reward`;
+    document.getElementById('modalMissionSub').innerText = `${place.neighborhood} • Reward: ${rewardLabel(place)}`;
   }
   document.getElementById('submissionModal')?.classList.add('open');
   prepareSubmission(placeId);

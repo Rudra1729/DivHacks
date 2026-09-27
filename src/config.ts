@@ -40,25 +40,36 @@ export interface AppConfig {
   /** Whether Sentinel runs the location plausibility checks (GPS trail,
       accuracy, typed coordinates, impossible travel, clusters). */
   locationChecks: boolean;
+  /** Whether cultural visits also pay RLUSD. Off means they earn only the
+      stamp, and only civic bounties pay. */
+  culturalRewards: boolean;
+  /** Whether Grok checks that each photo shows the place. Needs a Grok API key. */
+  photoCheck: boolean;
+  /** Lowest Grok confidence, from 0 to 1, at which a photo match passes. */
+  photoMinConfidence: number;
 }
 
-/** Read LOCATION_CHECKS, defaulting to on.
+/** Read an 'on'/'off' environment variable.
+
+Args:
+    name (string): The environment variable to read.
+    fallback (boolean): The value when the variable is unset or empty.
 
 Returns:
-    boolean: False only when LOCATION_CHECKS is 'off'.
+    boolean: True for 'on', false for 'off', otherwise the fallback.
 
 Raises:
-    ConfigError: If LOCATION_CHECKS is set to anything other than 'on' or 'off'.
+    ConfigError: If the variable is set to anything other than 'on' or 'off'.
 */
-function loadLocationChecks(): boolean {
-  const raw = (process.env.LOCATION_CHECKS ?? '').trim().toLowerCase();
-  if (raw === '' || raw === 'on') {
-    return true;
+function loadOnOff(name: string, fallback: boolean): boolean {
+  const raw = (process.env[name] ?? '').trim().toLowerCase();
+  if (raw === '') {
+    return fallback;
   }
-  if (raw === 'off') {
-    return false;
+  if (raw === 'on' || raw === 'off') {
+    return raw === 'on';
   }
-  throw new ConfigError(`LOCATION_CHECKS must be 'on' or 'off', got '${process.env.LOCATION_CHECKS}'`);
+  throw new ConfigError(`${name} must be 'on' or 'off', got '${process.env[name]}'`);
 }
 
 /** Read REWARD_SCALE, defaulting to 1 (full rewards).
@@ -81,6 +92,26 @@ function loadRewardScale(): number {
   return scale;
 }
 
+/** Read PHOTO_MIN_CONFIDENCE, defaulting to 0.6.
+
+Returns:
+    number: The minimum confidence, from 0 to 1.
+
+Raises:
+    ConfigError: If PHOTO_MIN_CONFIDENCE is not a number from 0 to 1.
+*/
+function loadPhotoMinConfidence(): number {
+  const raw = process.env.PHOTO_MIN_CONFIDENCE;
+  if (raw === undefined || raw.trim() === '') {
+    return 0.6;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new ConfigError(`PHOTO_MIN_CONFIDENCE must be a number from 0 to 1, got '${raw}'`);
+  }
+  return value;
+}
+
 /** Build the app configuration from environment variables.
 
 Returns:
@@ -88,7 +119,8 @@ Returns:
 
 Raises:
     ConfigError: If a treasury key is present in the environment, or
-        REWARD_SCALE or LOCATION_CHECKS is invalid.
+        REWARD_SCALE, LOCATION_CHECKS, CULTURAL_REWARDS, PHOTO_CHECK, or
+        PHOTO_MIN_CONFIDENCE is invalid.
 */
 export function loadConfig(): AppConfig {
   assertNoTreasuryKey();
@@ -102,6 +134,9 @@ export function loadConfig(): AppConfig {
     grokModel: process.env.GROK_MODEL ?? 'grok-4',
     grokEndpoint: process.env.GROK_ENDPOINT ?? 'https://api.x.ai/v1/chat/completions',
     rewardScale: loadRewardScale(),
-    locationChecks: loadLocationChecks(),
+    locationChecks: loadOnOff('LOCATION_CHECKS', true),
+    culturalRewards: loadOnOff('CULTURAL_REWARDS', false),
+    photoCheck: loadOnOff('PHOTO_CHECK', true),
+    photoMinConfidence: loadPhotoMinConfidence(),
   };
 }

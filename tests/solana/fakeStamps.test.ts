@@ -89,6 +89,30 @@ describe('fake stamps', () => {
     expect((await getStamps('wallet-11'))[0]).toMatchObject({ serial: 11, tier: 'Epic' });
   });
 
+  it('restores stamps minted before a restart and continues their serials', async () => {
+    fakeStampService.restore([
+      { decisionId: 'old-1', placeId: 'apollo-theater', owner: 'user-wallet', assetAddress: 'fake-asset-4', xrplTxHash: 'H1', serial: 1, tier: 'Legendary' },
+      { decisionId: 'old-2', placeId: 'mudd-building', owner: 'user-wallet', assetAddress: 'fake-asset-5', xrplTxHash: '', serial: 1, tier: 'Legendary' },
+    ]);
+
+    const restored = await getStamps('user-wallet');
+    expect(restored.map((s) => [s.decisionId, s.placeId, s.serial, s.tier])).toEqual([
+      ['old-1', 'apollo-theater', 1, 'Legendary'],
+      ['old-2', 'mudd-building', 1, 'Legendary'],
+    ]);
+    expect(await hasStampForPlace('user-wallet', 'mudd-building')).toBe(true);
+
+    const next = await mintStamp({ ...input, decisionId: 'new-1', userSolanaAddress: 'other-wallet' });
+    expect(next).toMatchObject({ ok: true, serial: 2, assetAddress: 'fake-asset-6' });
+  });
+
+  it('does not duplicate a stamp restored twice', async () => {
+    const record = { decisionId: 'old-1', placeId: 'apollo-theater', owner: 'user-wallet', assetAddress: 'fake-asset-1', xrplTxHash: '', serial: 1, tier: 'Legendary' };
+    fakeStampService.restore([record]);
+    fakeStampService.restore([record]);
+    expect(await getStamps('user-wallet')).toHaveLength(1);
+  });
+
   it('exposes the same functions as an injectable solanaStamps object', async () => {
     expect((await solanaStamps.mintStamp(input)).ok).toBe(true);
     expect(await solanaStamps.hasStampForPlace('user-wallet', 'apollo-theater')).toBe(true);
