@@ -923,6 +923,9 @@ function runAttackSimulation(type) {
 real testnet server, replace this with a real testnet address. */
 const DEMO_ATTACKER_XRPL_ADDRESS = 'rATTACKER00000000000000000000';
 
+/** Mission used for the real ledger-stop demo, so it's the same place every time. */
+const DEMO_ATTACK_PLACE_ID = 'mudd-building';
+
 /** REAL demo, not a canned animation: enables the server's policy bypass and
 forces its next payout proposal, both via genuine calls to /test/attack and
 /test/attack/force-proposal. Submitting any real mission afterward runs
@@ -954,11 +957,11 @@ async function runRealLedgerStopDemo() {
     return;
   }
   addSimLog('[REAL] Server confirmed the forced proposal. Every submission now uses it, skipping Grok and the policy engine.', 'success');
-  addSimLog('[ACTION NEEDED] Submit any real mission below (a real photo, any place) — watch Gate 5.', 'warning');
-  setSpideyBotState('sentinel_blocked', '"Attack mode is live on the real server. Submit a mission and watch the ledger stop it."');
+  addSimLog('[ACTION NEEDED] Submit the Mudd Building mission below (any real photo) — watch Gate 5.', 'warning');
+  setSpideyBotState('sentinel_blocked', '"Attack mode is live on the real server. Submit the Mudd Building mission and watch the ledger stop it."');
 
   gates[0].className = 'gate-step active';
-  openSubmissionModal(selectedNodeId);
+  openSubmissionModal(DEMO_ATTACK_PLACE_ID);
 }
 
 /** Restores normal enforcement after the demo: real DELETE calls, not a reset animation. */
