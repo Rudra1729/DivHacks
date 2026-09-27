@@ -60,7 +60,7 @@ export class RealSentinel implements Sentinel {
     this.now = options.now ?? Date.now;
   }
 
-  async verify(input: SubmissionInput, place: Place): Promise<SentinelResult> {
+  async verify(input: SubmissionInput, place: Place, decisionId?: string): Promise<SentinelResult> {
     const failures: string[] = [];
 
     const distance = haversineDistanceMeters(
@@ -110,7 +110,7 @@ export class RealSentinel implements Sentinel {
 
     // Record the photo as seen now that the whole submission has cleared
     // every other check, so a rejected submission's photo can be retried.
-    recordPhotoHash(this.db, replay.hash);
+    recordPhotoHash(this.db, replay.hash, decisionId ?? null);
     // Only passed submissions enter the location history, so nobody can
     // block another wallet by sending far-away submissions in its name.
     if (this.locationChecks) {

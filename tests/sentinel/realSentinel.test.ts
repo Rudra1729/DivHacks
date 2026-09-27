@@ -46,6 +46,13 @@ describe('RealSentinel', () => {
     expect(result.ok).toBe(true);
   });
 
+  it('records the photo fingerprint against the decision it belongs to', async () => {
+    const result = await sentinel.verify(buildInput(), PLACE, 'decision-42');
+    expect(result.ok).toBe(true);
+    const row = db.prepare('SELECT decision_id FROM photo_fingerprints').get() as { decision_id: string | null };
+    expect(row.decision_id).toBe('decision-42');
+  });
+
   it('reports every failure together', async () => {
     const input = buildInput({
       latitude: PLACE.latitude + 5,
