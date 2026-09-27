@@ -39,6 +39,26 @@ npm run db:reset # delete your local SQLite file (see note below)
 
 The server reads settings from `.env` in the folder it runs from.
 
+## Run the full app
+
+The backend also serves the web app in `frontend/`, so one command runs
+everything:
+
+1. In `.env`, set `SESSION_SECRET` and `WALLET_ENCRYPTION_KEY` to long random
+   strings (`openssl rand -hex 32` works) and keep `EMAIL_MODE=fake`.
+2. Run `npm run dev` and open http://localhost:3000.
+3. Log in with any email. In fake email mode the six digit code is printed in
+   the server console (`[fake email] login code for ...`).
+4. Open a mission, take or upload a photo, and wait for the GPS trail
+   (5 readings over 10 seconds) before submitting.
+
+Away from Harlem, open http://localhost:3000/?demo=1 instead. It shows a
+"pretend my phone is standing at this place" checkbox that sends a simulated
+GPS trail near the place, so the whole flow can be demoed from a laptop.
+
+The page talks to the server it was loaded from. To point it at another
+server, add `?api=http://host:port` to the URL.
+
 ## Live checks and evidence
 
 `npm run live:check` starts a real server, sends real requests, and confirms the

@@ -37,12 +37,15 @@ For complete component specifications, animation triggers, Spidey-Bot expression
 
 ## Backend API Dependencies
 
-* `GET /places` — Load spiderweb nodes & mission places
-* `POST /submissions` — Submit photo, location, GPS trail, wallet addresses, and optional caption (see below)
-* `GET /users/:wallet/stamps` — Fetch Solana soulbound stamps
-* `GET /decisions/:id` — Inspect submission audit trail
-* `GET /events` — Real-time decision stream (Server-Sent Events)
-* `POST /test/attack` / `DELETE /test/attack` — Toggle policy-bypass test mode for demo attacks
+All calls go through `api.js` (`window.WebPassApi`).
+
+* `GET /places`: mission names, rewards and geofence radii
+* `POST /auth/request-code`, `POST /auth/verify`: email login, returns a token and both wallet addresses
+* `GET /me/nft`, `GET /me/rlusd-balance`: the passport stamps and RLUSD balance for the logged in user
+* `POST /submissions`: photo, location, GPS trail, wallet addresses, and optional caption (see below)
+* `GET /decisions/:id`: audit trail, replayed on the 5 gates after each submission
+* `GET /events`: live decision stream (Server-Sent Events) for the ticker
+* `POST /test/attack` / `DELETE /test/attack`: policy-bypass toggle, only mounted when `NODE_ENV=test` (404 otherwise)
 
 ---
 
@@ -76,9 +79,13 @@ The smaller pieces (`openCamera`, `collectTrail`, `capturePhoto`,
 Notes:
 
 * Camera and location only work on `https://` pages or `http://localhost`.
-* The backend does not send CORS headers yet, so the page must be served from
-  the same origin as the API, or the API needs CORS enabled, before the browser
-  can read its answers.
+* The backend serves this folder, so `npm run dev` at the repo root and
+  http://localhost:3000 is all you need. The API also sends CORS headers, so a
+  separate static server works too: `api.js` uses the page's own origin when it
+  answers `/health`, otherwise `http://localhost:3000`, and `?api=` overrides
+  both.
+* `?demo=1` shows a checkbox that sends a simulated GPS trail near the place,
+  for demos away from the real location.
 * What gets blocked: no trail, fewer than 5 readings or under 10 seconds,
   readings that never move (a browser location override), accuracy of 1 m or
   better or worse than 200 m, coordinates with 4 or fewer decimals or exactly on

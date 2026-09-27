@@ -84,39 +84,9 @@ const PLACES = [
   }
 ];
 
-// COLLECTIBLE SOULBOUND CARDS DATA
-const STAMPS_DATA = [
-  {
-    id: 'stamp-01',
-    name: 'Apollo Theater Discovery',
-    place: 'Apollo Theater • Harlem',
-    mint: '7xKX...9M1L',
-    tx: 'F829A...38B',
-    decisionId: 'dec_apollo_84920',
-    image: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80',
-    date: 'Sep 26, 2026'
-  },
-  {
-    id: 'stamp-02',
-    name: 'Marcus Garvey Civic Stamp',
-    place: 'Marcus Garvey Park',
-    mint: '4mQP...12ZK',
-    tx: '9A71B...99F',
-    decisionId: 'dec_garvey_19284',
-    image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=600&q=80',
-    date: 'Sep 26, 2026'
-  },
-  {
-    id: 'stamp-03',
-    name: 'Morningside Heights Explorer',
-    place: 'Morningside Park',
-    mint: '9zLL...88AA',
-    tx: '12BB4...77C',
-    decisionId: 'dec_morningside_33102',
-    image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
-    date: 'Sep 26, 2026'
-  }
-];
+// THE LOGGED-IN VISITOR'S ACCOUNT, read from the backend (stamps live on Solana, RLUSD on XRPL)
+let myStamps = [];
+let myBalance = null;
 
 // REAL COORDINATES (same values as src/data/places.ts, ids match the backend)
 const PLACE_COORDS = {
@@ -155,7 +125,6 @@ let attackModeActive = false;
    EMAIL OTP AUTH & CUSTODIAL WALLET LOGIN
    ========================================================================== */
 
-const API_BASE_URL = 'http://localhost:3000';
 const AUTH_STORAGE_KEY = 'spideyverse.auth';
 
 let currentAuth = null; // { token, user: { id, email, xrplAddress, solanaAddress } }
@@ -191,7 +160,7 @@ function updateWalletUI() {
   if (!btnText) return;
 
   if (isLoggedIn()) {
-    btnText.innerText = currentAuth.user.email;
+    btnText.innerText = myBalance === null ? currentAuth.user.email : `${currentAuth.user.email} • ${myBalance} RLUSD`;
     const xrplInput = document.getElementById('xrplAddressInput');
     const solanaInput = document.getElementById('solanaAddressInput');
     if (xrplInput) {
@@ -217,6 +186,48 @@ function updateWalletUI() {
   }
 }
 
+/** Reload the visitor's stamps and RLUSD balance, then repaint the navbar,
+the passport cards, and which places are lit on the map. Logs out if the
+session has expired. */
+async function refreshAccount() {
+  if (!isLoggedIn()) {
+    myStamps = [];
+    myBalance = null;
+    renderTradingCards();
+    updateWalletUI();
+    return;
+  }
+  const [stamps, balance] = await Promise.all([
+    WebPassApi.getMyStamps(currentAuth.token),
+    WebPassApi.getMyBalance(currentAuth.token)
+  ]);
+  if (stamps.status === 401 || balance.status === 401) {
+    clearAuth();
+    setSpideyBotState('ready', '"Your session expired. Log in again, Hero!"');
+    refreshAccount();
+    return;
+  }
+  if (stamps.ok) {
+    myStamps = stamps.body.stamps || [];
+    markStampedPlaces();
+  }
+  if (balance.ok) {
+    myBalance = balance.body.balance;
+  }
+  renderTradingCards();
+  updateWalletUI();
+}
+
+/** Light up every place the visitor holds a stamp for. */
+function markStampedPlaces() {
+  const stamped = new Set(myStamps.map(stamp => stamp.placeId));
+  const newlyLit = PLACES.filter(place => stamped.has(place.id) && !place.discovered);
+  if (newlyLit.length === 0) return;
+  newlyLit.forEach(place => { place.discovered = true; });
+  renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
+  selectNode(selectedNodeId, { pan: false });
+}
+
 function showLoginError(message) {
   const errorText = document.getElementById('loginErrorText');
   if (!errorText) return;
@@ -237,28 +248,18 @@ function closeLoginModal() {
 }
 
 async function requestLoginCode(email) {
-  const response = await fetch(`${API_BASE_URL}/auth/request-code`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error((body.errors && body.errors[0]) || 'Could not send login code.');
+  const result = await WebPassApi.requestLoginCode(email);
+  if (!result.ok) {
+    throw new Error(WebPassApi.errorMessage(result, 'Could not send login code.'));
   }
 }
 
 async function verifyLoginCode(email, code) {
-  const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code })
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error((body.errors && body.errors[0]) || 'Incorrect code.');
+  const result = await WebPassApi.verifyLoginCode(email, code);
+  if (!result.ok) {
+    throw new Error(WebPassApi.errorMessage(result, 'Incorrect code.'));
   }
-  return body;
+  return result.body;
 }
 
 function setupAuthEventListeners() {
@@ -266,7 +267,7 @@ function setupAuthEventListeners() {
     if (isLoggedIn()) {
       if (confirm(`Logged in as ${currentAuth.user.email}. Log out?`)) {
         clearAuth();
-        updateWalletUI();
+        refreshAccount();
         setSpideyBotState('ready', '"Logged out. Come back anytime, Hero!"');
       }
       return;
@@ -307,6 +308,7 @@ function setupAuthEventListeners() {
       const { token, user } = await verifyLoginCode(pendingLoginEmail, code);
       saveAuth(token, user);
       updateWalletUI();
+      refreshAccount();
       closeLoginModal();
       setSpideyBotState('approved', `"Welcome back, Hero! Logged in as ${user.email}. Your Solana and RLUSD wallets are ready."`);
     } catch (error) {
@@ -334,6 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStoredAuth();
   updateWalletUI();
   setupAuthEventListeners();
+  refreshAccount();
 
   // Restore explored places, then set up the real NYC map (see map.js)
   loadDiscovered();
@@ -349,6 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Setup Event Listeners
   setupEventListeners();
+
+  // Live data from the backend
+  loadPlacesFromServer();
+  connectLiveStream();
 
 });
 
@@ -413,9 +420,6 @@ function triggerThwipUnlock(placeId) {
 
   // Update Spidey-Bot Avatar Expression
   setSpideyBotState('approved', `"THWIP! Hero unlocked ${place.name}! Node illuminated on the NYC Spiderweb map!"`);
-
-  // Append to Marquee Stream
-  addTickerItem(`THWIP! ${place.name} unlocked by Hero 0x8a...2a (+${place.reward})`);
 
   // Re-render Mission cards
   renderMissions('all');
@@ -504,12 +508,42 @@ function renderMissions(filter) {
    3D TRADING CARDS GENERATOR
    ========================================================================== */
 
+/** Escape text for use inside innerHTML. */
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+/** Turn a stamp from GET /me/nft into what a trading card shows. */
+function stampCard(stamp) {
+  const place = PLACES.find(p => p.id === stamp.placeId);
+  return {
+    badge: stamp.tier ? `${stamp.tier.toUpperCase()} #${stamp.serial}` : 'SOULBOUND STAMP',
+    name: escapeHtml(stamp.name),
+    place: escapeHtml(`${place ? place.name : stamp.placeId} • ${stamp.neighborhood}`),
+    image: escapeHtml(place ? place.image : ''),
+    decisionId: escapeHtml(stamp.decisionId),
+    mint: escapeHtml(shortHash(stamp.assetAddress)),
+    tx: escapeHtml(shortHash(stamp.xrplTxHash)),
+    rarity: escapeHtml(stamp.tier ? `${stamp.tier}, found #${stamp.serial}` : 'Unranked')
+  };
+}
+
 function renderTradingCards() {
   const gallery = document.getElementById('cardsGallery');
   if (!gallery) return;
   gallery.innerHTML = '';
 
-  STAMPS_DATA.forEach(stamp => {
+  if (!isLoggedIn() || myStamps.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'cards-empty';
+    empty.textContent = isLoggedIn()
+      ? 'No stamps yet. Complete a mission to earn your first soulbound card!'
+      : 'Log in to see the soulbound cards in your passport.';
+    gallery.appendChild(empty);
+    return;
+  }
+
+  myStamps.map(stampCard).forEach(stamp => {
     const cardWrap = document.createElement('div');
     cardWrap.className = 'card-3d-wrapper';
     cardWrap.onclick = () => cardWrap.classList.toggle('flipped');
@@ -519,7 +553,7 @@ function renderTradingCards() {
         <!-- FRONT FACE -->
         <div class="card-face card-face-front">
           <div>
-            <span class="card-stamp-badge">SOULBOUND STAMP #01</span>
+            <span class="card-stamp-badge">${escapeHtml(stamp.badge)}</span>
             <div class="card-art-box">
               <img src="${stamp.image}" alt="${stamp.name}">
             </div>
@@ -540,7 +574,7 @@ function renderTradingCards() {
               <div class="audit-val">${stamp.decisionId}</div>
             </div>
             <div class="audit-field">
-              <div class="audit-label">Solana Mint Hash</div>
+              <div class="audit-label">Solana Stamp Address</div>
               <div class="audit-val">${stamp.mint}</div>
             </div>
             <div class="audit-field">
@@ -548,8 +582,8 @@ function renderTradingCards() {
               <div class="audit-val">${stamp.tx}</div>
             </div>
             <div class="audit-field">
-              <div class="audit-label">Mint Date</div>
-              <div class="audit-val">${stamp.date}</div>
+              <div class="audit-label">Rarity</div>
+              <div class="audit-val">${stamp.rarity}</div>
             </div>
           </div>
           <div style="font-size:0.75rem; color:var(--neon-cyan); text-align:center;">
@@ -635,9 +669,103 @@ function addSimLog(msg, type = 'info') {
   const logBox = document.getElementById('simLogBox');
   const line = document.createElement('div');
   line.className = `log-line ${type}-line`;
-  line.innerHTML = `<code>${msg}</code>`;
+  const code = document.createElement('code');
+  code.textContent = msg;
+  line.appendChild(code);
   logBox.appendChild(line);
   logBox.scrollTop = logBox.scrollHeight;
+}
+
+/* ==========================================================================
+   LIVE BACKEND DATA: places, the decision stream, and attack mode
+   ========================================================================== */
+
+// Final decision events from GET /events, with how the ticker labels them.
+const TICKER_LABELS = {
+  'decision.ok': ['THWIP!', 'highlight-yellow', 'A visit was verified: RLUSD paid and a soulbound stamp minted'],
+  'decision.stamp_failed': ['STAMP QUEUED', 'highlight-cyan', 'A visit was paid; its stamp will be minted on retry'],
+  'decision.payment_unconfirmed': ['CONFIRMING', 'highlight-cyan', 'A payment is waiting for the XRPL ledger'],
+  'decision.blocked_sentinel': ['SNAG!', 'highlight-red'],
+  'decision.blocked_policy': ['GUARDRAIL HELD!', 'highlight-red'],
+  'decision.rejected_by_ledger': ['LEDGER STOP!', 'highlight-red'],
+  'decision.payment_failed': ['LEDGER STOP!', 'highlight-red']
+};
+const MAX_TICKER_ITEMS = 20;
+
+/** Use the backend's rewards and geofences, so the page shows what the server enforces. */
+async function loadPlacesFromServer() {
+  const result = await WebPassApi.getPlaces();
+  if (!result.ok || !result.body) return;
+  result.body.places.forEach(serverPlace => {
+    const place = PLACES.find(p => p.id === serverPlace.id);
+    if (!place) return;
+    place.name = serverPlace.name;
+    place.reward = `${serverPlace.baseRewardRlusd} RLUSD`;
+    place.radius = serverPlace.geofenceRadiusMeters;
+    if (typeof geofenceCircles !== 'undefined') geofenceCircles.get(place.id)?.setRadius(place.radius);
+  });
+  renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
+  selectNode(selectedNodeId, { pan: false });
+}
+
+/** Add a labelled item to the front of the ticker, built without innerHTML. */
+function addLiveTickerItem(label, highlight, text) {
+  const stream = document.getElementById('tickerStream');
+  if (!stream) return;
+  const item = document.createElement('span');
+  item.className = 'ticker-item';
+  const strong = document.createElement('strong');
+  strong.className = highlight;
+  strong.textContent = label;
+  item.append(strong, ` ${text}`);
+  stream.prepend(item);
+  while (stream.children.length > MAX_TICKER_ITEMS) stream.lastElementChild.remove();
+}
+
+/** Replace the ticker's placeholder items with the backend's live decision stream. */
+async function connectLiveStream() {
+  const stream = document.getElementById('tickerStream');
+  const source = await WebPassApi.subscribeEvents(event => {
+    const label = TICKER_LABELS[event.type];
+    if (label) addLiveTickerItem(label[0], label[1], label[2] || event.message);
+  });
+  source.onopen = () => {
+    if (stream && stream.dataset.live !== 'true') {
+      stream.dataset.live = 'true';
+      stream.replaceChildren();
+      addLiveTickerItem('LIVE', 'highlight-cyan', 'Connected to WebPass. Every verification, block and payout shows up here.');
+    }
+  };
+}
+
+/** Turn the server's test-only policy bypass on or off, and report what happened.
+
+Args:
+    toggle (HTMLInputElement): The attack mode switch.
+*/
+async function setAttackMode(toggle) {
+  const enabled = toggle.checked;
+  const result = await WebPassApi.setAttackMode(enabled);
+  if (result.status === 404) {
+    toggle.checked = false;
+    attackModeActive = false;
+    addSimLog('[SYSTEM] /test/attack does not exist on this server (404): the policy bypass is only mounted in test mode (NODE_ENV=test).', 'warning');
+    setSpideyBotState('ready', '"No bypass switch on a normal server. That is the point!"');
+    return;
+  }
+  if (!result.ok) {
+    toggle.checked = !enabled;
+    addSimLog(`[SYSTEM] ${WebPassApi.errorMessage(result, 'Could not change attack mode.')}`, 'error');
+    return;
+  }
+  attackModeActive = Boolean(result.body && result.body.policyBypassEnabled);
+  if (attackModeActive) {
+    addSimLog('[SYSTEM] POST /test/attack: policy bypass enabled on the server. Submissions now skip the policy engine.', 'warning');
+    setSpideyBotState('sentinel_blocked', '"WARNING: Test attack mode enabled! Only the XRPL ledger limits stand between the agent and the treasury now."');
+  } else {
+    addSimLog('[SYSTEM] DELETE /test/attack: normal policy mode restored.', 'success');
+    setSpideyBotState('ready', '"Normal policy guardrails restored!"');
+  }
 }
 
 function addTickerItem(text) {
@@ -656,7 +784,7 @@ function addTickerItem(text) {
 function setupEventListeners() {
   // THWIP Unlock Button in Node Sidebar
   document.getElementById('thwipUnlockBtn')?.addEventListener('click', () => {
-    triggerThwipUnlock(selectedNodeId);
+    openSubmissionModal(selectedNodeId);
   });
 
   // Reset Web Button
@@ -697,24 +825,11 @@ function setupEventListeners() {
   document.getElementById('attackBypassBtn')?.addEventListener('click', () => runAttackSimulation('bypass'));
 
   // Test Attack Mode Toggle
-  document.getElementById('testAttackToggle')?.addEventListener('change', (e) => {
-    attackModeActive = e.target.checked;
-    if (attackModeActive) {
-      addSimLog('[SYSTEM] POST /test/attack triggered: Policy Bypass Enabled.', 'warning');
-      setSpideyBotState('sentinel_blocked', '"WARNING: Test attack mode enabled! Testing hardware & ledger guardrails!"');
-    } else {
-      addSimLog('[SYSTEM] DELETE /test/attack triggered: Normal Policy Mode Restored.', 'success');
-      setSpideyBotState('ready', '"Normal policy guardrails restored!"');
-    }
-  });
+  document.getElementById('testAttackToggle')?.addEventListener('change', (e) => setAttackMode(e.target));
 
-  // Modal Controls
+  // Modal Controls (the mission form itself is wired in submission.js)
   document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
-  document.getElementById('submissionForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    triggerThwipUnlock(selectedNodeId);
-    closeModal();
-  });
+  setupSubmissionListeners();
 }
 
 function openSubmissionModal(placeId) {
@@ -731,10 +846,12 @@ function openSubmissionModal(placeId) {
     document.getElementById('modalMissionSub').innerText = `${place.neighborhood} • ${place.reward} Reward`;
   }
   document.getElementById('submissionModal')?.classList.add('open');
+  prepareSubmission(placeId);
 }
 
 function closeModal() {
   document.getElementById('submissionModal')?.classList.remove('open');
+  teardownSubmission();
 }
 
 /* ==========================================================================

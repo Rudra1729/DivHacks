@@ -1533,3 +1533,34 @@ input:checked + .slider:before { transform: translateX(24px); }
   .node-overlay { top: auto; bottom: 12px; right: 12px; left: 12px; width: auto; max-height: 60%; }
   .map-legend { display: none; }
 }
+
+/* LIVE SUBMISSION: camera, GPS trail status, and the server's answer */
+.photo-preview-wrap video { width: 100%; height: 100%; object-fit: cover; background: var(--ink-black); }
+.photo-preview-wrap img.placeholder { opacity: 0.35; filter: grayscale(1); }
+.photo-preview-wrap img[src=""] { visibility: hidden; }
+.photo-buttons { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 0.4rem; }
+
+.gps-status-box.pending { background: #FFF8E1; color: #7A5B00; }
+.gps-status-box.warning { background: #FFF3E0; color: #9A3D00; }
+.gps-status-box.error { background: #FFEBEE; color: #B71C1C; }
+
+.demo-location-toggle { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.5rem; font-size: 0.8rem; font-weight: 700; color: #9A3D00; }
+
+#submitProofBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.submission-result {
+  margin-top: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid var(--ink-black);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+.submission-result.ok { background: #E8F5E9; color: #1B5E20; }
+.submission-result.warn { background: #FFF8E1; color: #7A5B00; }
+.submission-result.blocked { background: #FFEBEE; color: #B71C1C; }
+.submission-result h4 { font-family: var(--font-comic); font-size: 1.2rem; margin: 0 0 0.4rem; }
+.submission-result ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+.submission-result code { font-size: 0.8rem; }
+
+.cards-empty { grid-column: 1 / -1; text-align: center; padding: 2rem; font-weight: 700; }
