@@ -32,7 +32,11 @@ npm run build   # compile TypeScript to dist/
 npm start        # run the compiled server
 npm test         # run the Jest test suite
 npm run lint     # lint src/
+npm run test:e2e # end-to-end tests only
+npm run grok:try # try the Grok agent against the real API (needs GROK_API_KEY in .env)
 ```
+
+The server reads settings from `.env` in the folder it runs from.
 
 ## Project layout
 
@@ -70,6 +74,6 @@ tasks/           local planning notes (not committed)
 ## Status
 
 Backend is under active development for a hackathon build. XRPL payments
-currently run against an in-memory fake (`FakeXrpl`); Solana stamps and
-the Grok agent are wired to their real implementations behind config
-flags. See open PRs and [PRD.md](./PRD.md) for what's left.
+and Solana stamps each run in fake mode by default and switch to the real
+networks with `XRPL_MODE=real` and `SOLANA_MODE=real`; the Grok agent
+falls back to the base reward until `GROK_API_KEY` is set. See open PRs and [PRD.md](./PRD.md) for what's left.

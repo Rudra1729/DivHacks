@@ -194,8 +194,10 @@ export function getDecisionByRequestId(db: Database.Database, requestId: string)
 
 /** Sum of RLUSD paid to an address on the current UTC calendar day.
 
-Only counts decisions that resulted in a real payment (status OK or
-STAMP_FAILED, since a failed mint does not undo the payment).
+Counts decisions that paid or may still pay: OK, STAMP_FAILED (a failed mint
+does not undo the payment), and PAYMENT_UNCONFIRMED (submitted but not yet
+confirmed, so it may still land and must count toward the cap). Rejected and
+failed payments and blocked decisions are ignored.
 
 Args:
     db (Database.Database): Open database handle.
@@ -209,7 +211,7 @@ export function getDailyTotalUtc(db: Database.Database, xrplAddress: string): nu
     .prepare(
       `SELECT COALESCE(SUM(amount), 0) AS total FROM decisions
        WHERE xrpl_address = @xrplAddress
-         AND status IN ('OK', 'STAMP_FAILED')
+         AND status IN ('OK', 'STAMP_FAILED', 'PAYMENT_UNCONFIRMED')
          AND date(created_at) = date('now')`
     )
     .get({ xrplAddress }) as { total: number };

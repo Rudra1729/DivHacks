@@ -16,6 +16,8 @@ export interface GrokAgentOptions {
   timeoutMs?: number;
   /** Injectable for tests. Defaults to the global fetch. */
   fetchFn?: typeof fetch;
+  /** Called with Grok's reply text as received, before it is checked. For debugging. */
+  onRawReply?: (text: string) => void;
 }
 
 const DEFAULT_TIMEOUT_MS = 15000;
@@ -115,6 +117,9 @@ export class GrokAgent implements PayoutAgent {
         choices?: { message?: { content?: unknown } }[];
       };
       const content = body.choices?.[0]?.message?.content;
+      if (typeof content === 'string') {
+        this.options.onRawReply?.(content);
+      }
       const proposal = typeof content === 'string' ? parseProposal(content) : undefined;
       return proposal ?? this.fallback(input, 'Grok returned a malformed answer');
     } catch {

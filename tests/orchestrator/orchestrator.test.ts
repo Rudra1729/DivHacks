@@ -5,7 +5,7 @@ import { Place, SubmissionInput } from '../../src/orchestrator/types';
 import { FakeSentinel } from '../../src/sentinel/fakeSentinel';
 import { FakeStampService } from '../../src/solana/fakeStamps';
 import { FakeStorage } from '../../src/storage/fakeStorage';
-import { FakeXrpl } from '../../src/xrpl/fakeXrpl';
+import { FakePaymentService } from '../../src/xrpl/fakePayments';
 
 const place: Place = {
   id: 'apollo',
@@ -41,10 +41,10 @@ function build(overrides: {
   agent?: PayoutAgent;
   sentinel?: FakeSentinel;
   isTestMode?: boolean;
-  xrpl?: FakeXrpl;
+  xrpl?: FakePaymentService;
   recheck?: { attempts: number; delayMs: number };
 } = {}) {
-  const xrpl = overrides.xrpl ?? new FakeXrpl(10);
+  const xrpl = overrides.xrpl ?? new FakePaymentService();
   const solana = new FakeStampService();
   const storage = new FakeStorage([place]);
   const agent = overrides.agent ?? stubAgent(goodProposal);
@@ -151,7 +151,7 @@ describe('Orchestrator', () => {
     });
 
     it('uses the higher of the database and ledger daily totals', async () => {
-      const xrpl = new FakeXrpl(10);
+      const xrpl = new FakePaymentService();
       await xrpl.sendPayment({ decisionId: 'earlier', recipient: 'rUser', amount: 8 });
       const { orchestrator } = build({ xrpl, agent: stubAgent({ ...goodProposal, amount: 3 }) });
 

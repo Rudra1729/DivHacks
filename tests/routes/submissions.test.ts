@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { Express } from 'express';
 import { buildTestApp } from '../testHelpers/buildTestApp';
+import { FakePaymentService } from '../../src/xrpl/fakePayments';
 
 function submitApolloTheater(app: Express, overrides: Record<string, string> = {}) {
   return request(app)
@@ -121,5 +122,37 @@ describe('POST /submissions', () => {
     );
     expect(second.status).toBe(202);
     expect(second.body.decisionId).toBe(first.body.decisionId);
+  });
+
+  describe('payment outcomes', () => {
+    it('returns 202 PAYMENT_UNCONFIRMED when the payment is submitted but not confirmed', async () => {
+      const xrpl = new FakePaymentService();
+      jest.spyOn(xrpl, 'sendPayment').mockResolvedValue({
+        ok: false,
+        reason: 'unconfirmed',
+        txHash: 'TXU',
+        error: 'not validated yet',
+      });
+      ({ app } = buildTestApp({}, { xrpl, unconfirmedRecheck: { attempts: 0, delayMs: 0 } }));
+
+      const response = await submitApolloTheater(app);
+
+      expect(response.status).toBe(202);
+      expect(response.body.status).toBe('PAYMENT_UNCONFIRMED');
+      expect(response.body.xrplTxHash).toBe('TXU');
+    });
+
+    it('returns 502 PAYMENT_FAILED when nothing was paid because of a network error', async () => {
+      const xrpl = new FakePaymentService();
+      jest
+        .spyOn(xrpl, 'sendPayment')
+        .mockResolvedValue({ ok: false, reason: 'network_error', error: 'node unreachable' });
+      ({ app } = buildTestApp({}, { xrpl }));
+
+      const response = await submitApolloTheater(app);
+
+      expect(response.status).toBe(502);
+      expect(response.body.status).toBe('PAYMENT_FAILED');
+    });
   });
 });

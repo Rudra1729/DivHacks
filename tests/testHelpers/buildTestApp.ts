@@ -8,11 +8,11 @@ import Database from 'better-sqlite3';
 import { createApp } from '../../src/app';
 import { AppConfig, loadConfig } from '../../src/config';
 import { openDatabase } from '../../src/db';
-import { Orchestrator } from '../../src/orchestrator/orchestrator';
+import { Orchestrator, OrchestratorDeps } from '../../src/orchestrator/orchestrator';
 import { RealSentinel } from '../../src/sentinel/realSentinel';
 import { SqliteStorage } from '../../src/storage/sqliteStorage';
 import { AgentInput, AgentProposal, PayoutAgent } from '../../src/agent/types';
-import { FakeXrpl } from '../../src/xrpl/fakeXrpl';
+import { FakePaymentService } from '../../src/xrpl/fakePayments';
 import { fakeStampService } from '../../src/solana/fakeStamps';
 
 /** An agent that always proposes the place's base reward to the submitter. */
@@ -33,21 +33,27 @@ by fakes for the agent, XRPL, and Solana (those have their own test suites).
 
 Args:
     configOverrides (Partial<AppConfig>): Config fields to override.
+    deps (Partial<OrchestratorDeps>): Orchestrator dependencies to replace,
+        for example a different XRPL or Solana fake.
 
 Returns:
     TestApp: The app, its database, and the orchestrator behind it.
 */
-export function buildTestApp(configOverrides: Partial<AppConfig> = {}): TestApp {
+export function buildTestApp(
+  configOverrides: Partial<AppConfig> = {},
+  deps: Partial<OrchestratorDeps> = {}
+): TestApp {
   const config: AppConfig = { ...loadConfig(), dbPath: ':memory:', ...configOverrides };
   const db = openDatabase(':memory:');
 
   const orchestrator = new Orchestrator({
     sentinel: new RealSentinel(db),
     agent: new BaseRewardAgent(),
-    xrpl: new FakeXrpl(10),
+    xrpl: new FakePaymentService(),
     solana: fakeStampService,
     storage: new SqliteStorage(db),
     isTestMode: config.isTestMode,
+    ...deps,
   });
 
   const app = createApp(config, db, orchestrator);
