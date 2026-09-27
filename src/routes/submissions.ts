@@ -15,6 +15,7 @@ import { runSentinelChecks, BLOCKED_SENTINEL } from '../sentinel';
 import { recordPhotoHash } from '../db/photoFingerprints';
 import { checkOncePerPlace, markClaimPending } from '../claims';
 import { withLock } from '../claims/lock';
+import { publishEvent } from '../events/bus';
 
 /** Build the /submissions router.
 
@@ -54,10 +55,9 @@ export function createSubmissionsRouter(config: AppConfig, db: Database.Database
     });
 
     if (!sentinel.passed) {
-      res.status(422).json({
-        status: BLOCKED_SENTINEL,
-        reasons: sentinel.checks.filter((check) => !check.passed).map((check) => check.message),
-      });
+      const reasons = sentinel.checks.filter((check) => !check.passed).map((check) => check.message);
+      publishEvent({ type: 'sentinel.blocked', message: reasons.join('; ') });
+      res.status(422).json({ status: BLOCKED_SENTINEL, reasons });
       return;
     }
 
@@ -68,12 +68,14 @@ export function createSubmissionsRouter(config: AppConfig, db: Database.Database
       const oncePerPlace = checkOncePerPlace(db, placeId, xrplAddress, solanaAddress);
 
       if (!oncePerPlace.passed) {
+        publishEvent({ type: 'sentinel.blocked', message: oncePerPlace.message });
         res.status(422).json({ status: BLOCKED_SENTINEL, reasons: [oncePerPlace.message] });
         return;
       }
 
       recordPhotoHash(db, sentinel.photoHash);
       const claim = markClaimPending(db, placeId, xrplAddress, solanaAddress);
+      publishEvent({ type: 'claim.pending', message: `claim ${claim.id} pending for ${place.name}` });
       res.status(202).json({ accepted: true, photoHash: sentinel.photoHash, claimId: claim.id });
     });
   });

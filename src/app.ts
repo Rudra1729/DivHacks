@@ -13,6 +13,8 @@ import { createSubmissionsRouter } from './routes/submissions';
 import { createMetadataRouter } from './routes/metadata';
 import { createDecisionsRouter } from './routes/decisions';
 import { usersRouter } from './routes/users';
+import { eventsRouter } from './routes/events';
+import { createTestAttackRouter } from './routes/testAttack';
 
 /** Build the Express application.
 
@@ -37,6 +39,11 @@ export function createApp(config: AppConfig, db: Database.Database): Express {
   app.use(createMetadataRouter(db));
   app.use(createDecisionsRouter(db));
   app.use(usersRouter);
+  app.use(eventsRouter);
+
+  if (config.isTestMode) {
+    app.use(createTestAttackRouter());
+  }
 
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (err instanceof multer.MulterError) {
