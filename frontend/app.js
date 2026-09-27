@@ -81,6 +81,19 @@ const PLACES = [
     discovered: false,
     image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
     desc: 'Walk the scenic cliffside paths linking Columbia University and Harlem.'
+  },
+  {
+    id: 'mudd-building',
+    name: 'Seeley W. Mudd Building',
+    neighborhood: 'Morningside Heights',
+    x: 240,
+    y: 260,
+    radius: 200,
+    reward: '1.0 RLUSD',
+    type: 'cultural',
+    discovered: false,
+    image: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80',
+    desc: 'DivHacks HQ: check in at Columbia Engineering, 500 W 120th St at Amsterdam Ave.'
   }
 ];
 
@@ -95,7 +108,8 @@ const PLACE_COORDS = {
   'marcus-garvey-park':     { lat: 40.8043,  lng: -73.9439 },
   'hamilton-grange':        { lat: 40.82138, lng: -73.94726 },
   'malcolm-shabazz-market': { lat: 40.80147, lng: -73.94886 },
-  'morningside-park':       { lat: 40.8065,  lng: -73.9585 }
+  'morningside-park':       { lat: 40.8065,  lng: -73.9585 },
+  'mudd-building':          { lat: 40.81005, lng: -73.96030 }
 };
 PLACES.forEach(place => Object.assign(place, PLACE_COORDS[place.id]));
 
