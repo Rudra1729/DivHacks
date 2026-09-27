@@ -67,7 +67,7 @@
   <div class="ticker-wrap">
     <div class="ticker-title"><i data-lucide="activity"></i> LIVE WEB NETWORK STREAM:</div>
     <div class="ticker-content" id="tickerStream">
-      <span class="ticker-item"><strong class="highlight-yellow">THWIP!</strong> User <code>rP9x...2a</code> unlocked Apollo Theater (+1.0 RLUSD)</span>
+      <span class="ticker-item"><strong class="highlight-yellow">THWIP!</strong> User <code>rP9x...2a</code> unlocked Apollo Theater (+soulbound stamp)</span>
       <span class="ticker-item"><strong class="highlight-red">SNAG!</strong> Duplicate photo attempt blocked by Sentinel</span>
       <span class="ticker-item"><strong class="highlight-cyan">CARD MINTED!</strong> Harlem Cultural Passport #042 minted on Solana</span>
       <span class="ticker-item"><strong class="highlight-yellow">THWIP!</strong> Wheelchair Ramp Inspection verified in Morningside Heights</span>
@@ -119,6 +119,7 @@
               <button class="tape-badge blue-tape" onclick="selectAndScrollNode('marcus-garvey-park')">WHEELCHAIR RAMPS</button>
               <button class="tape-badge red-tape" onclick="selectAndScrollNode('malcolm-shabazz-market')">COMMUNITY FRIDGE</button>
               <button class="tape-badge red-tape" onclick="selectAndScrollNode('marcus-garvey-park')">STREET ACCESS</button>
+              <button class="tape-badge blue-tape" onclick="selectAndScrollNode('mudd-entrance')">MUDD ENTRANCE</button>
             </div>
           </div>
 
@@ -261,7 +262,7 @@
         </div>
         <div class="canvas-overlay-controls">
           <button class="comic-icon-btn" id="resetWebBtn" title="Reset Web Progress"><i data-lucide="rotate-ccw"></i> Reset Web</button>
-          <button class="comic-icon-btn" id="unlockAllBtn" title="THWIP Unlock All"><i data-lucide="sparkles"></i> THWIP All!</button>
+          <button class="comic-icon-btn" id="newMissionBtn" title="Ask Grok to scout a new overlooked NYC mission"><i data-lucide="sparkles"></i> New Mission</button>
         </div>
 
           <!-- PLACE CARD: floats over the map, opens on pin hover or click -->
@@ -286,9 +287,24 @@
                   <span class="stat-val" id="nodeGeofence">150 Meters</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">RLUSD Bounty</span>
-                  <span class="stat-val highlight-yellow" id="nodeReward">1.0 RLUSD</span>
+                  <span class="stat-label">Reward</span>
+                  <span class="stat-val highlight-yellow" id="nodeReward">Stamp only</span>
                 </div>
+              </div>
+
+              <div class="node-sponsor" id="nodeSponsor" style="display: none">
+                <i data-lucide="building-2"></i>
+                <span class="stat-label">Paid by</span>
+                <strong id="nodeSponsorName"></strong>
+              </div>
+
+              <div class="node-rarity">
+                <div class="node-rarity-head">
+                  <span class="stat-label" id="nodeRarityLabel">Next stamp here</span>
+                  <span class="tier-badge tier-legendary" id="nodeRarityTier">LEGENDARY #1</span>
+                </div>
+                <div class="rarity-ladder" id="nodeRarityLadder"></div>
+                <div class="node-rarity-note" id="nodeRarityNote">0 of 1000 stamps found. The first 10 finders get Legendary.</div>
               </div>
 
               <p class="node-desc" id="nodeDesc">
@@ -336,6 +352,8 @@
       <p class="section-subtitle">Earned cards are locked to your wallet forever. Hover to inspect 3D tilt sheen, or click to flip & inspect on-chain proof!</p>
     </div>
 
+    <div class="rarity-legend" id="rarityLegend" aria-label="Stamp rarity tiers"></div>
+
     <div class="cards-gallery" id="cardsGallery">
       <!-- Dynamic 3D trading cards populated by app.js -->
     </div>
@@ -368,7 +386,7 @@
         <div class="gate-step" id="gate3">
           <div class="gate-icon"><i data-lucide="bot"></i></div>
           <div class="gate-name">Gate 3: Grok AI</div>
-          <div class="gate-sub">Agent Payout Proposal</div>
+          <div class="gate-sub">Photo Check + Payout Proposal</div>
         </div>
         <div class="gate-connector"></div>
         <div class="gate-step" id="gate4">

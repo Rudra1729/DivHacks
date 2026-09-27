@@ -50,7 +50,8 @@ export function buildTestApp(
   configOverrides: Partial<AppConfig> = {},
   deps: Partial<OrchestratorDeps> = {}
 ): TestApp {
-  const config: AppConfig = { ...loadConfig(), dbPath: ':memory:', ...configOverrides };
+  // Cultural rewards default to on here so pipeline tests can pay at any place.
+  const config: AppConfig = { ...loadConfig(), dbPath: ':memory:', culturalRewards: true, ...configOverrides };
   const db = openDatabase(':memory:');
 
   const solana = deps.solana ?? new FakeStampService();
@@ -63,6 +64,8 @@ export function buildTestApp(
     solana,
     storage: new SqliteStorage(db),
     isTestMode: config.isTestMode,
+    rewardScale: config.rewardScale,
+    culturalRewards: config.culturalRewards,
     ...deps,
   });
 

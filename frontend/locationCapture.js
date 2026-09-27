@@ -33,12 +33,34 @@ Example:
   /** What the server needs before it will look at a trail. */
   const TRAIL_REQUIREMENTS = { minReadings: 5, minSpanMs: 10000 };
 
+  /** Safari on macOS counts GeolocationPosition.timestamp from 2001-01-01
+      (Apple's reference date) instead of 1970, so its fixes look 31 years old. */
+  const APPLE_EPOCH_OFFSET_MS = 978307200000;
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  /** Turn a browser fix timestamp into epoch ms, fixing Safari's 2001-based clock.
+
+  Args:
+      timestamp (number): position.timestamp as the browser reported it.
+      now (number): The current time in epoch ms.
+
+  Returns:
+      number: The fix time in epoch ms.
+  */
+  function normalizeTimestamp(timestamp, now = Date.now()) {
+    const ms = Math.round(timestamp);
+    if (Math.abs(now - ms) > DAY_MS && Math.abs(now - (ms + APPLE_EPOCH_OFFSET_MS)) < DAY_MS) {
+      return ms + APPLE_EPOCH_OFFSET_MS;
+    }
+    return ms;
+  }
+
   function toReading(position) {
     return {
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
       accuracy: position.coords.accuracy,
-      timestamp: Math.round(position.timestamp),
+      timestamp: normalizeTimestamp(position.timestamp),
     };
   }
 
@@ -328,6 +350,7 @@ Example:
     collectTrail,
     startTrail,
     trailProgress,
+    normalizeTimestamp,
     buildSubmission,
     verifyVisit,
   };
