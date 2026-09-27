@@ -1,11 +1,12 @@
 /**Place lookup for stamp minting.
 
-Reads the shared places JSON file (owned by Arundathi) and picks the
-neighborhood collection for each place. The file may be a plain array of
-places or an object with a `places` array.
+Reads places from the shared places module (src/data/places.ts), the same
+source submission validation and the metadata pages use, so every place a
+submission can name can also be stamped. Also picks the neighborhood
+collection for each place.
 */
 
-import { existsSync, readFileSync } from 'fs';
+import { getPlaceById } from '../data/places';
 import { SolanaConfig } from './config';
 
 /** The place fields a stamp needs.
@@ -26,22 +27,16 @@ export interface StampPlace {
   solanaCollectionAddress?: string | null;
 }
 
-/** Find a place by ID in the shared places file.
+/** Find a place by ID in the shared places module.
 
 Args:
-    config (SolanaConfig): Resolved config, used for the file path.
     placeId (string): Place to look up.
 
 Returns:
-    StampPlace | undefined: The place, or undefined if the file or place is missing.
+    StampPlace | undefined: The place, or undefined if the ID is unknown.
 */
-export function findPlace(config: SolanaConfig, placeId: string): StampPlace | undefined {
-  if (!existsSync(config.placesPath)) {
-    return undefined;
-  }
-  const parsed = JSON.parse(readFileSync(config.placesPath, 'utf8'));
-  const places: StampPlace[] = Array.isArray(parsed) ? parsed : parsed.places ?? [];
-  return places.find((place) => place.id === placeId);
+export function findPlace(placeId: string): StampPlace | undefined {
+  return getPlaceById(placeId);
 }
 
 /** Pick the collection address a place's stamp belongs to.

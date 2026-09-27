@@ -14,7 +14,7 @@ describe('fake stamps', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
-    process.env = { ...originalEnv, SOLANA_MODE: 'fake', PLACES_PATH: 'does-not-exist.json' };
+    process.env = { ...originalEnv, SOLANA_MODE: 'fake' };
     delete process.env.SOLANA_FORCE_FAIL;
     fakeStampService.reset();
   });

@@ -48,7 +48,7 @@ export class FakeStampService implements StampService {
 
     this.mintCount += 1;
     const assetAddress = `fake-asset-${this.mintCount}`;
-    const place = findPlace(config, input.placeId);
+    const place = findPlace(input.placeId);
     const stamp: Stamp = {
       assetAddress,
       owner: input.userSolanaAddress,

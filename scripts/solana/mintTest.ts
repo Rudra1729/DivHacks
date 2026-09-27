@@ -23,10 +23,10 @@ Returns:
     Promise<void>: Resolves when the checks are done.
 */
 async function main(): Promise<void> {
-  const config = loadSolanaConfig({ ...process.env, SOLANA_MODE: 'real' });
+  loadSolanaConfig({ ...process.env, SOLANA_MODE: 'real' });
   const umi = getSolanaClient();
   const [placeArg, xrplArg] = process.argv.slice(2);
-  const place = (placeArg && findPlace(config, placeArg)) || DEMO_PLACE;
+  const place = (placeArg && findPlace(placeArg)) || DEMO_PLACE;
   const demoUser = loadKeypairFile(umi, keypairPath('demo-1')).publicKey;
   const decisionId = `mint-test-${Date.now()}`;
 
