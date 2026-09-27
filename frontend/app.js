@@ -372,8 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initRealMap();
   selectNode(selectedNodeId, { pan: false });
 
-  // Setup 3D Interactive Spider-Man Character (Three.js)
-  init3DSpiderMan();
+  // Animate the crowd of New Yorkers in the hero banner
+  initCrowdCanvas();
 
   // Render Mission Cards. Trading Cards are rendered by updateWalletUI
   // above, since which cards to show depends on login state.
@@ -801,253 +801,167 @@ function closeModal() {
 }
 
 /* ==========================================================================
-   INTERACTIVE 3D SPIDER-MAN CHARACTER ENGINE (THREE.JS)
+   CROWD CANVAS: an animated crowd of New Yorkers walking through the hero
+   banner. Vanilla-JS/canvas port of the "Skiper39" crowd effect, driven by
+   GSAP. Each frame is drawn by hand; GSAP only owns the timelines that walk
+   a person's x/y position across the stage.
    ========================================================================== */
 
-let scene3d, camera3d, renderer3d, spidey3dGroup, spideyHead, spideyTorso;
-let mouseX = 0, mouseY = 0;
-let isFlipping = false, flipAngle = 0;
-let webParticles = [];
+function initCrowdCanvas() {
+  const canvas = document.getElementById('crowdCanvas');
+  if (!canvas || typeof gsap === 'undefined') return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
-function init3DSpiderMan() {
-  const container = document.getElementById('spidey3dViewport');
-  const canvas = document.getElementById('spidey3dCanvas');
-  if (!container || !canvas || typeof THREE === 'undefined') {
-    console.warn('Three.js or 3D canvas not available.');
-    return;
+  const CROWD_SRC = 'https://cdn.21st.dev/assets/localized/abdb8990a7bef8c2f5af3e45f0a3c969c4b0603fba8be92e81347de4ea4e1ed7.png';
+  const ROWS = 15;
+  const COLS = 7;
+
+  const randomRange = (min, max) => min + Math.random() * (max - min);
+  const randomIndex = (array) => (randomRange(0, array.length)) | 0;
+  const removeFromArray = (array, i) => array.splice(i, 1)[0];
+  const removeItemFromArray = (array, item) => removeFromArray(array, array.indexOf(item));
+  const removeRandomFromArray = (array) => removeFromArray(array, randomIndex(array));
+  const getRandomFromArray = (array) => array[randomIndex(array)];
+
+  const stage = { width: 0, height: 0 };
+  const allPeeps = [];
+  const availablePeeps = [];
+  const crowd = [];
+
+  function createPeep(image, rect) {
+    const peep = {
+      image,
+      rect,
+      width: rect[2],
+      height: rect[3],
+      x: 0,
+      y: 0,
+      anchorY: 0,
+      scaleX: 1,
+      walk: null,
+      render(context) {
+        context.save();
+        context.translate(peep.x, peep.y);
+        context.scale(peep.scaleX, 1);
+        context.drawImage(
+          peep.image,
+          peep.rect[0], peep.rect[1], peep.rect[2], peep.rect[3],
+          0, 0, peep.width, peep.height
+        );
+        context.restore();
+      }
+    };
+    return peep;
   }
 
-  const width = container.clientWidth || 800;
-  const height = container.clientHeight || 340;
+  function resetPeep(peep) {
+    const direction = Math.random() > 0.5 ? 1 : -1;
+    const offsetY = 100 - 250 * gsap.parseEase('power2.in')(Math.random());
+    const startY = stage.height - peep.height + offsetY;
+    let startX, endX;
 
-  // 1. Scene & Camera
-  scene3d = new THREE.Scene();
-  camera3d = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-  camera3d.position.set(0, 0, 7.5);
-
-  // 2. Renderer
-  renderer3d = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-  renderer3d.setSize(width, height);
-  renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-  // 3. Lighting
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-  scene3d.add(ambientLight);
-
-  const heroRedLight = new THREE.DirectionalLight(0xE52421, 1.2);
-  heroRedLight.position.set(5, 8, 6);
-  scene3d.add(heroRedLight);
-
-  const cyanRimLight = new THREE.PointLight(0x00F0FF, 1.8, 15);
-  cyanRimLight.position.set(-6, -2, 4);
-  scene3d.add(cyanRimLight);
-
-  // 4. Build 3D Spider-Man Procedural Character Model
-  spidey3dGroup = new THREE.Group();
-
-  // A. SPIDEY HEAD MASK
-  const headGeo = new THREE.SphereGeometry(1.0, 32, 32);
-  headGeo.scale(1.0, 1.2, 0.95);
-  const maskMat = new THREE.MeshStandardMaterial({
-    color: 0xE52421,
-    roughness: 0.35,
-    metalness: 0.1
-  });
-  spideyHead = new THREE.Mesh(headGeo, maskMat);
-  spideyHead.position.set(0, 0.9, 0);
-
-  // Mask Web Wireframe Rings
-  const webRingGeo = new THREE.TorusGeometry(0.8, 0.02, 8, 24);
-  const blackWireMat = new THREE.MeshBasicMaterial({ color: 0x121212 });
-  const ring1 = new THREE.Mesh(webRingGeo, blackWireMat);
-  ring1.rotation.x = Math.PI / 2;
-  ring1.position.y = 0.2;
-  spideyHead.add(ring1);
-
-  const ring2 = new THREE.Mesh(webRingGeo, blackWireMat);
-  ring2.rotation.x = Math.PI / 3;
-  ring2.position.y = -0.2;
-  spideyHead.add(ring2);
-
-  // Expressive White Lenses
-  const eyeShape = new THREE.Shape();
-  eyeShape.moveTo(0, 0);
-  eyeShape.bezierCurveTo(0.3, 0.4, 0.6, 0.2, 0.5, -0.3);
-  eyeShape.bezierCurveTo(0.2, -0.2, -0.2, 0, 0, 0);
-
-  const eyeExtrudeSettings = { depth: 0.05, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
-  const eyeGeo = new THREE.ExtrudeGeometry(eyeShape, eyeExtrudeSettings);
-  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.1, emissive: 0x333333 });
-
-  // Left Eye
-  const leftEyeMesh = new THREE.Mesh(eyeGeo, eyeMat);
-  leftEyeMesh.position.set(-0.38, 0.05, 0.85);
-  leftEyeMesh.rotation.set(-0.1, 0.3, 0.1);
-  leftEyeMesh.scale.set(0.9, 0.9, 0.9);
-  spideyHead.add(leftEyeMesh);
-
-  // Right Eye
-  const rightEyeMesh = new THREE.Mesh(eyeGeo, eyeMat);
-  rightEyeMesh.position.set(0.38, 0.05, 0.85);
-  rightEyeMesh.rotation.set(-0.1, -0.3, -0.1);
-  rightEyeMesh.scale.set(-0.9, 0.9, 0.9);
-  spideyHead.add(rightEyeMesh);
-
-  spidey3dGroup.add(spideyHead);
-
-  // B. SPIDEY CHEST & TORSO
-  const torsoGeo = new THREE.BoxGeometry(1.6, 1.8, 1.0);
-  const torsoRedMat = new THREE.MeshStandardMaterial({ color: 0xE52421, roughness: 0.4 });
-  spideyTorso = new THREE.Mesh(torsoGeo, torsoRedMat);
-  spideyTorso.position.set(0, -0.8, 0);
-
-  // Blue Side Suit Panels
-  const sideGeo = new THREE.BoxGeometry(0.4, 1.6, 0.95);
-  const blueSuitMat = new THREE.MeshStandardMaterial({ color: 0x0055A5, roughness: 0.4 });
-  const leftSide = new THREE.Mesh(sideGeo, blueSuitMat);
-  leftSide.position.set(-0.7, 0, 0);
-  spideyTorso.add(leftSide);
-
-  const rightSide = new THREE.Mesh(sideGeo, blueSuitMat);
-  rightSide.position.set(0.7, 0, 0);
-  spideyTorso.add(rightSide);
-
-  // Chest Black Spider Emblem
-  const spiderEmblemGeo = new THREE.SphereGeometry(0.22, 16, 16);
-  spiderEmblemGeo.scale(1, 1.4, 0.3);
-  const emblemMat = new THREE.MeshBasicMaterial({ color: 0x121212 });
-  const emblem = new THREE.Mesh(spiderEmblemGeo, emblemMat);
-  emblem.position.set(0, 0.2, 0.52);
-  spideyTorso.add(emblem);
-
-  spidey3dGroup.add(spideyTorso);
-
-  // C. ARMS & WEB SHOOTER GAUNTLETS
-  const armGeo = new THREE.CylinderGeometry(0.22, 0.18, 1.4, 16);
-  
-  // Left Arm (Crouched pose)
-  const leftArm = new THREE.Mesh(armGeo, torsoRedMat);
-  leftArm.position.set(-1.1, -0.6, 0.3);
-  leftArm.rotation.set(0.4, 0.2, 0.6);
-  spidey3dGroup.add(leftArm);
-
-  // Right Arm (Forward Web Shooting pose)
-  const rightArm = new THREE.Mesh(armGeo, torsoRedMat);
-  rightArm.position.set(1.1, -0.4, 0.5);
-  rightArm.rotation.set(1.2, -0.3, -0.4);
-  
-  // Metallic Web Shooter Cuff
-  const cuffGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.25, 16);
-  const cuffMat = new THREE.MeshStandardMaterial({ color: 0xDDDDDD, metalness: 0.8, roughness: 0.2 });
-  const cuff = new THREE.Mesh(cuffGeo, cuffMat);
-  cuff.position.set(0, -0.5, 0);
-  rightArm.add(cuff);
-
-  spidey3dGroup.add(rightArm);
-
-  // Scale and Position Spidey in Viewport
-  spidey3dGroup.position.set(0, -0.2, 0);
-  scene3d.add(spidey3dGroup);
-
-  // 5. Mouse Interaction & Drag Rotation
-  container.addEventListener('mousemove', (e) => {
-    const rect = container.getBoundingClientRect();
-    mouseX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    mouseY = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-  });
-
-  // 6. Click to Shoot Web & Perform 3D Backflip
-  container.addEventListener('click', () => {
-    isFlipping = true;
-    flipAngle = 0;
-
-    // Trigger Pop-up Comic Text
-    const thwipText = document.getElementById('webShootThwipText');
-    if (thwipText) {
-      thwipText.classList.add('active');
-      setTimeout(() => thwipText.classList.remove('active'), 900);
+    if (direction === 1) {
+      startX = -peep.width;
+      endX = stage.width;
+      peep.scaleX = 1;
+    } else {
+      startX = stage.width + peep.width;
+      endX = 0;
+      peep.scaleX = -1;
     }
 
-    // Spawn 3D Web Strand Particles
-    spawn3dWebStrands();
+    peep.x = startX;
+    peep.y = startY;
+    peep.anchorY = startY;
+    return { startX, startY, endX };
+  }
 
-    // Trigger Spidey-Bot Speech
-    setSpideyBotState('approved', '"THWIP! 3D Spidey launched web strands across the viewport!"');
-  });
+  function walk(peep, { startY, endX }) {
+    const xDuration = 10;
+    const yDuration = 0.25;
+    const tl = gsap.timeline();
+    tl.timeScale(randomRange(0.5, 1.5));
+    tl.to(peep, { duration: xDuration, x: endX, ease: 'none' }, 0);
+    tl.to(peep, { duration: yDuration, repeat: xDuration / yDuration, yoyo: true, y: startY - 10 }, 0);
+    return tl;
+  }
 
-  // Handle Window Resize
+  function addPeepToCrowd() {
+    const peep = removeRandomFromArray(availablePeeps);
+    const props = resetPeep(peep);
+    const tl = walk(peep, props).eventCallback('onComplete', () => {
+      removePeepFromCrowd(peep);
+      addPeepToCrowd();
+    });
+    peep.walk = tl;
+    crowd.push(peep);
+    crowd.sort((a, b) => a.anchorY - b.anchorY);
+    return peep;
+  }
+
+  function removePeepFromCrowd(peep) {
+    removeItemFromArray(crowd, peep);
+    availablePeeps.push(peep);
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    crowd.forEach((peep) => peep.render(ctx));
+    ctx.restore();
+  }
+
+  function initCrowd() {
+    while (availablePeeps.length) {
+      addPeepToCrowd().walk.progress(Math.random());
+    }
+  }
+
+  function resize() {
+    stage.width = canvas.clientWidth;
+    stage.height = canvas.clientHeight;
+    canvas.width = stage.width * devicePixelRatio;
+    canvas.height = stage.height * devicePixelRatio;
+
+    crowd.forEach((peep) => peep.walk.kill());
+    crowd.length = 0;
+    availablePeeps.length = 0;
+    availablePeeps.push(...allPeeps);
+
+    initCrowd();
+  }
+
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const { naturalWidth: width, naturalHeight: height } = img;
+    const total = ROWS * COLS;
+    const rectWidth = width / ROWS;
+    const rectHeight = height / COLS;
+
+    for (let i = 0; i < total; i++) {
+      allPeeps.push(createPeep(img, [
+        (i % ROWS) * rectWidth,
+        ((i / ROWS) | 0) * rectHeight,
+        rectWidth,
+        rectHeight
+      ]));
+    }
+
+    resize();
+    gsap.ticker.add(render);
+  };
+  img.onerror = () => {
+    // The crowd art didn't load (offline, CDN down); leave the hero's
+    // gradient background showing instead of an empty black canvas.
+    console.warn('Crowd canvas art failed to load; showing hero background only.');
+  };
+  img.src = CROWD_SRC;
+
   window.addEventListener('resize', () => {
-    if (!container || !renderer3d) return;
-    const w = container.clientWidth || 800;
-    const h = container.clientHeight || 340;
-    camera3d.aspect = w / h;
-    camera3d.updateProjectionMatrix();
-    renderer3d.setSize(w, h);
+    if (allPeeps.length) resize();
   });
-
-  // 7. Render & Animation Loop
-  function render3D() {
-    requestAnimationFrame(render3D);
-
-    if (spidey3dGroup && spideyHead) {
-      // Smooth Mouse Rotation Tracking
-      const targetRotY = mouseX * 0.6;
-      const targetRotX = -mouseY * 0.4;
-
-      spideyHead.rotation.y += (targetRotY * 1.2 - spideyHead.rotation.y) * 0.08;
-      spideyHead.rotation.x += (targetRotX * 0.8 - spideyHead.rotation.x) * 0.08;
-      spidey3dGroup.rotation.y += (targetRotY * 0.5 - spidey3dGroup.rotation.y) * 0.05;
-
-      // Idle Breathing Float Motion
-      const time = Date.now() * 0.002;
-      spidey3dGroup.position.y = -0.2 + Math.sin(time) * 0.08;
-
-      // 3D Backflip Spin Logic
-      if (isFlipping) {
-        flipAngle += 0.2;
-        spidey3dGroup.rotation.x = flipAngle;
-        if (flipAngle >= Math.PI * 2) {
-          isFlipping = false;
-          spidey3dGroup.rotation.x = 0;
-        }
-      }
-    }
-
-    // Update Web Strand Particles
-    for (let i = webParticles.length - 1; i >= 0; i--) {
-      const p = webParticles[i];
-      p.mesh.position.add(p.velocity);
-      p.life -= 0.03;
-      p.mesh.scale.multiplyScalar(0.96);
-      if (p.life <= 0) {
-        scene3d.remove(p.mesh);
-        webParticles.splice(i, 1);
-      }
-    }
-
-    renderer3d.render(scene3d, camera3d);
-  }
-
-  render3D();
-}
-
-function spawn3dWebStrands() {
-  if (!scene3d) return;
-  const webMat = new THREE.MeshBasicMaterial({ color: 0x00F0FF, wireframe: true });
-  for (let i = 0; i < 15; i++) {
-    const strandGeo = new THREE.CylinderGeometry(0.03, 0.08, 1.2, 6);
-    const strand = new THREE.Mesh(strandGeo, webMat);
-    strand.position.set(0.8 + (Math.random() - 0.5) * 0.4, -0.4, 0.8);
-    strand.rotation.set(Math.PI / 2 + (Math.random() - 0.5), (Math.random() - 0.5) * 0.5, 0);
-
-    const velocity = new THREE.Vector3(
-      (Math.random() - 0.5) * 0.2,
-      (Math.random() - 0.2) * 0.2,
-      0.3 + Math.random() * 0.3
-    );
-
-    scene3d.add(strand);
-    webParticles.push({ mesh: strand, velocity, life: 1.0 });
-  }
 }
 

@@ -3,26 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spidey-Verse NYC — Unweb the City & Earn Rewards</title>
+  <title>KnowYork — Unweb New York City & Earn Rewards</title>
   <meta name="description" content="Explore NYC, complete cultural & civic missions, unlock soulbound trading cards, and earn RLUSD micro-rewards managed by a guardrailed AI referee!">
   
   <!-- Google Fonts: Bangers, Luckiest Guy, Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Luckiest+Guy&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Luckiest+Guy&family=Anton&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
   
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  
-  <!-- Three.js CDN for Interactive 3D Spider-Man -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  
+
+  <!-- GSAP CDN, drives the hero's crowd canvas animation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+
   <!-- Leaflet: open-source map library, no API key needed -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="spidey-theme">
+<body class="knowyork-theme">
 
   <!-- BACKGROUND ROTATING ACTION RAYS & HALFTONE -->
   <div class="halftone-overlay"></div>
@@ -32,26 +32,21 @@
   <header class="navbar">
     <div class="nav-container">
       <div class="nav-brand">
-        <div class="spider-logo-icon">
-          <svg viewBox="0 0 100 100" class="spider-svg">
-            <path d="M50 15 C30 15 20 35 20 50 C20 65 30 85 50 85 C70 85 80 65 80 50 C80 35 70 15 50 15 Z" fill="#E52421"/>
-            <path d="M50 25 L35 10 M50 25 L65 10 M50 40 L20 30 M50 40 L80 30 M50 60 L15 70 M50 60 L85 70 M50 75 L30 90 M50 75 L70 90" stroke="#121212" stroke-width="4" stroke-linecap="round"/>
-            <circle cx="42" cy="45" r="5" fill="#FFF"/>
-            <circle cx="58" cy="45" r="5" fill="#FFF"/>
-          </svg>
+        <div class="ny-logo-icon">
+          <span class="ny-logo-mark">NY</span>
         </div>
         <div class="brand-text">
-          <span class="brand-title">SPIDEY-VERSE</span>
-          <span class="brand-sub">NYC EXPLORER</span>
+          <span class="brand-title">KNOWYORK</span>
+          <span class="brand-sub">CITY GUIDE</span>
         </div>
       </div>
 
       <nav class="nav-links">
         <a href="#hero" class="nav-link active"><i data-lucide="zap"></i> Home</a>
-        <a href="#spiderweb" class="nav-link"><i data-lucide="share-2"></i> The Web</a>
+        <a href="#spiderweb" class="nav-link"><i data-lucide="map"></i> The Map</a>
         <a href="#missions" class="nav-link"><i data-lucide="target"></i> Missions</a>
         <a href="#cards" class="nav-link"><i data-lucide="layers"></i> Cards</a>
-        <a href="#referee" class="nav-link"><i data-lucide="shield-check"></i> Spidey-Bot AI</a>
+        <a href="#referee" class="nav-link"><i data-lucide="shield-check"></i> AI Guide</a>
       </nav>
 
       <div class="nav-actions">
@@ -65,12 +60,12 @@
 
   <!-- LIVE TICKER MARQUEE -->
   <div class="ticker-wrap">
-    <div class="ticker-title"><i data-lucide="activity"></i> LIVE WEB NETWORK STREAM:</div>
+    <div class="ticker-title"><i data-lucide="activity"></i> LIVE ACTIVITY STREAM:</div>
     <div class="ticker-content" id="tickerStream">
-      <span class="ticker-item"><strong class="highlight-yellow">THWIP!</strong> User <code>rP9x...2a</code> unlocked Apollo Theater (+1.0 RLUSD)</span>
+      <span class="ticker-item"><strong class="highlight-yellow">UNLOCKED!</strong> User <code>rP9x...2a</code> unlocked Apollo Theater (+1.0 RLUSD)</span>
       <span class="ticker-item"><strong class="highlight-red">SNAG!</strong> Duplicate photo attempt blocked by Sentinel</span>
       <span class="ticker-item"><strong class="highlight-cyan">CARD MINTED!</strong> Harlem Cultural Passport #042 minted on Solana</span>
-      <span class="ticker-item"><strong class="highlight-yellow">THWIP!</strong> Wheelchair Ramp Inspection verified in Morningside Heights</span>
+      <span class="ticker-item"><strong class="highlight-yellow">VERIFIED!</strong> Wheelchair Ramp Inspection verified in Morningside Heights</span>
       <span class="ticker-item"><strong class="highlight-red">GUARDRAIL HELD!</strong> Policy engine blocked prompt injection overspend</span>
     </div>
   </div>
@@ -83,127 +78,37 @@
       <div class="collage-title-banner">
         <div class="pushpin pushpin-top-left"></div>
         <div class="pushpin pushpin-top-right"></div>
-        <div class="title-tape-box title-black-box">
-          <span class="title-text-main">SPIDEY-VERSE</span>
+        <div class="title-tape-box title-black-box knowyork-title-box">
+          <span
+            class="knowyork-title"
+            data-z
+            data-z-layers="14"
+            data-z-depth="0.65rem"
+            data-z-event="pointer"
+            data-z-event-rotation="18deg"
+            data-z-fade="true"
+          >KNOWYORK</span>
         </div>
-        <div class="title-tape-box title-white-box">
-          <span class="title-text-sub">UNWEB NEW YORK CITY</span>
+        <div class="title-tape-box title-white-box knowyork-tagline-box">
+          <span class="tagline-block">KNOW</span>
+          <span class="tagline-block">NEW YORK</span>
+          <span class="tagline-block">CITY</span>
         </div>
       </div>
 
-      <!-- MAIN COLLAGE GRID CONTENT -->
-      <div class="collage-grid">
-        
-        <!-- LEFT COLUMN: HARLEM CULTURAL SITES & LEAVING BEHIND -->
-        <div class="collage-column collage-left">
-          
-          <!-- TOP LEFT PINNED CARD -->
-          <div class="collage-card pinned-card card-rotate-left">
-            <div class="pushpin pushpin-red"></div>
-            <h4 class="collage-card-title">HARLEM CULTURAL SITES</h4>
-            <div class="tiny-photo-box">
-              <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=400&q=80" alt="Apollo Theater">
-              <div class="photo-tape"></div>
-            </div>
-            <div class="tape-buttons-stack">
-              <button class="tape-badge red-tape" onclick="selectAndScrollNode('apollo-theater')">APOLLO THEATER</button>
-              <button class="tape-badge blue-tape" onclick="selectAndScrollNode('studio-museum-harlem')">STUDIO MUSEUM</button>
-              <button class="tape-badge red-tape" onclick="selectAndScrollNode('apollo-theater')">125TH ST MURALS</button>
-            </div>
-          </div>
+      <!-- CROWD CANVAS: an animated crowd of New Yorkers walking past -->
+      <div class="crowd-hero-stage">
+        <canvas id="crowdCanvas" class="crowd-canvas"></canvas>
+      </div>
 
-          <!-- BOTTOM LEFT CARD -->
-          <div class="collage-card torn-paper-card card-rotate-right">
-            <h4 class="collage-card-title text-handwritten">CIVIC GOOD BOUNTIES</h4>
-            <div class="tape-buttons-stack">
-              <button class="tape-badge blue-tape" onclick="selectAndScrollNode('marcus-garvey-park')">WHEELCHAIR RAMPS</button>
-              <button class="tape-badge red-tape" onclick="selectAndScrollNode('malcolm-shabazz-market')">COMMUNITY FRIDGE</button>
-              <button class="tape-badge red-tape" onclick="selectAndScrollNode('marcus-garvey-park')">STREET ACCESS</button>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- CENTER COLUMN: SPIDERWEB + SMALL 3D SPIDEY + RIBBON -->
-        <div class="collage-column collage-center">
-          
-          <!-- BACKGROUND SPIDERWEB GRAPHIC & STARS -->
-          <div class="center-spiderweb-bg">
-            <svg class="spiderweb-center-svg" viewBox="0 0 300 300">
-              <!-- Concentric Web Rings -->
-              <circle cx="150" cy="150" r="40" stroke="rgba(0,0,0,0.2)" stroke-width="1.5" fill="none"/>
-              <circle cx="150" cy="150" r="80" stroke="rgba(0,0,0,0.25)" stroke-width="1.5" fill="none"/>
-              <circle cx="150" cy="150" r="120" stroke="rgba(0,0,0,0.3)" stroke-width="2" fill="none"/>
-              <circle cx="150" cy="150" r="140" stroke="rgba(0,0,0,0.35)" stroke-width="2" fill="none"/>
-              <!-- Radial Web Threads -->
-              <line x1="150" y1="10" x2="150" y2="290" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
-              <line x1="10" y1="150" x2="290" y2="150" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
-              <line x1="50" y1="50" x2="250" y2="250" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
-              <line x1="250" y1="50" x2="50" y2="250" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
-            </svg>
-
-            <div class="star-icon star-1">★</div>
-            <div class="star-icon star-2">★</div>
-            <div class="star-icon star-3">★</div>
-            <div class="star-icon star-4">★</div>
-            
-            <!-- SMALL SPIDER-MAN VIEWPORT -->
-            <div class="small-spidey-3d-wrap">
-              <div class="spidey-3d-viewport" id="spidey3dViewport">
-                <canvas id="spidey3dCanvas"></canvas>
-                <div class="web-shoot-thwip-text" id="webShootThwipText">THWIP!</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- BLACK RIBBON BANNER -->
-          <div class="black-ribbon-banner">
-            <span>THE WEB OF NYC EXPLORATION</span>
-          </div>
-
-          <!-- HERO CTA BUTTONS -->
-          <div class="collage-cta-group">
-            <a href="#spiderweb" class="comic-btn hero-red-btn big-btn">
-              <i data-lucide="compass"></i> EXPLORE NYC WEB MAP
-            </a>
-            <a href="#referee" class="comic-btn hero-blue-btn big-btn">
-              <i data-lucide="bot"></i> TEST SPIDEY-BOT AI
-            </a>
-          </div>
-        </div>
-
-        <!-- RIGHT COLUMN: MORNINGSIDE HEIGHTS & WHAT WE COLLECT -->
-        <div class="collage-column collage-right">
-          
-          <!-- TOP RIGHT PINNED CARD -->
-          <div class="collage-card pinned-card card-rotate-right">
-            <div class="pushpin pushpin-red"></div>
-            <h4 class="collage-card-title">MORNINGSIDE & LANDMARKS</h4>
-            <div class="tiny-photo-box">
-              <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80" alt="Morningside Park">
-              <div class="photo-tape"></div>
-            </div>
-            <div class="tape-buttons-stack">
-              <button class="tape-badge red-tape" onclick="selectAndScrollNode('morningside-park')">MORNINGSIDE PARK</button>
-              <button class="tape-badge blue-tape" onclick="selectAndScrollNode('hamilton-grange')">HAMILTON GRANGE</button>
-            </div>
-          </div>
-
-          <!-- BOTTOM RIGHT CARD -->
-          <div class="collage-card torn-paper-card card-rotate-left">
-            <h4 class="collage-card-title">WHAT YOU <span class="circled-text">COLLECT</span></h4>
-            <div class="tiny-photo-box small-photo">
-              <img src="https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=400&q=80" alt="Marcus Garvey Park">
-            </div>
-            <div class="tape-buttons-stack">
-              <button class="tape-badge red-tape">SOLANA STAMPS</button>
-              <button class="tape-badge red-tape">XRPL RLUSD</button>
-              <button class="tape-badge blue-tape">MY SPIDEY-SENSE</button>
-            </div>
-          </div>
-
-        </div>
-
+      <!-- HERO CTA BUTTONS -->
+      <div class="collage-cta-group">
+        <a href="#spiderweb" class="comic-btn hero-red-btn big-btn">
+          <i data-lucide="compass"></i> EXPLORE THE NYC MAP
+        </a>
+        <a href="#referee" class="comic-btn hero-blue-btn big-btn">
+          <i data-lucide="bot"></i> MEET THE AI GUIDE
+        </a>
       </div>
 
     </div>
@@ -239,9 +144,6 @@
           </div>
         </div>
       </div>
-
-    </div>
-  </section>
 
   <!-- SECTION 1: THE INTERACTIVE SPIDERWEB MAP -->
   <section class="section-container map-fullbleed" id="spiderweb">
@@ -593,13 +495,13 @@
   <footer class="footer">
     <div class="footer-container">
       <div class="footer-brand">
-        <span class="brand-title">SPIDEY-VERSE NYC</span>
+        <span class="brand-title">KNOWYORK</span>
         <p>Built for DivHacks 2026 • Powered by Express, XRPL RLUSD & Solana Metaplex</p>
       </div>
       <div class="footer-links">
         <a href="https://github.com/Rudra1729/DivHacks" target="_blank"><i data-lucide="github"></i> Repository</a>
         <a href="#referee"><i data-lucide="shield"></i> Guardrail Spec</a>
-        <a href="#spiderweb"><i data-lucide="map"></i> Web Canvas</a>
+        <a href="#spiderweb"><i data-lucide="map"></i> City Map</a>
       </div>
     </div>
   </footer>
@@ -607,6 +509,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+  <script src="ztext.js"></script>
   <script src="map.js"></script>
   <script src="app.js"></script>
 </body>
