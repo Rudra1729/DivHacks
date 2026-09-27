@@ -43,6 +43,10 @@ export interface AppConfig {
   /** Whether cultural visits also pay RLUSD. Off means they earn only the
       stamp, and only civic bounties pay. */
   culturalRewards: boolean;
+  /** Whether Grok checks that each photo shows the place. Needs a Grok API key. */
+  photoCheck: boolean;
+  /** Lowest Grok confidence, from 0 to 1, at which a photo match passes. */
+  photoMinConfidence: number;
 }
 
 /** Read an 'on'/'off' environment variable.
@@ -88,6 +92,26 @@ function loadRewardScale(): number {
   return scale;
 }
 
+/** Read PHOTO_MIN_CONFIDENCE, defaulting to 0.6.
+
+Returns:
+    number: The minimum confidence, from 0 to 1.
+
+Raises:
+    ConfigError: If PHOTO_MIN_CONFIDENCE is not a number from 0 to 1.
+*/
+function loadPhotoMinConfidence(): number {
+  const raw = process.env.PHOTO_MIN_CONFIDENCE;
+  if (raw === undefined || raw.trim() === '') {
+    return 0.6;
+  }
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0 || value > 1) {
+    throw new ConfigError(`PHOTO_MIN_CONFIDENCE must be a number from 0 to 1, got '${raw}'`);
+  }
+  return value;
+}
+
 /** Build the app configuration from environment variables.
 
 Returns:
@@ -95,7 +119,8 @@ Returns:
 
 Raises:
     ConfigError: If a treasury key is present in the environment, or
-        REWARD_SCALE, LOCATION_CHECKS, or CULTURAL_REWARDS is invalid.
+        REWARD_SCALE, LOCATION_CHECKS, CULTURAL_REWARDS, PHOTO_CHECK, or
+        PHOTO_MIN_CONFIDENCE is invalid.
 */
 export function loadConfig(): AppConfig {
   assertNoTreasuryKey();
@@ -111,5 +136,7 @@ export function loadConfig(): AppConfig {
     rewardScale: loadRewardScale(),
     locationChecks: loadOnOff('LOCATION_CHECKS', true),
     culturalRewards: loadOnOff('CULTURAL_REWARDS', false),
+    photoCheck: loadOnOff('PHOTO_CHECK', true),
+    photoMinConfidence: loadPhotoMinConfidence(),
   };
 }
