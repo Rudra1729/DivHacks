@@ -1,17 +1,15 @@
 import request from 'supertest';
 import Database from 'better-sqlite3';
-import { createApp } from '../../src/app';
-import { loadConfig } from '../../src/config';
-import { openDatabase } from '../../src/db';
+import { Express } from 'express';
 import { createDecision, updateDecision } from '../../src/db/decisions';
+import { buildTestApp } from '../testHelpers/buildTestApp';
 
 describe('GET /metadata/:decisionId', () => {
   let db: Database.Database;
-  let app: ReturnType<typeof createApp>;
+  let app: Express;
 
   beforeEach(() => {
-    db = openDatabase(':memory:');
-    app = createApp(loadConfig(), db);
+    ({ app, db } = buildTestApp());
   });
 
   it('returns 404 for an unknown decision', async () => {

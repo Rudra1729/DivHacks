@@ -1,9 +1,6 @@
 import request from 'supertest';
-import Database from 'better-sqlite3';
 import { Express } from 'express';
-import { createApp } from '../../src/app';
-import { loadConfig } from '../../src/config';
-import { openDatabase } from '../../src/db';
+import { buildTestApp } from '../testHelpers/buildTestApp';
 
 function submitApolloTheater(app: Express, overrides: Record<string, string> = {}) {
   return request(app)
@@ -21,12 +18,10 @@ function submitApolloTheater(app: Express, overrides: Record<string, string> = {
 }
 
 describe('POST /submissions', () => {
-  let db: Database.Database;
-  let app: ReturnType<typeof createApp>;
+  let app: Express;
 
   beforeEach(() => {
-    db = openDatabase(':memory:');
-    app = createApp(loadConfig(), db);
+    ({ app } = buildTestApp());
   });
 
   it('rejects a submission missing required fields', async () => {
@@ -35,10 +30,13 @@ describe('POST /submissions', () => {
     expect(response.body.errors).toContain('photo is required');
   });
 
-  it('accepts a fully valid submission', async () => {
+  it('accepts a fully valid submission and runs it through the orchestrator', async () => {
     const response = await submitApolloTheater(app);
     expect(response.status).toBe(202);
-    expect(response.body.accepted).toBe(true);
+    expect(response.body.status).toBe('OK');
+    expect(response.body.decisionId).toBeTruthy();
+    expect(response.body.xrplTxHash).toBeTruthy();
+    expect(response.body.solanaAssetAddress).toBeTruthy();
   });
 
   it('rejects an oversized photo', async () => {
@@ -111,5 +109,17 @@ describe('POST /submissions', () => {
       solanaAddress: '8WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
     });
     expect(second.status).toBe(202);
+  });
+
+  it('is idempotent for a repeated requestId', async () => {
+    const first = await submitApolloTheater(app).field('requestId', 'same-request-id');
+    expect(first.status).toBe(202);
+
+    const second = await submitApolloTheater(app, { photoContent: 'different-bytes' }).field(
+      'requestId',
+      'same-request-id'
+    );
+    expect(second.status).toBe(202);
+    expect(second.body.decisionId).toBe(first.body.decisionId);
   });
 });

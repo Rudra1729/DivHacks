@@ -8,6 +8,7 @@ import express, { Express, NextFunction, Request, Response } from 'express';
 import multer from 'multer';
 import Database from 'better-sqlite3';
 import { AppConfig } from './config';
+import { Orchestrator } from './orchestrator/orchestrator';
 import { placesRouter } from './routes/places';
 import { createSubmissionsRouter } from './routes/submissions';
 import { createMetadataRouter } from './routes/metadata';
@@ -21,11 +22,12 @@ import { createTestAttackRouter } from './routes/testAttack';
 Args:
     config (AppConfig): The resolved app configuration.
     db (Database.Database): Open database handle, passed to routes that need storage.
+    orchestrator (Orchestrator): Runs the submission pipeline for POST /submissions.
 
 Returns:
     Express: A configured Express app, not yet listening.
 */
-export function createApp(config: AppConfig, db: Database.Database): Express {
+export function createApp(config: AppConfig, db: Database.Database, orchestrator: Orchestrator): Express {
   const app = express();
 
   app.use(express.json());
@@ -35,7 +37,7 @@ export function createApp(config: AppConfig, db: Database.Database): Express {
   });
 
   app.use(placesRouter);
-  app.use(createSubmissionsRouter(config, db));
+  app.use(createSubmissionsRouter(config, orchestrator));
   app.use(createMetadataRouter(db));
   app.use(createDecisionsRouter(db));
   app.use(usersRouter);
