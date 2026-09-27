@@ -11,6 +11,7 @@ import Database from 'better-sqlite3';
 import { AppConfig } from './config';
 import { Orchestrator } from './orchestrator/orchestrator';
 import { placesRouter } from './routes/places';
+import { createMissionsRouter } from './routes/missions';
 import { createSubmissionsRouter } from './routes/submissions';
 import { createMetadataRouter } from './routes/metadata';
 import { createDecisionsRouter } from './routes/decisions';
@@ -45,6 +46,7 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
   });
 
   app.use(placesRouter);
+  app.use(createMissionsRouter(config));
   app.use(createSubmissionsRouter(config, orchestrator));
   app.use(createMetadataRouter(db));
   app.use(createDecisionsRouter(db));
