@@ -41,7 +41,8 @@ export class FakeStampService implements StampService {
       input (MintStampInput): Decision, place, wallet, and XRPL hash.
 
   Returns:
-      Promise<MintStampResult>: A fake asset address and signature, or an error.
+      Promise<MintStampResult>: A fake asset address, signature, serial, and
+          tier, or an error.
   */
   async mintStamp(input: MintStampInput): Promise<MintStampResult> {
     const config = loadSolanaConfig();
@@ -71,7 +72,7 @@ export class FakeStampService implements StampService {
 
     const owned = this.stampsByOwner.get(input.userSolanaAddress) ?? [];
     this.stampsByOwner.set(input.userSolanaAddress, [...owned, stamp]);
-    return { ok: true, assetAddress, signature: `fake-signature-${this.mintCount}` };
+    return { ok: true, assetAddress, signature: `fake-signature-${this.mintCount}`, serial, tier };
   }
 
   /** Check whether a wallet holds a fake stamp for a place.

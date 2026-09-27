@@ -25,7 +25,7 @@ describe('fake stamps', () => {
 
   it('mints a stamp and reads it back with the decision ID', async () => {
     const result = await mintStamp(input);
-    expect(result.ok).toBe(true);
+    expect(result).toMatchObject({ ok: true, serial: 1, tier: 'Legendary' });
 
     const stamps = await getStamps('user-wallet');
     expect(stamps).toHaveLength(1);

@@ -25,11 +25,12 @@ export interface MintStampInput {
 
 /** Result of a mint. Never thrown, always returned.
 
-On success it carries the new asset address and transaction signature.
-On failure (after one retry) it carries a plain-language error message.
+On success it carries the new asset address, transaction signature, and the
+stamp's serial and rarity tier for its place. On failure (after one retry)
+it carries a plain-language error message.
 */
 export type MintStampResult =
-  | { ok: true; assetAddress: string; signature: string }
+  | { ok: true; assetAddress: string; signature: string; serial: number; tier: StampTier }
   | { ok: false; error: string };
 
 /** A passport stamp as read back from Solana.
