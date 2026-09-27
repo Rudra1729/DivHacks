@@ -59,6 +59,19 @@ function shortHash(value) {
   return value && value.length > 14 ? `${value.slice(0, 6)}...${value.slice(-4)}` : value || '';
 }
 
+/** Explorer link for a real XRPL testnet payment, or nothing for a fake one.
+
+Args:
+    txHash (string): The payment's transaction hash.
+
+Returns:
+    Array<{text: string, href: string}>: One link, or empty in fake mode.
+*/
+function explorerLink(txHash) {
+  if (!/^[0-9A-F]{64}$/i.test(txHash || '')) return [];
+  return [{ text: 'See the payment on the XRPL testnet explorer', href: `https://testnet.xrpl.org/transactions/${txHash}` }];
+}
+
 function missionPlace() {
   return PLACES.find((p) => p.id === submission.placeId);
 }
@@ -228,7 +241,8 @@ async function snapSubmissionPhoto() {
 Args:
     kind (string): 'ok', 'warn' or 'blocked', for colouring.
     title (string): Headline.
-    lines (string[]): Details, one bullet each.
+    lines (Array<string | {text: string, href: string}>): Details, one bullet
+        each. An object becomes a link that opens in a new tab.
 */
 function showSubmissionResult(kind, title, lines) {
   const box = document.getElementById('submissionResult');
@@ -242,7 +256,16 @@ function showSubmissionResult(kind, title, lines) {
     const list = document.createElement('ul');
     lines.forEach((line) => {
       const item = document.createElement('li');
-      item.textContent = line;
+      if (typeof line === 'string') {
+        item.textContent = line;
+      } else {
+        const link = document.createElement('a');
+        link.href = line.href;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.textContent = line.text;
+        item.appendChild(link);
+      }
       list.appendChild(item);
     });
     box.appendChild(list);
@@ -305,6 +328,7 @@ function handleSubmissionResult(place, result) {
     setSpideyBotState('approved', `"THWIP! ${place.name} verified. ${amount} paid and a ${stamp} added to your passport!"`);
     showSubmissionResult('ok', 'THWIP! Visit verified', [
       `Paid ${amount} on XRPL (transaction ${shortHash(body.xrplTxHash)})`,
+      ...explorerLink(body.xrplTxHash),
       `Minted a ${stamp} on Solana (${shortHash(body.solanaAssetAddress)})`,
       ...(body.proposal && body.proposal.reason ? [`Spidey-Bot: ${body.proposal.reason}`] : []),
     ]);
@@ -313,7 +337,7 @@ function handleSubmissionResult(place, result) {
     setSpideyBotState('policy_blocked', `"${place.name} verified, but ${body.status === 'STAMP_FAILED' ? 'the stamp is queued for a retry' : 'the payment is still confirming'}."`);
     const paidTitle = body.xrplTxHash ? 'Paid, stamp queued for retry' : 'Verified, stamp queued for retry';
     showSubmissionResult('warn', body.status === 'STAMP_FAILED' ? paidTitle : 'Payment sent, waiting for the ledger', [
-      ...(body.xrplTxHash ? [`Payment transaction ${shortHash(body.xrplTxHash)}`] : []),
+      ...(body.xrplTxHash ? [`Payment transaction ${shortHash(body.xrplTxHash)}`, ...explorerLink(body.xrplTxHash)] : []),
       ...reasons,
     ]);
   } else if (body.status === 'BLOCKED_SENTINEL') {
