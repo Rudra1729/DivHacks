@@ -18,6 +18,7 @@ import { DecisionStatus } from '../orchestrator/types';
 import { withLock } from '../claims/lock';
 import { isPolicyBypassEnabled } from '../testMode/attackFlag';
 import { publishEvent } from '../events/bus';
+import { asyncHandler } from './asyncHandler';
 
 /** HTTP status for each way a submission can end.
 
@@ -52,7 +53,7 @@ export function createSubmissionsRouter(config: AppConfig, orchestrator: Orchest
     limits: { fileSize: config.maxUploadBytes },
   });
 
-  router.post('/submissions', upload.single('photo'), async (req, res) => {
+  router.post('/submissions', upload.single('photo'), asyncHandler(async (req, res) => {
     const validation = validateSubmission(req.body, req.file);
 
     if (!validation.valid) {
@@ -92,7 +93,7 @@ export function createSubmissionsRouter(config: AppConfig, orchestrator: Orchest
     });
 
     res.status(HTTP_STATUS_BY_DECISION[decision.status]).json(decision);
-  });
+  }));
 
   return router;
 }

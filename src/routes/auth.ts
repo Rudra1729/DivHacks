@@ -7,6 +7,7 @@ and the two public wallet addresses (never a secret).
 */
 
 import { Router } from 'express';
+import { asyncHandler } from './asyncHandler';
 import Database from 'better-sqlite3';
 import { EmailSender, getEmailSender } from '../auth/email';
 import { createUser, getUserByEmail } from '../db/users';
@@ -29,7 +30,7 @@ Returns:
 export function createAuthRouter(db: Database.Database, emailSender: EmailSender = getEmailSender()): Router {
   const router = Router();
 
-  router.post('/auth/request-code', async (req, res) => {
+  router.post('/auth/request-code', asyncHandler(async (req, res) => {
     const email = normalizeEmail(req.body?.email);
     if (!email) {
       res.status(400).json({ errors: ['a valid email is required'] });
@@ -48,7 +49,7 @@ export function createAuthRouter(db: Database.Database, emailSender: EmailSender
     }
 
     res.status(200).json({ message: 'login code sent' });
-  });
+  }));
 
   router.post('/auth/verify', (req, res) => {
     const email = normalizeEmail(req.body?.email);

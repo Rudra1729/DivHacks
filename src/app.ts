@@ -18,6 +18,7 @@ import { eventsRouter } from './routes/events';
 import { createTestAttackRouter } from './routes/testAttack';
 import { createAuthRouter } from './routes/auth';
 import { createWalletRouter } from './routes/wallet';
+import { finalErrorHandler } from './routes/errorHandler';
 import { xrplService } from './xrpl';
 
 /** Build the Express application.
@@ -59,6 +60,8 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
     }
     next(err);
   });
+
+  app.use(finalErrorHandler);
 
   return app;
 }
