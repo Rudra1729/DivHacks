@@ -1,13 +1,26 @@
 /**In-memory stamp service with the same API as the real one.
 
 Used while SOLANA_MODE=fake so the orchestrator and Sentinel can integrate
-before devnet minting is ready. Stamps live only for the life of the process.
+before devnet minting is ready. Stamps are kept in memory; the server
+restores them from the decisions table on start so a restart does not
+empty everyone's passport.
 */
 
 import { loadSolanaConfig } from './config';
 import { findPlace } from './places';
 import { tierForSerial } from './rarity';
-import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
+import { MintStampInput, MintStampResult, Stamp, StampService, StampTier } from './types';
+
+/** A stamp minted before a restart, as the decisions table recorded it. */
+export interface RestoredStamp {
+  decisionId: string;
+  placeId: string;
+  owner: string;
+  assetAddress: string;
+  xrplTxHash: string;
+  serial: number | null;
+  tier: string | null;
+}
 
 /** Fake stamp service that stores stamps in a Map keyed by owner.
 
@@ -99,6 +112,39 @@ export class FakeStampService implements StampService {
   */
   async getStamps(solanaAddress: string): Promise<Stamp[]> {
     return [...(this.stampsByOwner.get(solanaAddress) ?? [])];
+  }
+
+  /** Load stamps minted before a restart, so owners keep them and serials continue.
+
+  Args:
+      records (RestoredStamp[]): Previously minted stamps, oldest first.
+  */
+  restore(records: RestoredStamp[]): void {
+    const config = loadSolanaConfig();
+    for (const record of records) {
+      const place = findPlace(record.placeId);
+      const stamp: Stamp = {
+        assetAddress: record.assetAddress,
+        owner: record.owner,
+        collection: 'fake-collection',
+        name: place?.name ?? record.placeId,
+        uri: `${config.metadataBaseUrl}/${record.decisionId}`,
+        placeId: record.placeId,
+        neighborhood: place?.neighborhood ?? 'unknown',
+        decisionId: record.decisionId,
+        xrplTxHash: record.xrplTxHash,
+        serial: record.serial,
+        tier: (record.tier as StampTier | null) ?? (record.serial ? tierForSerial(record.serial) : null),
+      };
+      const owned = this.stampsByOwner.get(record.owner) ?? [];
+      if (owned.some((existing) => existing.decisionId === record.decisionId)) continue;
+      this.stampsByOwner.set(record.owner, [...owned, stamp]);
+
+      const placeCount = this.stampsPerPlace.get(record.placeId) ?? 0;
+      this.stampsPerPlace.set(record.placeId, Math.max(placeCount, record.serial ?? placeCount + 1));
+      const fakeNumber = Number(/^fake-asset-(\d+)$/.exec(record.assetAddress)?.[1] ?? 0);
+      this.mintCount = Math.max(this.mintCount + 1, fakeNumber);
+    }
   }
 
   /** Forget every fake stamp and stop failing mints. Used between tests. */

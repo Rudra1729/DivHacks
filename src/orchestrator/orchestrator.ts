@@ -1,8 +1,11 @@
 /**Submission orchestrator.
 
 Runs one submission through the pipeline in a fixed order: duplicate check,
-solvency, Sentinel, pending claim, agent, policy, XRPL payment, Solana stamp,
-save. Money moves only after every earlier gate passes, and a payment is never
+solvency, Sentinel, photo check, pending claim, agent, policy, review, XRPL
+payment, Solana stamp, save. The photo check runs only when a checker is
+configured. Stamp-only cultural visits skip solvency, the agent, policy,
+review, and payment. Money moves only after every earlier gate passes, and a
+payment is never
 repeated because a stamp mint failed: the mint is queued for retry instead.
 
 Solvency runs before Sentinel on purpose. Sentinel records the photo as used
@@ -16,6 +19,7 @@ ID again re-checks the ledger and carries on.
 */
 
 import { randomUUID } from 'crypto';
+import { PhotoChecker, PhotoCheckResult } from '../agent/photoCheck';
 import { AgentProposal, PayoutAgent, PayoutReviewer, ReviewVerdict } from '../agent/types';
 import { evaluatePolicy } from '../policy/policy';
 import { checkSolvency, rewardFor } from '../solvency/solvency';
@@ -25,7 +29,7 @@ import { StorageLayer } from '../storage/types';
 import { SendPaymentResult, XrplService } from '../xrpl/types';
 import { AuditTrail } from './auditTrail';
 import { resolveReview, ReviewOutcome } from './review';
-import { DecisionResult, SubmissionInput } from './types';
+import { DecisionResult, Place, SubmissionInput } from './types';
 
 const BYPASS_NOTE = 'policy skipped: test mode bypass';
 const REVIEW_NOTE_PREFIX = 'reviewer lowered the payout';
@@ -33,6 +37,8 @@ const DEFAULT_REVIEW_TIMEOUT_MS = 15000;
 
 export interface OrchestratorDeps {
   sentinel: Sentinel;
+  /** Checks that the photo shows the place. Unset skips the check. */
+  photoChecker?: PhotoChecker;
   agent: PayoutAgent;
   reviewer: PayoutReviewer;
   xrpl: XrplService;
@@ -41,8 +47,12 @@ export interface OrchestratorDeps {
   /** Gates the policy bypass. Outside test mode the bypass is ignored. */
   isTestMode: boolean;
   /** Multiplier on each place's reward, the same one the agent is given.
-      Defaults to 1. */
+      The policy caps shrink by the same factor. Defaults to 1. */
   rewardScale?: number;
+  /** Pay RLUSD for cultural visits too. Off (the default) mints the stamp
+      and skips the solvency, agent, policy, review, and XRPL steps for
+      cultural places. */
+  culturalRewards?: boolean;
   /** How often to re-check an unconfirmed payment before giving up for now. */
   unconfirmedRecheck?: { attempts: number; delayMs: number };
   /** How long the reviewer may take before the payout falls back to the base reward. */
@@ -112,9 +122,10 @@ export class Orchestrator {
       }, trail);
     }
 
+    const stampOnly = place.kind === 'cultural' && !this.deps.culturalRewards;
     const reward = rewardFor(place, this.deps.rewardScale);
-    const solvency = await checkSolvency(xrpl, reward);
-    if (!solvency.ok) {
+    const solvency = stampOnly ? undefined : await checkSolvency(xrpl, reward);
+    if (solvency && !solvency.ok) {
       const detail =
         solvency.reason === 'insufficient'
           ? `the agent wallet holds ${solvency.balance} RLUSD, which cannot cover this place's ${solvency.needed} RLUSD reward`
@@ -131,7 +142,9 @@ export class Orchestrator {
         ],
       }, trail);
     }
-    trail.add('solvency', true, `agent wallet holds ${solvency.balance} RLUSD, enough to cover the ${reward} RLUSD reward`);
+    if (solvency) {
+      trail.add('solvency', true, `agent wallet holds ${solvency.balance} RLUSD, enough to cover the ${reward} RLUSD reward`);
+    }
 
     const verification = await sentinel.verify(input, place);
     if (!verification.ok) {
@@ -143,6 +156,17 @@ export class Orchestrator {
     }
     trail.add('sentinel', true, 'location, freshness, replay, and once-per-place checks passed');
 
+    if (this.deps.photoChecker) {
+      const photoCheck = await this.checkPhoto(this.deps.photoChecker, input, place);
+      trail.add('photo', photoCheck.passed, photoCheck.message);
+      if (!photoCheck.passed) {
+        return this.save(input, decisionId, {
+          status: 'BLOCKED_PHOTO',
+          reasons: [photoCheck.message],
+        }, trail);
+      }
+    }
+
     await storage.markClaimPending({
       decisionId,
       xrplAddress: input.xrplAddress,
@@ -150,6 +174,12 @@ export class Orchestrator {
       placeId: input.placeId,
     });
     trail.add('claim', true, 'claim marked pending');
+
+    if (stampOnly) {
+      trail.add('agent', true, 'cultural visit: stamp only, no RLUSD reward is proposed or paid');
+      await storage.updateClaimStatus(decisionId, 'paid');
+      return this.stamp(input, decisionId, [], trail, {});
+    }
 
     const bypass = options.bypassPolicy === true && this.deps.isTestMode;
     const notes = bypass ? [BYPASS_NOTE] : [];
@@ -184,6 +214,7 @@ export class Orchestrator {
           placeId: input.placeId,
           allowedPlaceIds,
           dailyTotal: paidTodayByVisitor,
+          capScale: this.deps.rewardScale,
         });
         policyVersion = policy.policyVersion;
 
@@ -246,7 +277,7 @@ export class Orchestrator {
     notes: string[],
     trail: AuditTrail
   ): Promise<DecisionResult> {
-    const { solana, storage } = this.deps;
+    const { storage } = this.deps;
 
     const payment = await this.pay(decisionId, proposal);
     if (!payment.ok) {
@@ -288,11 +319,37 @@ export class Orchestrator {
     trail.add('xrpl', true, `paid ${proposal.amount} RLUSD to ${proposal.recipient}, transaction ${payment.txHash}`);
     await storage.updateClaimStatus(decisionId, 'paid');
 
+    return this.stamp(input, decisionId, notes, trail, { proposal, policyVersion, xrplTxHash: payment.txHash });
+  }
+
+  /** Mint the visit's stamp and save the decision. A failed mint is queued
+      for retry and saved as STAMP_FAILED.
+
+  Args:
+      input (SubmissionInput): The submission being settled.
+      decisionId (string): The decision's ID.
+      notes (string[]): Reasons to carry on the saved decision.
+      trail (AuditTrail): History to save with the decision.
+      paid (object): proposal, policyVersion, and xrplTxHash of the payment
+          for this visit. Empty for a stamp-only cultural visit.
+
+  Returns:
+      DecisionResult: The saved decision, OK or STAMP_FAILED.
+  */
+  private async stamp(
+    input: SubmissionInput,
+    decisionId: string,
+    notes: string[],
+    trail: AuditTrail,
+    paid: { proposal?: AgentProposal; policyVersion?: string; xrplTxHash?: string }
+  ): Promise<DecisionResult> {
+    const { solana, storage } = this.deps;
+
     const mintInput: MintStampInput = {
       decisionId,
       placeId: input.placeId,
       userSolanaAddress: input.solanaAddress,
-      xrplTxHash: payment.txHash,
+      xrplTxHash: paid.xrplTxHash ?? '',
     };
     let mint: MintStampResult;
     try {
@@ -307,9 +364,7 @@ export class Orchestrator {
       return this.save(input, decisionId, {
         status: 'STAMP_FAILED',
         reasons: [...notes, `stamp mint failed, queued for retry: ${mint.error}`],
-        proposal,
-        policyVersion,
-        xrplTxHash: payment.txHash,
+        ...paid,
         stampFailed: true,
       }, trail);
     }
@@ -318,14 +373,31 @@ export class Orchestrator {
     return this.save(input, decisionId, {
       status: 'OK',
       reasons: notes,
-      proposal,
-      policyVersion,
-      xrplTxHash: payment.txHash,
+      ...paid,
       solanaAssetAddress: mint.assetAddress,
       solanaSignature: mint.signature,
       stampSerial: mint.serial,
       stampTier: mint.tier,
     }, trail);
+  }
+
+  /** Run the photo check, treating a throw as a blocked result.
+
+  Args:
+      checker (PhotoChecker): The configured photo checker.
+      input (SubmissionInput): The submission, for its photo.
+      place (Place): The place being claimed.
+
+  Returns:
+      PhotoCheckResult: The checker's result, or a blocked one if it threw.
+  */
+  private async checkPhoto(checker: PhotoChecker, input: SubmissionInput, place: Place): Promise<PhotoCheckResult> {
+    try {
+      return await checker.check({ place, photo: input.photo });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { passed: false, message: `photo check: could not check the photo (${message}), take a new photo and try again` };
+    }
   }
 
   /** Send the payment, re-checking a few times while it is unconfirmed.

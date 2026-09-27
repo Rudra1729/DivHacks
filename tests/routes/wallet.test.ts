@@ -6,6 +6,8 @@ import { createUser } from '../../src/db/users';
 import { createSessionToken } from '../../src/auth/tokens';
 import { createWalletRouter } from '../../src/routes/wallet';
 import { XrplService } from '../../src/xrpl/types';
+import { createDecision, updateDecision } from '../../src/db/decisions';
+import { fakeStampService } from '../../src/solana/fakeStamps';
 
 const WALLETS = {
   xrplAddress: 'rXRPLADDRESS',
@@ -60,6 +62,24 @@ describe('wallet routes', () => {
     expect(response.status).toBe(200);
     expect(response.body.solanaAddress).toBe(WALLETS.solanaAddress);
     expect(Array.isArray(response.body.stamps)).toBe(true);
+  });
+
+  it('adds the RLUSD each visit paid to its stamp, 0 for stamp-only visits', async () => {
+    const { app, db } = buildWalletTestApp();
+    const user = createUser(db, 'person@example.com', WALLETS);
+    createDecision(db, 'paid-1', 'mudd-entrance', 'OK');
+    updateDecision(db, 'paid-1', { amount: 0.01, xrplHash: 'HASH1' });
+    createDecision(db, 'stamp-only-1', 'mudd-building', 'OK');
+    const owner = WALLETS.solanaAddress;
+    await fakeStampService.mintStamp({ decisionId: 'paid-1', placeId: 'mudd-entrance', userSolanaAddress: owner, xrplTxHash: 'HASH1' });
+    await fakeStampService.mintStamp({ decisionId: 'stamp-only-1', placeId: 'mudd-building', userSolanaAddress: owner, xrplTxHash: '' });
+
+    const response = await request(app).get('/me/nft').set('Authorization', `Bearer ${createSessionToken(user.id)}`);
+    const rewards = Object.fromEntries(
+      response.body.stamps.map((s: { decisionId: string; rewardRlusd: number }) => [s.decisionId, s.rewardRlusd])
+    );
+    expect(rewards).toEqual({ 'paid-1': 0.01, 'stamp-only-1': 0 });
+    fakeStampService.reset();
   });
 
   it('returns the logged-in user own RLUSD balance', async () => {

@@ -11,6 +11,7 @@ export type AuditLayer =
   | 'orchestrator'
   | 'solvency'
   | 'sentinel'
+  | 'photo'
   | 'claim'
   | 'agent'
   | 'policy'

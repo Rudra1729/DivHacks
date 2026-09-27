@@ -44,6 +44,8 @@ export class LiveServer {
         ...process.env,
         PORT: String(this.options.port),
         DB_PATH: this.dbPath,
+        // The live checks upload synthetic photo bytes, which Grok would reject.
+        PHOTO_CHECK: 'off',
         ...this.options.env,
       },
       stdio: ['ignore', 'pipe', 'pipe'],

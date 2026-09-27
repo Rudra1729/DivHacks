@@ -56,7 +56,7 @@ export function createApp(
     res.status(200).json({ status: 'ok', testMode: config.isTestMode });
   });
 
-  app.use(createPlacesRouter(xrpl, { rewardScale: config.rewardScale }));
+  app.use(createPlacesRouter(xrpl, db, { rewardScale: config.rewardScale, culturalRewards: config.culturalRewards }));
   app.use(createSubmissionsRouter(config, orchestrator));
   app.use(createMetadataRouter(db));
   app.use(createDecisionsRouter(db));
@@ -70,7 +70,8 @@ export function createApp(
   }
 
   // Serve the web app too, so one server runs everything at http://localhost:PORT/.
-  app.use(express.static(FRONTEND_DIR));
+  // no-cache makes browsers revalidate (cheap, via ETag) instead of running stale files.
+  app.use(express.static(FRONTEND_DIR, { setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache') }));
 
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (err instanceof multer.MulterError) {

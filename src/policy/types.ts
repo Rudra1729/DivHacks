@@ -10,6 +10,9 @@ export interface PolicyContext {
   /** RLUSD already paid to the submitter today. Callers pass the higher of
       the database and ledger totals. */
   dailyTotal: number;
+  /** REWARD_SCALE, applied to the per-task and daily caps so a scaled down
+      deployment also caps spending at the scaled amounts. Defaults to 1. */
+  capScale?: number;
 }
 
 /** Pass, or every violated rule in plain words. Always carries the version. */

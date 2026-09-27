@@ -12,6 +12,7 @@ export type DecisionStatus =
   | 'OK'
   | 'BLOCKED_SOLVENCY'
   | 'BLOCKED_SENTINEL'
+  | 'BLOCKED_PHOTO'
   | 'BLOCKED_POLICY'
   | 'BLOCKED_REVIEW'
   | 'REJECTED_BY_LEDGER'
@@ -33,6 +34,11 @@ export interface Place {
   /** Solana collection address for this place's neighborhood. */
   collectionAddress: string;
   imageUrl: string;
+  /** Cultural visits earn only a stamp unless cultural rewards are on.
+      Civic bounties, and places with no kind, always pay RLUSD. */
+  kind?: 'cultural' | 'civic';
+  /** What a photo taken here shows, for the photo check. */
+  photoHint?: string;
 }
 
 /** One GPS reading taken by the phone while the camera was open. */
