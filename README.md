@@ -140,5 +140,8 @@ the cheap tricks (DevTools overrides, typed coordinates, shared spoofing setups)
 
 Backend is under active development for a hackathon build. XRPL payments
 and Solana stamps each run in fake mode by default and switch to the real
-networks with `XRPL_MODE=real` and `SOLANA_MODE=real`; the Grok agent
+networks with `XRPL_MODE=real` and `SOLANA_MODE=real`. In real XRPL mode a
+user's wallet is funded from the testnet faucet and given an RLUSD trust line
+before its first payment. Fake-mode stamps are reloaded from the database when
+the server starts, so a restart keeps everyone's passport. The Grok agent
 falls back to the base reward until `GROK_API_KEY` is set. See open PRs and [PRD.md](./PRD.md) for what's left.
