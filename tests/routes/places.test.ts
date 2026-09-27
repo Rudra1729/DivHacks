@@ -56,6 +56,18 @@ describe('GET /places', () => {
     ]);
   });
 
+  it('reports the fixed tier for places that have one', async () => {
+    const { app } = buildTestApp();
+    const response = await request(app).get('/places');
+    const byId = Object.fromEntries(
+      response.body.places.map((p: { id: string; fixedTier?: string; rarity: { nextTier: string } }) => [p.id, p])
+    );
+    expect(byId['mudd-building'].fixedTier).toBe('Epic');
+    expect(byId['mudd-building'].rarity.nextTier).toBe('Epic');
+    expect(byId['mudd-entrance'].fixedTier).toBe('Legendary');
+    expect(byId['mudd-entrance'].rarity.nextTier).toBe('Legendary');
+  });
+
   it('says the next stamp at an unvisited place is Legendary #1', async () => {
     const { app } = buildTestApp();
     const response = await request(app).get('/places');

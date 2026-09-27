@@ -38,6 +38,36 @@ export function tierForSerial(serial: number): StampTier {
   return RARITY_TIERS.find((entry) => serial <= entry.maxSerial)?.tier ?? 'Late Explorer';
 }
 
+/** Pick the tier for a stamp at a place, honoring a place's fixed tier.
+
+Args:
+    place ({ fixedTier?: StampTier }): The place. A place with a fixed tier
+        gives that tier to every stamp, whatever its serial.
+    serial (number): The stamp's position among stamps for its place, from 1.
+
+Returns:
+    StampTier: The place's fixed tier, or the tier for the serial.
+
+Raises:
+    RangeError: If serial is not a positive whole number.
+*/
+export function tierForPlace(place: { fixedTier?: StampTier }, serial: number): StampTier {
+  const bySerial = tierForSerial(serial);
+  return place.fixedTier ?? bySerial;
+}
+
+/** Check whether a string names a tier, such as a tier attribute read from chain.
+
+Args:
+    value (string | undefined): The value to check.
+
+Returns:
+    boolean: True if the value is one of the tier names.
+*/
+export function isStampTier(value: string | undefined): value is StampTier {
+  return value === 'Late Explorer' || RARITY_TIERS.some((entry) => entry.tier === value);
+}
+
 /** Whether every numbered stamp for a place has already been found.
 
 Args:

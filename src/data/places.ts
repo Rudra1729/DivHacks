@@ -15,6 +15,7 @@ PLACES directly keeps seeing exactly this fixed list.
 */
 
 import { readGeneratedMissions } from '../missions/store';
+import type { StampTier } from '../solana/rarity';
 
 /** Cultural visits earn only a stamp. Civic bounties also pay RLUSD. */
 export type PlaceKind = 'cultural' | 'civic';
@@ -36,6 +37,8 @@ export interface Place {
   sponsor: string | null;
   /** What a photo taken here shows. Given to Grok's photo check. */
   photoHint: string;
+  /** Tier every stamp here gets, whatever its serial. Unset means the serial picks the tier. */
+  fixedTier?: StampTier;
 }
 
 export const PLACES: Place[] = [
@@ -136,6 +139,7 @@ export const PLACES: Place[] = [
     imageUrl: 'https://placehold.co/600x600/png?text=mudd+building',
     sponsor: null,
     photoHint: 'The Seeley W. Mudd Building of Columbia Engineering, 500 W 120th St at Amsterdam Ave: its facade, signage, lobby, or halls.',
+    fixedTier: 'Epic',
   },
   {
     id: 'mudd-entrance',
@@ -150,6 +154,7 @@ export const PLACES: Place[] = [
     imageUrl: 'https://placehold.co/600x600/png?text=mudd+entrance',
     sponsor: 'Columbia Engineering',
     photoHint: 'The entrance of the Mudd Building at Columbia Engineering on W 120th St: its doors, ramp, steps, or entrance signs.',
+    fixedTier: 'Legendary',
   },
 ];
 

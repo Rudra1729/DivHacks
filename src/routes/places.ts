@@ -17,7 +17,7 @@ import { Router } from 'express';
 import { scaleReward } from '../agent/grok';
 import { getAllPlaces } from '../data/places';
 import { getHighestStampSerial } from '../db/decisions';
-import { RARITY_TIERS, STAMP_SUPPLY_PER_PLACE, tierForSerial } from '../solana/rarity';
+import { RARITY_TIERS, STAMP_SUPPLY_PER_PLACE, tierForPlace } from '../solana/rarity';
 import { AgentBalanceCache, coversReward } from '../solvency/solvency';
 import { XrplService } from '../xrpl/types';
 import { asyncHandler } from './asyncHandler';
@@ -78,7 +78,7 @@ export function createPlacesRouter(
         ...place,
         rewardRlusd,
         payable: balance !== null && coversReward(balance, rewardRlusd),
-        rarity: { found, nextSerial: found + 1, nextTier: tierForSerial(found + 1) },
+        rarity: { found, nextSerial: found + 1, nextTier: tierForPlace(place, found + 1) },
       };
     });
     res.status(200).json({
