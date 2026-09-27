@@ -39,6 +39,14 @@ npm run db:reset # delete your local SQLite file (see note below)
 
 The server reads settings from `.env` in the folder it runs from.
 
+## Live checks and evidence
+
+`npm run live:check` starts a real server, sends real requests, and confirms the
+results on the XRPL testnet and Solana devnet. It writes a report with explorer
+links to `evidence/live-runs/`. See [evidence/README.md](./evidence/README.md)
+for what each check proves and how to read the results. Use
+`npm run live:check:dry` to try it in fake modes without spending anything.
+
 > **After pulling schema changes:** the SQLite tables are created with
 > `CREATE TABLE IF NOT EXISTS`, so a local `webpass.sqlite` from before a
 > schema change won't get the new columns automatically and queries
