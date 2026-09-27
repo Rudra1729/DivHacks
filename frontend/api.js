@@ -107,6 +107,7 @@ Which server it talks to:
     subscribeEvents,
     health: () => request('/health'),
     getPlaces: () => request('/places'),
+    refreshMissions: () => request('/missions/refresh', { method: 'POST', json: {} }),
     requestLoginCode: (email) => request('/auth/request-code', { method: 'POST', json: { email } }),
     verifyLoginCode: (email, code) => request('/auth/verify', { method: 'POST', json: { email, code } }),
     getMyStamps: (token) => request('/me/nft', { token }),
