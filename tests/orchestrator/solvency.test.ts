@@ -1,4 +1,5 @@
 import { PayoutAgent } from '../../src/agent/types';
+import { FakeReviewer } from '../../src/agent/fakeReviewer';
 import { Orchestrator } from '../../src/orchestrator/orchestrator';
 import { Place, SubmissionInput } from '../../src/orchestrator/types';
 import { FakeSentinel } from '../../src/sentinel/fakeSentinel';
@@ -51,6 +52,7 @@ function build(options: { xrpl: FakePaymentService; rewardScale?: number; sentin
   const orchestrator = new Orchestrator({
     sentinel,
     agent,
+    reviewer: new FakeReviewer(),
     xrpl: options.xrpl,
     solana,
     storage,

@@ -16,7 +16,7 @@ ID again re-checks the ledger and carries on.
 */
 
 import { randomUUID } from 'crypto';
-import { AgentProposal, PayoutAgent } from '../agent/types';
+import { AgentProposal, PayoutAgent, PayoutReviewer, ReviewVerdict } from '../agent/types';
 import { evaluatePolicy } from '../policy/policy';
 import { checkSolvency, rewardFor } from '../solvency/solvency';
 import { Sentinel } from '../sentinel/types';
@@ -24,13 +24,17 @@ import { MintStampInput, MintStampResult, StampService } from '../solana/types';
 import { StorageLayer } from '../storage/types';
 import { SendPaymentResult, XrplService } from '../xrpl/types';
 import { AuditTrail } from './auditTrail';
+import { resolveReview, ReviewOutcome } from './review';
 import { DecisionResult, SubmissionInput } from './types';
 
 const BYPASS_NOTE = 'policy skipped: test mode bypass';
+const REVIEW_NOTE_PREFIX = 'reviewer lowered the payout';
+const DEFAULT_REVIEW_TIMEOUT_MS = 15000;
 
 export interface OrchestratorDeps {
   sentinel: Sentinel;
   agent: PayoutAgent;
+  reviewer: PayoutReviewer;
   xrpl: XrplService;
   solana: StampService;
   storage: StorageLayer;
@@ -41,12 +45,17 @@ export interface OrchestratorDeps {
   rewardScale?: number;
   /** How often to re-check an unconfirmed payment before giving up for now. */
   unconfirmedRecheck?: { attempts: number; delayMs: number };
+  /** How long the reviewer may take before the payout falls back to the base reward. */
+  reviewTimeoutMs?: number;
 }
 
 export interface RunOptions {
   /** Skip the policy step. Honored only in test mode, to prove the ledger
       layer stops an overspend on its own. */
   bypassPolicy?: boolean;
+  /** Replace the agent's proposal. Honored only in test mode, for the
+      forced overspend attack demo. */
+  forceProposal?: AgentProposal;
 }
 
 type Outcome = Omit<DecisionResult, 'decisionId' | 'stampFailed'> & { stampFailed?: boolean };
@@ -80,7 +89,9 @@ export class Orchestrator {
 
     const earlier = await storage.getDecisionByRequestId(input.requestId);
     if (earlier && earlier.status === 'PAYMENT_UNCONFIRMED' && earlier.proposal) {
-      const notes = earlier.reasons.filter((reason) => reason === BYPASS_NOTE);
+      const notes = earlier.reasons.filter(
+        (reason) => reason === BYPASS_NOTE || reason.startsWith(REVIEW_NOTE_PREFIX)
+      );
       const resumed = new AuditTrail();
       resumed.add('orchestrator', true, 'repeat request for an unconfirmed payment: checking the ledger again');
       return this.settle(input, earlier.decisionId, earlier.proposal, earlier.policyVersion, notes, resumed);
@@ -145,13 +156,19 @@ export class Orchestrator {
 
     let proposal: AgentProposal;
     let policyVersion: string | undefined;
+    let paidTodayByVisitor = 0;
     try {
-      proposal = await agent.propose({
-        place,
-        xrplAddress: input.xrplAddress,
-        caption: input.caption,
-      });
-      trail.add('agent', true, `proposed ${proposal.amount} RLUSD to ${proposal.recipient}: ${proposal.reason}`);
+      if (options.forceProposal && this.deps.isTestMode) {
+        proposal = options.forceProposal;
+        trail.add('agent', true, `forced test proposal ${proposal.amount} RLUSD to ${proposal.recipient}: ${proposal.reason}`);
+      } else {
+        proposal = await agent.propose({
+          place,
+          xrplAddress: input.xrplAddress,
+          caption: input.caption,
+        });
+        trail.add('agent', true, `proposed ${proposal.amount} RLUSD to ${proposal.recipient}: ${proposal.reason}`);
+      }
 
       if (bypass) {
         trail.add('policy', true, 'skipped: test mode bypass');
@@ -161,11 +178,12 @@ export class Orchestrator {
           storage.getDailyTotal(input.xrplAddress),
           xrpl.getPaidToday(input.xrplAddress),
         ]);
+        paidTodayByVisitor = Math.max(storedTotal, ledgerTotal);
         const policy = evaluatePolicy(proposal, {
           submitterXrplAddress: input.xrplAddress,
           placeId: input.placeId,
           allowedPlaceIds,
-          dailyTotal: Math.max(storedTotal, ledgerTotal),
+          dailyTotal: paidTodayByVisitor,
         });
         policyVersion = policy.policyVersion;
 
@@ -180,6 +198,35 @@ export class Orchestrator {
           }, trail);
         }
         trail.add('policy', true, `policy ${policy.policyVersion}: proposal allowed`);
+      }
+
+      if (bypass) {
+        trail.add('review', true, 'skipped: test mode bypass');
+      } else {
+        const review = await this.reviewPayout({
+          placeName: place.name,
+          baseReward: reward,
+          proposedAmount: proposal.amount,
+          recipientIsSubmitter: proposal.recipient === input.xrplAddress,
+          paidTodayByVisitor,
+        });
+        const decision = resolveReview(proposal.amount, reward, review);
+        if (decision.action === 'reject') {
+          trail.add('review', false, `reviewer rejected the payout: ${decision.reason}`);
+          await storage.updateClaimStatus(decisionId, 'failed');
+          return this.save(input, decisionId, {
+            status: 'BLOCKED_REVIEW',
+            reasons: [`reviewer rejected the payout: ${decision.reason}`],
+            proposal,
+            policyVersion,
+          }, trail);
+        }
+
+        trail.add('review', true, decision.message);
+        if (decision.note) {
+          notes.push(decision.note);
+        }
+        proposal = { ...proposal, amount: decision.amount };
       }
     } catch (error) {
       await storage.updateClaimStatus(decisionId, 'failed');
@@ -308,6 +355,35 @@ export class Orchestrator {
     return result;
   }
 
+  /** Ask the reviewer for a second opinion, with a timeout and safe fallback. */
+  private async reviewPayout(input: Parameters<PayoutReviewer['review']>[0]): Promise<ReviewOutcome> {
+    const timeoutMs = this.deps.reviewTimeoutMs ?? DEFAULT_REVIEW_TIMEOUT_MS;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<ReviewOutcome>((resolve) => {
+      timer = setTimeout(() => resolve({ kind: 'failed', error: 'timed out' }), timeoutMs);
+    });
+
+    const call = this.deps.reviewer
+      .review(input)
+      .then((verdict: unknown): ReviewOutcome => (
+        isReviewVerdict(verdict)
+          ? { kind: 'verdict', verdict }
+          : { kind: 'failed', error: 'unusable answer' }
+      ))
+      .catch((error): ReviewOutcome => ({
+        kind: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      }));
+
+    try {
+      return await Promise.race([call, timeout]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
   /** Save the decision, then its step-by-step history. The history goes second
       so every entry has a saved decision to belong to. */
   private async save(
@@ -321,4 +397,18 @@ export class Orchestrator {
     await this.deps.storage.recordAuditEvents(decisionId, trail.entries);
     return decision;
   }
+}
+
+function isReviewVerdict(value: unknown): value is ReviewVerdict {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const { decision, reason, amount } = value as Record<string, unknown>;
+  if (decision !== 'approve' && decision !== 'reduce' && decision !== 'reject') {
+    return false;
+  }
+  if (typeof reason !== 'string') {
+    return false;
+  }
+  return decision !== 'reduce' || typeof amount === 'number';
 }

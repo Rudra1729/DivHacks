@@ -1,4 +1,5 @@
 import { AgentProposal, PayoutAgent } from '../../src/agent/types';
+import { FakeReviewer } from '../../src/agent/fakeReviewer';
 import { Orchestrator } from '../../src/orchestrator/orchestrator';
 import { Place, SubmissionInput } from '../../src/orchestrator/types';
 import { FakeSentinel } from '../../src/sentinel/fakeSentinel';
@@ -43,6 +44,7 @@ function build(options: { agent?: PayoutAgent; sentinel?: FakeSentinel; isTestMo
   const orchestrator = new Orchestrator({
     sentinel: options.sentinel ?? new FakeSentinel(),
     agent: options.agent ?? agentProposing(good),
+    reviewer: new FakeReviewer(),
     xrpl,
     solana,
     storage,
@@ -68,6 +70,7 @@ describe('Orchestrator audit trail', () => {
       ['claim', true],
       ['agent', true],
       ['policy', true],
+      ['review', true],
       ['xrpl', true],
       ['solana', true],
     ]);
@@ -80,8 +83,9 @@ describe('Orchestrator audit trail', () => {
 
     expect(messages[3]).toBe('proposed 2 RLUSD to rUser: nice visit');
     expect(messages[4]).toContain('proposal allowed');
-    expect(messages[5]).toContain(`paid 2 RLUSD to rUser, transaction ${result.xrplTxHash}`);
-    expect(messages[6]).toBe(`stamp minted: ${result.solanaAssetAddress}`);
+    expect(messages[5]).toBe('reviewer approved 2 RLUSD: within the allowed range of the base reward');
+    expect(messages[6]).toContain(`paid 2 RLUSD to rUser, transaction ${result.xrplTxHash}`);
+    expect(messages[7]).toBe(`stamp minted: ${result.solanaAssetAddress}`);
   });
 
   it('records one failing entry per Sentinel failure and stops there', async () => {
@@ -142,11 +146,13 @@ describe('Orchestrator audit trail', () => {
       ['claim', true],
       ['agent', true],
       ['policy', true],
+      ['review', true],
       ['xrpl', false],
     ]);
     const events = storage.getAuditEvents(result.decisionId);
     expect(events[4].message).toBe('skipped: test mode bypass');
-    expect(events[5].message).toContain('ledger rejected payment: tecPATH_PARTIAL');
+    expect(events[5].message).toBe('skipped: test mode bypass');
+    expect(events[6].message).toContain('ledger rejected payment: tecPATH_PARTIAL');
   });
 
   it('records a failed stamp after a successful payment', async () => {
@@ -204,6 +210,7 @@ describe('Orchestrator audit trail', () => {
         ['claim', true],
         ['agent', true],
         ['policy', true],
+        ['review', true],
         ['xrpl', false],
         ['orchestrator', true],
         ['xrpl', true],

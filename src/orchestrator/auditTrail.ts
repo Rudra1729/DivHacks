@@ -14,6 +14,7 @@ export type AuditLayer =
   | 'claim'
   | 'agent'
   | 'policy'
+  | 'review'
   | 'xrpl'
   | 'solana';
 

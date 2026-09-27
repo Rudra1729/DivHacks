@@ -16,7 +16,7 @@ import { validateSubmission } from '../validation/submission';
 import { Orchestrator } from '../orchestrator/orchestrator';
 import { DecisionStatus } from '../orchestrator/types';
 import { withLock } from '../claims/lock';
-import { isPolicyBypassEnabled } from '../testMode/attackFlag';
+import { getForcedProposal, isPolicyBypassEnabled } from '../testMode/attackFlag';
 import { publishEvent } from '../events/bus';
 import { asyncHandler } from './asyncHandler';
 
@@ -36,6 +36,7 @@ export const HTTP_STATUS_BY_DECISION: Record<DecisionStatus, number> = {
   BLOCKED_SOLVENCY: 503,
   BLOCKED_SENTINEL: 422,
   BLOCKED_POLICY: 422,
+  BLOCKED_REVIEW: 422,
   REJECTED_BY_LEDGER: 402,
   PAYMENT_FAILED: 502,
 };
@@ -85,7 +86,7 @@ export function createSubmissionsRouter(config: AppConfig, orchestrator: Orchest
           solanaAddress: String(req.body.solanaAddress),
           caption: typeof req.body.caption === 'string' ? req.body.caption : undefined,
         },
-        { bypassPolicy: isPolicyBypassEnabled() }
+        { bypassPolicy: isPolicyBypassEnabled(), forceProposal: getForcedProposal() }
       )
     );
 

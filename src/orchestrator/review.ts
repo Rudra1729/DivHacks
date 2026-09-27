@@ -73,6 +73,8 @@ export function resolveReview(proposed: number, baseReward: number, outcome: Rev
       }
       return withNote(proposed, amount, `reviewer reduced the payout from ${proposed} to ${amount} RLUSD: ${verdict.reason}`);
     }
+    default:
+      return fallback('reviewer returned an unusable answer');
   }
 }
 

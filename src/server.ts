@@ -13,6 +13,7 @@ import { Orchestrator } from './orchestrator/orchestrator';
 import { RealSentinel } from './sentinel/realSentinel';
 import { SqliteStorage } from './storage/sqliteStorage';
 import { GrokAgent } from './agent/grok';
+import { GrokReviewer } from './agent/reviewer';
 import { xrplService } from './xrpl';
 import { solanaStamps } from './solana';
 
@@ -26,6 +27,11 @@ const orchestrator = new Orchestrator({
     model: config.grokModel,
     endpoint: config.grokEndpoint,
     rewardScale: config.rewardScale,
+  }),
+  reviewer: new GrokReviewer({
+    apiKey: config.grokApiKey,
+    model: config.grokModel,
+    endpoint: config.grokEndpoint,
   }),
   xrpl: xrplService,
   solana: solanaStamps,

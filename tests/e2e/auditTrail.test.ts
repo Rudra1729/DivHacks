@@ -40,12 +40,13 @@ describe('e2e: audit trail', () => {
       ['claim', true],
       ['agent', true],
       ['policy', true],
+      ['review', true],
       ['xrpl', true],
       ['solana', true],
     ]);
     // Same transaction and stamp as the decision, so the trail links to both chains.
-    expect(history[5].message).toContain(response.body.xrplTxHash);
-    expect(history[6].message).toContain(response.body.solanaAssetAddress);
+    expect(history[6].message).toContain(response.body.xrplTxHash);
+    expect(history[7].message).toContain(response.body.solanaAssetAddress);
     history.forEach((entry) => expect(Date.parse(entry.createdAt)).not.toBeNaN());
   });
 
@@ -81,10 +82,12 @@ describe('e2e: audit trail', () => {
       ['claim', true],
       ['agent', true],
       ['policy', true],
+      ['review', true],
       ['xrpl', false],
     ]);
     expect(history[4].message).toBe('skipped: test mode bypass');
-    expect(history[5].message).toContain('tecPATH_PARTIAL');
+    expect(history[5].message).toBe('skipped: test mode bypass');
+    expect(history[6].message).toContain('tecPATH_PARTIAL');
   });
 
   it('shows a Sentinel block with one entry per failed check', async () => {
@@ -140,6 +143,7 @@ describe('e2e: audit trail', () => {
       'audit.claim',
       'audit.agent',
       'audit.policy',
+      'audit.review',
       'audit.xrpl',
       'audit.solana',
     ]);

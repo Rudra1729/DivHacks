@@ -1,5 +1,6 @@
 import { GrokAgent } from '../../src/agent/grok';
 import { AgentProposal, PayoutAgent } from '../../src/agent/types';
+import { FakeReviewer } from '../../src/agent/fakeReviewer';
 import { Orchestrator } from '../../src/orchestrator/orchestrator';
 import { Place, SubmissionInput } from '../../src/orchestrator/types';
 import { FakeSentinel } from '../../src/sentinel/fakeSentinel';
@@ -51,6 +52,7 @@ function build(overrides: {
   const orchestrator = new Orchestrator({
     sentinel: overrides.sentinel ?? new FakeSentinel(),
     agent,
+    reviewer: new FakeReviewer(),
     xrpl,
     solana,
     storage,
@@ -184,6 +186,37 @@ describe('Orchestrator', () => {
       const result = await orchestrator.runSubmission(submission, { bypassPolicy: true });
 
       expect(result.status).toBe('BLOCKED_POLICY');
+      expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
+    });
+
+    it('can force a 50 RLUSD proposal in test mode', async () => {
+      const agent = stubAgent(goodProposal);
+      const { orchestrator, xrpl } = build({ agent });
+
+      const result = await orchestrator.runSubmission(submission, {
+        bypassPolicy: true,
+        forceProposal: injectedProposal,
+      });
+
+      expect(result.status).toBe('REJECTED_BY_LEDGER');
+      expect(result.proposal).toMatchObject(injectedProposal);
+      expect(agent.propose).not.toHaveBeenCalled();
+      expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
+    });
+
+    it('ignores a forced proposal outside test mode', async () => {
+      const agent = stubAgent(goodProposal);
+      const { orchestrator, xrpl } = build({ agent, isTestMode: false });
+
+      const result = await orchestrator.runSubmission(submission, {
+        bypassPolicy: true,
+        forceProposal: injectedProposal,
+      });
+
+      expect(result.status).toBe('OK');
+      expect(result.proposal).toMatchObject(goodProposal);
+      expect(agent.propose).toHaveBeenCalledTimes(1);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
       expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
     });
   });
