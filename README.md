@@ -34,6 +34,7 @@ npm test         # run the Jest test suite
 npm run lint     # lint src/
 npm run test:e2e # end-to-end tests only
 npm run grok:try # try the Grok agent against the real API (needs GROK_API_KEY in .env)
+npm run missions:refresh # ask Grok for new overlooked NYC missions, add them to GET /places
 npm run db:reset # delete your local SQLite file (see note below)
 ```
 

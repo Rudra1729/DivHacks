@@ -1,9 +1,12 @@
-/**GET /places: the shared list of eligible places, each marked payable or not.
+/**GET /places: every place a user can currently complete a mission at, each
+marked payable or not.
 
-A place is payable when the agent wallet's RLUSD balance, read from the
-validated ledger, covers that place's reward. That lets a visitor see that a
-reward is backed before they travel to it. The balance read is cached for a
-few seconds so many page loads make one ledger read.
+Includes the fixed list plus anything the weekly mission scout has generated
+since (src/missions). A place is payable when the agent wallet's RLUSD
+balance, read from the validated ledger, covers that place's reward. That
+lets a visitor see that a reward is backed before they travel to it. The
+balance read is cached for a few seconds so many page loads make one ledger
+read.
 
 If the ledger cannot be read, every place is reported as not payable and
 payableCheck says why, since a reward cannot be promised on a guess.
@@ -12,7 +15,7 @@ payableCheck says why, since a reward cannot be promised on a guess.
 import Database from 'better-sqlite3';
 import { Router } from 'express';
 import { scaleReward } from '../agent/grok';
-import { PLACES } from '../data/places';
+import { getAllPlaces } from '../data/places';
 import { getHighestStampSerial } from '../db/decisions';
 import { RARITY_TIERS, STAMP_SUPPLY_PER_PLACE, tierForSerial } from '../solana/rarity';
 import { AgentBalanceCache, coversReward } from '../solvency/solvency';
@@ -65,7 +68,7 @@ export function createPlacesRouter(
 
   router.get('/places', asyncHandler(async (_req, res) => {
     const balance = await balances.read();
-    const places = PLACES.map((place) => {
+    const places = getAllPlaces().map((place) => {
       const found = getHighestStampSerial(db, place.id);
       const rewardRlusd =
         place.kind === 'cultural' && !options.culturalRewards

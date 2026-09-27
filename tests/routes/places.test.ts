@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import { PLACES } from '../../src/data/places';
 import { openDatabase } from '../../src/db';
 import { createPlacesRouter } from '../../src/routes/places';
 import { FakePaymentService } from '../../src/xrpl/fakePayments';
@@ -14,11 +15,14 @@ async function placesWith(overrides: { rewardScale: number; culturalRewards: boo
 }
 
 describe('GET /places', () => {
-  it('returns the seeded places list', async () => {
+  it('returns the seeded places list, plus any missions the weekly scout has generated since', async () => {
     const { app } = buildTestApp();
     const response = await request(app).get('/places');
     expect(response.status).toBe(200);
-    expect(response.body.places.length).toBe(8);
+    // At least the fixed list: the weekly mission scout (src/missions) can only add to it.
+    expect(response.body.places.length).toBeGreaterThanOrEqual(PLACES.length);
+    const ids = response.body.places.map((place: { id: string }) => place.id);
+    expect(ids).toEqual(expect.arrayContaining(PLACES.map((place) => place.id)));
     expect(response.body.places[0]).toHaveProperty('id');
     expect(response.body.places[0]).toHaveProperty('neighborhood');
     expect(response.body.places[0]).toHaveProperty('kind');
@@ -88,7 +92,7 @@ describe('GET /places payable flag', () => {
     const response = await request(appWith(new FakePaymentService())).get('/places');
 
     expect(response.body.payableCheck).toBe('ok');
-    expect(response.body.places).toHaveLength(8);
+    expect(response.body.places.length).toBeGreaterThanOrEqual(PLACES.length);
     expect(response.body.places.every((p: { payable: boolean }) => p.payable === true)).toBe(true);
   });
 

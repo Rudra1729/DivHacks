@@ -6,7 +6,7 @@ import Database from 'better-sqlite3';
 import { DecisionResult, Place } from '../orchestrator/types';
 import { AuditEntry, ClaimInput, ClaimStatus, StorageLayer } from './types';
 import { MintStampInput } from '../solana/types';
-import { getPlaceById, PLACES } from '../data/places';
+import { getAllPlaces, getPlaceById } from '../data/places';
 import {
   Decision,
   getDailyTotalUtc,
@@ -85,7 +85,7 @@ export class SqliteStorage implements StorageLayer {
   }
 
   async listPlaceIds(): Promise<string[]> {
-    return PLACES.map((place) => place.id);
+    return getAllPlaces().map((place) => place.id);
   }
 
   /** RLUSD paid to this address so far on the current UTC calendar day. */
