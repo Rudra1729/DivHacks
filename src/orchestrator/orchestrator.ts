@@ -18,6 +18,7 @@ import { Sentinel } from '../sentinel/types';
 import { MintStampInput, MintStampResult, StampService } from '../solana/types';
 import { StorageLayer } from '../storage/types';
 import { SendPaymentResult, XrplService } from '../xrpl/types';
+import { AuditTrail } from './auditTrail';
 import { DecisionResult, SubmissionInput } from './types';
 
 const BYPASS_NOTE = 'policy skipped: test mode bypass';
@@ -68,29 +69,35 @@ export class Orchestrator {
     const earlier = await storage.getDecisionByRequestId(input.requestId);
     if (earlier && earlier.status === 'PAYMENT_UNCONFIRMED' && earlier.proposal) {
       const notes = earlier.reasons.filter((reason) => reason === BYPASS_NOTE);
-      return this.settle(input, earlier.decisionId, earlier.proposal, earlier.policyVersion, notes);
+      const resumed = new AuditTrail();
+      resumed.add('orchestrator', true, 'repeat request for an unconfirmed payment: checking the ledger again');
+      return this.settle(input, earlier.decisionId, earlier.proposal, earlier.policyVersion, notes, resumed);
     }
     if (earlier) {
       return earlier;
     }
 
     const decisionId = randomUUID();
+    const trail = new AuditTrail();
 
     const place = await storage.getPlace(input.placeId);
     if (!place) {
+      trail.add('sentinel', false, `unknown place: ${input.placeId}`);
       return this.save(input, decisionId, {
         status: 'BLOCKED_SENTINEL',
         reasons: [`unknown place: ${input.placeId}`],
-      });
+      }, trail);
     }
 
     const verification = await sentinel.verify(input, place);
     if (!verification.ok) {
+      trail.addAll('sentinel', false, verification.failures);
       return this.save(input, decisionId, {
         status: 'BLOCKED_SENTINEL',
         reasons: verification.failures,
-      });
+      }, trail);
     }
+    trail.add('sentinel', true, 'location, freshness, replay, and once-per-place checks passed');
 
     await storage.markClaimPending({
       decisionId,
@@ -98,6 +105,7 @@ export class Orchestrator {
       solanaAddress: input.solanaAddress,
       placeId: input.placeId,
     });
+    trail.add('claim', true, 'claim marked pending');
 
     const bypass = options.bypassPolicy === true && this.deps.isTestMode;
     const notes = bypass ? [BYPASS_NOTE] : [];
@@ -110,8 +118,11 @@ export class Orchestrator {
         xrplAddress: input.xrplAddress,
         caption: input.caption,
       });
+      trail.add('agent', true, `proposed ${proposal.amount} RLUSD to ${proposal.recipient}: ${proposal.reason}`);
 
-      if (!bypass) {
+      if (bypass) {
+        trail.add('policy', true, 'skipped: test mode bypass');
+      } else {
         const [allowedPlaceIds, storedTotal, ledgerTotal] = await Promise.all([
           storage.listPlaceIds(),
           storage.getDailyTotal(input.xrplAddress),
@@ -126,21 +137,23 @@ export class Orchestrator {
         policyVersion = policy.policyVersion;
 
         if (!policy.ok) {
+          trail.addAll('policy', false, policy.violations);
           await storage.updateClaimStatus(decisionId, 'failed');
           return this.save(input, decisionId, {
             status: 'BLOCKED_POLICY',
             reasons: policy.violations,
             proposal,
             policyVersion,
-          });
+          }, trail);
         }
+        trail.add('policy', true, `policy ${policy.policyVersion}: proposal allowed`);
       }
     } catch (error) {
       await storage.updateClaimStatus(decisionId, 'failed');
       throw error;
     }
 
-    return this.settle(input, decisionId, proposal, policyVersion, notes);
+    return this.settle(input, decisionId, proposal, policyVersion, notes, trail);
   }
 
   /** Pay, stamp, and save. Safe to run again for an unconfirmed payment,
@@ -150,7 +163,8 @@ export class Orchestrator {
     decisionId: string,
     proposal: AgentProposal,
     policyVersion: string | undefined,
-    notes: string[]
+    notes: string[],
+    trail: AuditTrail
   ): Promise<DecisionResult> {
     const { solana, storage } = this.deps;
 
@@ -166,28 +180,32 @@ export class Orchestrator {
       switch (payment.reason) {
         case 'unconfirmed':
           // Leave the claim pending: the payment may still land.
+          trail.add('xrpl', false, `payment not confirmed yet: ${payment.error}`);
           return this.save(input, decisionId, {
             status: 'PAYMENT_UNCONFIRMED',
             reasons: [...notes, `payment submitted but not confirmed yet: ${payment.error}`],
             ...details,
-          });
+          }, trail);
         case 'ledger_rejected':
+          trail.add('xrpl', false, `ledger rejected payment: ${payment.resultCode ?? payment.error}`);
           await storage.updateClaimStatus(decisionId, 'failed');
           return this.save(input, decisionId, {
             status: 'REJECTED_BY_LEDGER',
             reasons: [...notes, `ledger rejected payment: ${payment.resultCode ?? payment.error}`],
             ...details,
-          });
+          }, trail);
         default:
           // network_error and invalid_input: nothing was paid.
+          trail.add('xrpl', false, `payment not sent (${payment.reason}): ${payment.error}`);
           await storage.updateClaimStatus(decisionId, 'failed');
           return this.save(input, decisionId, {
             status: 'PAYMENT_FAILED',
             reasons: [...notes, `payment not sent (${payment.reason}): ${payment.error}`],
             ...details,
-          });
+          }, trail);
       }
     }
+    trail.add('xrpl', true, `paid ${proposal.amount} RLUSD to ${proposal.recipient}, transaction ${payment.txHash}`);
     await storage.updateClaimStatus(decisionId, 'paid');
 
     const mintInput: MintStampInput = {
@@ -204,6 +222,7 @@ export class Orchestrator {
     }
 
     if (!mint.ok) {
+      trail.add('solana', false, `stamp mint failed, queued for retry: ${mint.error}`);
       await storage.queueStampRetry(mintInput);
       return this.save(input, decisionId, {
         status: 'STAMP_FAILED',
@@ -212,9 +231,10 @@ export class Orchestrator {
         policyVersion,
         xrplTxHash: payment.txHash,
         stampFailed: true,
-      });
+      }, trail);
     }
 
+    trail.add('solana', true, `stamp minted: ${mint.assetAddress}`);
     return this.save(input, decisionId, {
       status: 'OK',
       reasons: notes,
@@ -223,7 +243,7 @@ export class Orchestrator {
       xrplTxHash: payment.txHash,
       solanaAssetAddress: mint.assetAddress,
       solanaSignature: mint.signature,
-    });
+    }, trail);
   }
 
   /** Send the payment, re-checking a few times while it is unconfirmed.
@@ -253,13 +273,17 @@ export class Orchestrator {
     return result;
   }
 
+  /** Save the decision, then its step-by-step history. The history goes second
+      so every entry has a saved decision to belong to. */
   private async save(
     input: SubmissionInput,
     decisionId: string,
-    outcome: Outcome
+    outcome: Outcome,
+    trail: AuditTrail
   ): Promise<DecisionResult> {
     const decision: DecisionResult = { decisionId, stampFailed: false, ...outcome };
     await this.deps.storage.saveDecision(input.requestId, decision);
+    await this.deps.storage.recordAuditEvents(decisionId, trail.entries);
     return decision;
   }
 }

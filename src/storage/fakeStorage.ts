@@ -6,7 +6,7 @@ helpers at the bottom exist only so tests can check what was written.
 
 import { DecisionResult, DecisionStatus, Place } from '../orchestrator/types';
 import { MintStampInput } from '../solana/types';
-import { ClaimInput, ClaimStatus, StorageLayer } from './types';
+import { AuditEntry, ClaimInput, ClaimStatus, StorageLayer } from './types';
 
 const COUNTS_AS_PAID: DecisionStatus[] = ['OK', 'STAMP_FAILED', 'PAYMENT_UNCONFIRMED'];
 
@@ -19,6 +19,7 @@ export class FakeStorage implements StorageLayer {
   private decisions = new Map<string, DecisionResult>();
   private claims: StoredClaim[] = [];
   private stampRetries: MintStampInput[] = [];
+  private auditEvents = new Map<string, AuditEntry[]>();
 
   /** Create the fake storage.
 
@@ -71,6 +72,14 @@ export class FakeStorage implements StorageLayer {
 
   async saveDecision(requestId: string, decision: DecisionResult): Promise<void> {
     this.decisions.set(requestId, decision);
+  }
+
+  async recordAuditEvents(decisionId: string, events: AuditEntry[]): Promise<void> {
+    this.auditEvents.set(decisionId, [...(this.auditEvents.get(decisionId) ?? []), ...events]);
+  }
+
+  getAuditEvents(decisionId: string): AuditEntry[] {
+    return [...(this.auditEvents.get(decisionId) ?? [])];
   }
 
   getClaims(): StoredClaim[] {

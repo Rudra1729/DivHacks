@@ -17,6 +17,20 @@ export interface ClaimInput {
   placeId: string;
 }
 
+/** One step in a submission's journey, as shown in a decision's history.
+
+Attributes:
+    layer (string): Which part ran the step, such as sentinel, policy, or xrpl.
+    passed (boolean): False if the step stopped the submission, or left it
+        unfinished. True if it passed or was skipped.
+    message (string): What happened, in plain words.
+*/
+export interface AuditEntry {
+  layer: string;
+  passed: boolean;
+  message: string;
+}
+
 export interface StorageLayer {
   /** The saved decision for a request ID, if that request was already handled. */
   getDecisionByRequestId(requestId: string): Promise<DecisionResult | undefined>;
@@ -30,4 +44,7 @@ export interface StorageLayer {
   /** Remember a stamp whose mint failed after payment, so it can be retried. */
   queueStampRetry(input: MintStampInput): Promise<void>;
   saveDecision(requestId: string, decision: DecisionResult): Promise<void>;
+  /** Record a decision's step-by-step history. Called after the decision is saved,
+      and again with the new steps if the decision is later resumed. */
+  recordAuditEvents(decisionId: string, events: AuditEntry[]): Promise<void>;
 }
