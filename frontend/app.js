@@ -84,40 +84,6 @@ const PLACES = [
   }
 ];
 
-// COLLECTIBLE SOULBOUND CARDS DATA
-const STAMPS_DATA = [
-  {
-    id: 'stamp-01',
-    name: 'Apollo Theater Discovery',
-    place: 'Apollo Theater • Harlem',
-    mint: '7xKX...9M1L',
-    tx: 'F829A...38B',
-    decisionId: 'dec_apollo_84920',
-    image: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80',
-    date: 'Sep 26, 2026'
-  },
-  {
-    id: 'stamp-02',
-    name: 'Marcus Garvey Civic Stamp',
-    place: 'Marcus Garvey Park',
-    mint: '4mQP...12ZK',
-    tx: '9A71B...99F',
-    decisionId: 'dec_garvey_19284',
-    image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=600&q=80',
-    date: 'Sep 26, 2026'
-  },
-  {
-    id: 'stamp-03',
-    name: 'Morningside Heights Explorer',
-    place: 'Morningside Park',
-    mint: '9zLL...88AA',
-    tx: '12BB4...77C',
-    decisionId: 'dec_morningside_33102',
-    image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
-    date: 'Sep 26, 2026'
-  }
-];
-
 // REAL COORDINATES (same values as src/data/places.ts, ids match the backend)
 const PLACE_COORDS = {
   'apollo-theater':         { lat: 40.8102,  lng: -73.9500 },
@@ -215,6 +181,8 @@ function updateWalletUI() {
       solanaInput.readOnly = false;
     }
   }
+
+  renderTradingCards();
 }
 
 function showLoginError(message) {
@@ -261,20 +229,84 @@ async function verifyLoginCode(email, code) {
   return body;
 }
 
+/** Calls a GET /me/* route with the logged-in user's bearer token. */
+async function fetchWithAuth(path) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { Authorization: `Bearer ${currentAuth.token}` }
+  });
+  if (!response.ok) {
+    throw new Error(`request to ${path} failed with ${response.status}`);
+  }
+  return response.json();
+}
+
+function openWalletModal() {
+  document.getElementById('walletModalEmail').innerText = currentAuth.user.email;
+  document.getElementById('walletBalanceAddress').innerText = currentAuth.user.xrplAddress;
+  document.getElementById('walletModal')?.classList.add('open');
+  loadWalletData();
+}
+
+function closeWalletModal() {
+  document.getElementById('walletModal')?.classList.remove('open');
+}
+
+/** Fetches the logged-in user's RLUSD balance and transaction history and
+renders them into the wallet modal. Only ever reads the current user's own
+data: both endpoints are authorized off the bearer token, not an address
+the client supplies. */
+async function loadWalletData() {
+  const txList = document.getElementById('walletTxList');
+  try {
+    const [{ balance }, { transactions }] = await Promise.all([
+      fetchWithAuth('/me/rlusd-balance'),
+      fetchWithAuth('/me/transactions')
+    ]);
+
+    document.getElementById('walletBalanceValue').innerText = balance.toFixed(2);
+    document.getElementById('walletBalanceUpdated').innerText = 'just now';
+
+    if (transactions.length === 0) {
+      txList.innerHTML = '<p class="upload-note">No transactions yet. Complete a mission to earn RLUSD!</p>';
+      return;
+    }
+
+    txList.innerHTML = transactions.map(tx => {
+      const date = new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const isPaid = tx.status === 'OK' || tx.status === 'STAMP_FAILED';
+      return `
+        <div class="wallet-tx-row">
+          <div class="wallet-tx-info">
+            <span class="wallet-tx-place">${tx.placeName || 'Unknown Place'}</span>
+            <span class="wallet-tx-date">${date} &bull; ${tx.status}</span>
+          </div>
+          <span class="wallet-tx-amount ${isPaid ? '' : 'pending'}">+${Number(tx.amount).toFixed(2)} RLUSD</span>
+        </div>
+      `;
+    }).join('');
+  } catch (error) {
+    txList.innerHTML = '<p class="upload-note error-line">Could not load wallet data. Is the backend running?</p>';
+  }
+}
+
 function setupAuthEventListeners() {
   document.getElementById('connectWalletBtn')?.addEventListener('click', () => {
     if (isLoggedIn()) {
-      if (confirm(`Logged in as ${currentAuth.user.email}. Log out?`)) {
-        clearAuth();
-        updateWalletUI();
-        setSpideyBotState('ready', '"Logged out. Come back anytime, Hero!"');
-      }
+      openWalletModal();
       return;
     }
     openLoginModal();
   });
 
   document.getElementById('closeLoginModalBtn')?.addEventListener('click', closeLoginModal);
+  document.getElementById('closeWalletModalBtn')?.addEventListener('click', closeWalletModal);
+
+  document.getElementById('walletLogoutBtn')?.addEventListener('click', () => {
+    clearAuth();
+    updateWalletUI();
+    closeWalletModal();
+    setSpideyBotState('ready', '"Logged out. Come back anytime, Hero!"');
+  });
 
   document.getElementById('loginEmailForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -343,9 +375,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Setup 3D Interactive Spider-Man Character (Three.js)
   init3DSpiderMan();
 
-  // Render Mission Cards & Trading Cards
+  // Render Mission Cards. Trading Cards are rendered by updateWalletUI
+  // above, since which cards to show depends on login state.
   renderMissions('all');
-  renderTradingCards();
 
   // Setup Event Listeners
   setupEventListeners();
@@ -501,65 +533,96 @@ function renderMissions(filter) {
 }
 
 /* ==========================================================================
-   3D TRADING CARDS GENERATOR
+   COLLECTIBLES: THE LOGGED-IN USER'S OWN AUTHORIZED SOLANA STAMPS
    ========================================================================== */
 
-function renderTradingCards() {
-  const gallery = document.getElementById('cardsGallery');
-  if (!gallery) return;
-  gallery.innerHTML = '';
+/** Renders one card in the collectibles gallery.
 
-  STAMPS_DATA.forEach(stamp => {
-    const cardWrap = document.createElement('div');
-    cardWrap.className = 'card-3d-wrapper';
-    cardWrap.onclick = () => cardWrap.classList.toggle('flipped');
+Args:
+    stamp: A Stamp as returned by GET /me/nft (assetAddress, name, uri,
+        placeId, neighborhood, decisionId, xrplTxHash).
+*/
+function buildStampCard(stamp) {
+  const place = PLACES.find(p => p.id === stamp.placeId);
+  const cardWrap = document.createElement('div');
+  cardWrap.className = 'card-3d-wrapper';
+  cardWrap.onclick = () => cardWrap.classList.toggle('flipped');
 
-    cardWrap.innerHTML = `
-      <div class="card-3d-inner">
-        <!-- FRONT FACE -->
-        <div class="card-face card-face-front">
-          <div>
-            <span class="card-stamp-badge">SOULBOUND STAMP #01</span>
-            <div class="card-art-box">
-              <img src="${stamp.image}" alt="${stamp.name}">
-            </div>
-            <h4 class="card-name">${stamp.name}</h4>
-            <div class="card-meta">${stamp.place}</div>
+  cardWrap.innerHTML = `
+    <div class="card-3d-inner">
+      <!-- FRONT FACE -->
+      <div class="card-face card-face-front">
+        <div>
+          <span class="card-stamp-badge">SOULBOUND STAMP</span>
+          <div class="card-art-box">
+            <img src="${place ? place.image : 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80'}" alt="${stamp.name}">
           </div>
-          <div style="text-align:right; font-size:0.75rem; font-weight:800; color:#555;">
-            CLICK TO FLIP <i data-lucide="rotate-cw" style="vertical-align:middle;"></i>
-          </div>
+          <h4 class="card-name">${stamp.name}</h4>
+          <div class="card-meta">${stamp.neighborhood}</div>
         </div>
-
-        <!-- BACK FACE -->
-        <div class="card-face card-face-back">
-          <div>
-            <div class="card-back-title">SOLANA METAPLEX PROOF</div>
-            <div class="audit-field">
-              <div class="audit-label">Decision ID</div>
-              <div class="audit-val">${stamp.decisionId}</div>
-            </div>
-            <div class="audit-field">
-              <div class="audit-label">Solana Mint Hash</div>
-              <div class="audit-val">${stamp.mint}</div>
-            </div>
-            <div class="audit-field">
-              <div class="audit-label">XRPL Payment Tx</div>
-              <div class="audit-val">${stamp.tx}</div>
-            </div>
-            <div class="audit-field">
-              <div class="audit-label">Mint Date</div>
-              <div class="audit-val">${stamp.date}</div>
-            </div>
-          </div>
-          <div style="font-size:0.75rem; color:var(--neon-cyan); text-align:center;">
-            LOCKED TO ACCOUNT FOREVER
-          </div>
+        <div style="text-align:right; font-size:0.75rem; font-weight:800; color:#555;">
+          CLICK TO FLIP <i data-lucide="rotate-cw" style="vertical-align:middle;"></i>
         </div>
       </div>
+
+      <!-- BACK FACE -->
+      <div class="card-face card-face-back">
+        <div>
+          <div class="card-back-title">SOLANA METAPLEX PROOF</div>
+          <div class="audit-field">
+            <div class="audit-label">Decision ID</div>
+            <div class="audit-val">${stamp.decisionId}</div>
+          </div>
+          <div class="audit-field">
+            <div class="audit-label">Solana Asset Address</div>
+            <div class="audit-val">${stamp.assetAddress}</div>
+          </div>
+          <div class="audit-field">
+            <div class="audit-label">XRPL Payment Tx</div>
+            <div class="audit-val">${stamp.xrplTxHash}</div>
+          </div>
+        </div>
+        <div style="font-size:0.75rem; color:var(--neon-cyan); text-align:center;">
+          LOCKED TO ACCOUNT FOREVER
+        </div>
+      </div>
+    </div>
+  `;
+  return cardWrap;
+}
+
+/** Loads and renders only the logged-in user's own stamps. GET /me/nft is
+authorized off the bearer token, so a user can never see another user's
+collectibles by guessing a wallet address. Shows a login prompt when
+logged out instead of any shared demo data. */
+async function renderTradingCards() {
+  const gallery = document.getElementById('cardsGallery');
+  if (!gallery) return;
+
+  if (!isLoggedIn()) {
+    gallery.innerHTML = `
+      <div class="wallet-empty">
+        <p class="upload-note">Log in to see the soulbound stamps in your own wallet.</p>
+        <button class="comic-btn hero-red-btn" id="cardsLoginBtn"><i data-lucide="log-in"></i> LOG IN</button>
+      </div>
     `;
-    gallery.appendChild(cardWrap);
-  });
+    document.getElementById('cardsLoginBtn')?.addEventListener('click', openLoginModal);
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
+  gallery.innerHTML = '<p class="upload-note">Loading your collectibles...</p>';
+  try {
+    const { stamps } = await fetchWithAuth('/me/nft');
+    if (stamps.length === 0) {
+      gallery.innerHTML = '<p class="upload-note">No stamps yet. Complete a mission to earn your first soulbound card!</p>';
+      return;
+    }
+    gallery.innerHTML = '';
+    stamps.forEach(stamp => gallery.appendChild(buildStampCard(stamp)));
+  } catch (error) {
+    gallery.innerHTML = '<p class="upload-note error-line">Could not load your collectibles. Is the backend running?</p>';
+  }
 
   if (window.lucide) lucide.createIcons();
 }

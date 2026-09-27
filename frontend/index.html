@@ -483,6 +483,44 @@
     </div>
   </div>
 
+  <!-- WALLET MODAL: RLUSD BALANCE & TRANSACTION HISTORY -->
+  <div class="modal-overlay" id="walletModal">
+    <div class="modal-content comic-box">
+      <button class="modal-close-btn" id="closeWalletModalBtn">&times;</button>
+
+      <div class="modal-header">
+        <span class="comic-tag yellow-tag"><i data-lucide="wallet"></i> MY WALLET</span>
+        <h3 class="modal-title">RLUSD Balance</h3>
+        <p class="modal-sub" id="walletModalEmail"></p>
+      </div>
+
+      <div class="modal-body">
+        <div class="wallet-balance-card">
+          <div class="wallet-balance-top">
+            <span>XRPL Account</span>
+            <span id="walletBalanceUpdated">just now</span>
+          </div>
+          <div class="wallet-balance-amount"><span id="walletBalanceValue">0.00</span> RLUSD</div>
+          <div class="wallet-balance-address" id="walletBalanceAddress"></div>
+        </div>
+
+        <div class="wallet-tx-header">
+          <span>Transaction History</span>
+        </div>
+
+        <div class="wallet-tx-list" id="walletTxList">
+          <p class="upload-note">Loading...</p>
+        </div>
+
+        <div class="form-actions" style="margin-top:1rem;">
+          <button class="comic-btn hero-blue-btn full-btn" id="walletLogoutBtn">
+            <i data-lucide="log-out"></i> LOG OUT
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SUBMISSION MODAL DRAWER -->
   <div class="modal-overlay" id="submissionModal">
     <div class="modal-content comic-box">
