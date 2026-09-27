@@ -15,7 +15,7 @@ import Database from 'better-sqlite3';
 import { AgentInput, AgentProposal, PayoutAgent } from '../../src/agent/types';
 import { PLACES, Place } from '../../src/data/places';
 import { FakeStampService } from '../../src/solana/fakeStamps';
-import { FakeXrpl } from '../../src/xrpl/fakeXrpl';
+import { FakePaymentService } from '../../src/xrpl/fakePayments';
 import { SendPaymentInput, SendPaymentResult } from '../../src/xrpl/types';
 import { disablePolicyBypass } from '../../src/testMode/attackFlag';
 import { buildTestApp } from '../testHelpers/buildTestApp';
@@ -83,7 +83,7 @@ function pause(ms: number): Promise<void> {
  * Without this, every fake call finishes instantly and two simultaneous
  * requests never overlap, so the race tests could not fail even with no locking.
  */
-class SlowXrpl extends FakeXrpl {
+class SlowXrpl extends FakePaymentService {
   async sendPayment(input: SendPaymentInput): Promise<SendPaymentResult> {
     await pause(LEDGER_LATENCY_MS);
     return super.sendPayment(input);
@@ -98,7 +98,7 @@ class SlowXrpl extends FakeXrpl {
 export interface E2eStack {
   app: Express;
   db: Database.Database;
-  xrpl: FakeXrpl;
+  xrpl: FakePaymentService;
   solana: FakeStampService;
 }
 
@@ -111,7 +111,7 @@ Returns:
     E2eStack: The app plus handles to inspect the fakes and the database.
 */
 export function buildE2eStack(options: { isTestMode?: boolean } = {}): E2eStack {
-  const xrpl = new SlowXrpl(10);
+  const xrpl = new SlowXrpl();
   const solana = new FakeStampService();
   const { app, db } = buildTestApp(
     { isTestMode: options.isTestMode ?? true },
