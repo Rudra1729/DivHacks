@@ -6,7 +6,7 @@ import { createUser } from '../../src/db/users';
 import { createSessionToken } from '../../src/auth/tokens';
 import { createWalletRouter } from '../../src/routes/wallet';
 import { XrplService } from '../../src/xrpl/types';
-import { createDecision, updateDecision } from '../../src/db/decisions';
+import { upsertDecision, createDecision, updateDecision } from '../../src/db/decisions';
 import { fakeStampService } from '../../src/solana/fakeStamps';
 
 const WALLETS = {
@@ -98,5 +98,53 @@ describe('wallet routes', () => {
     const token = createSessionToken('deleted-user-id');
     const response = await request(app).get('/me/nft').set('Authorization', `Bearer ${token}`);
     expect(response.status).toBe(401);
+  });
+
+  it('returns the logged-in user own transactions, newest first, with the place name resolved', async () => {
+    const { app, db } = buildWalletTestApp();
+    const user = createUser(db, 'person@example.com', WALLETS);
+    const token = createSessionToken(user.id);
+
+    upsertDecision(db, {
+      id: 'dec-1',
+      requestId: 'dec-1',
+      placeId: 'apollo-theater',
+      xrplAddress: WALLETS.xrplAddress,
+      amount: 1,
+      status: 'OK',
+      xrplHash: 'HASH1',
+    });
+
+    const response = await request(app).get('/me/transactions').set('Authorization', `Bearer ${token}`);
+    expect(response.status).toBe(200);
+    expect(response.body.transactions).toEqual([
+      {
+        decisionId: 'dec-1',
+        placeId: 'apollo-theater',
+        placeName: 'Apollo Theater',
+        amount: 1,
+        status: 'OK',
+        xrplHash: 'HASH1',
+        createdAt: expect.any(String),
+      },
+    ]);
+  });
+
+  it('never returns another user\'s transactions', async () => {
+    const { app, db } = buildWalletTestApp();
+    const user = createUser(db, 'person@example.com', WALLETS);
+    const token = createSessionToken(user.id);
+
+    upsertDecision(db, {
+      id: 'dec-2',
+      requestId: 'dec-2',
+      placeId: 'apollo-theater',
+      xrplAddress: 'rSomeoneElse',
+      amount: 1,
+      status: 'OK',
+    });
+
+    const response = await request(app).get('/me/transactions').set('Authorization', `Bearer ${token}`);
+    expect(response.body.transactions).toEqual([]);
   });
 });

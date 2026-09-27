@@ -280,6 +280,30 @@ export function getDailyTotalUtc(db: Database.Database, xrplAddress: string): nu
   return row.total;
 }
 
+/** List an address's decisions that moved RLUSD, newest first.
+
+Used for a wallet's transaction history: only decisions with an amount
+attached (a payment was attempted) are included, regardless of whether
+the payment ultimately succeeded.
+
+Args:
+    db (Database.Database): Open database handle.
+    xrplAddress (string): The address to list transactions for.
+
+Returns:
+    Decision[]: Matching decisions, newest first.
+*/
+export function getDecisionsByXrplAddress(db: Database.Database, xrplAddress: string): Decision[] {
+  const rows = db
+    .prepare(
+      `SELECT * FROM decisions
+       WHERE xrpl_address = @xrplAddress AND amount IS NOT NULL
+       ORDER BY created_at DESC`
+    )
+    .all({ xrplAddress }) as DecisionRow[];
+  return rows.map(fromRow);
+}
+
 /** Update mutable fields on an existing decision.
 
 Args:
