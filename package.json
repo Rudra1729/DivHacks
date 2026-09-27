@@ -20,7 +20,8 @@
     "@metaplex-foundation/umi-bundle-defaults": "^1.6.0",
     "better-sqlite3": "^11.3.0",
     "express": "^4.19.2",
-    "multer": "^1.4.5-lts.1"
+    "multer": "^1.4.5-lts.1",
+    "xrpl": "^4.6.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
@@ -43,6 +44,8 @@
   "overrides": {
     "rpc-websockets": {
       "uuid": "^11.1.0"
-    }
+    },
+    "@xrplf/isomorphic": "1.0.1",
+    "ripple-address-codec": "5.0.0"
   }
 }
