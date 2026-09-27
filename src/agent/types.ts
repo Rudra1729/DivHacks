@@ -29,3 +29,34 @@ export interface AgentInput {
 export interface PayoutAgent {
   propose(input: AgentInput): Promise<AgentProposal>;
 }
+
+/** The only facts the payout reviewer is shown. All of them come from our own
+    systems, never from the visitor. The caption is left out on purpose, and so
+    is the agent's `reason`: the agent wrote it after reading the caption, so it
+    can carry a prompt injection forward. */
+export interface ReviewInput {
+  placeName: string;
+  /** The reward for this place after the reward scale, in RLUSD. */
+  baseReward: number;
+  /** What the agent proposed, in RLUSD. */
+  proposedAmount: number;
+  /** Whether the proposal pays the wallet that submitted the visit. */
+  recipientIsSubmitter: boolean;
+  /** RLUSD the submitter was already paid today, per the ledger and the database. */
+  paidTodayByVisitor: number;
+}
+
+/** The reviewer's second opinion. It can only lower or stop a payout. */
+export interface ReviewVerdict {
+  decision: 'approve' | 'reduce' | 'reject';
+  /** The lower amount to pay. Only read when the decision is 'reduce'. */
+  amount?: number;
+  reason: string;
+}
+
+/** A second, independent check on a payout the policy engine already allowed. */
+export interface PayoutReviewer {
+  /** Give a verdict on a proposed payout. May throw, which the orchestrator
+      treats as the reviewer being unavailable. */
+  review(input: ReviewInput): Promise<ReviewVerdict>;
+}
