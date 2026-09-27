@@ -5,8 +5,8 @@ import { loadConfig } from './config';
 import { openDatabase } from './db';
 
 const config = loadConfig();
-openDatabase(config.dbPath);
-const app = createApp(config);
+const db = openDatabase(config.dbPath);
+const app = createApp(config, db);
 
 app.listen(config.port, () => {
   // eslint-disable-next-line no-console

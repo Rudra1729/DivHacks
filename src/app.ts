@@ -6,6 +6,7 @@ Express app directly with supertest, without binding a real port.
 
 import express, { Express, NextFunction, Request, Response } from 'express';
 import multer from 'multer';
+import Database from 'better-sqlite3';
 import { AppConfig } from './config';
 import { placesRouter } from './routes/places';
 import { createSubmissionsRouter } from './routes/submissions';
@@ -14,11 +15,12 @@ import { createSubmissionsRouter } from './routes/submissions';
 
 Args:
     config (AppConfig): The resolved app configuration.
+    db (Database.Database): Open database handle, passed to routes that need storage.
 
 Returns:
     Express: A configured Express app, not yet listening.
 */
-export function createApp(config: AppConfig): Express {
+export function createApp(config: AppConfig, db: Database.Database): Express {
   const app = express();
 
   app.use(express.json());
@@ -28,7 +30,7 @@ export function createApp(config: AppConfig): Express {
   });
 
   app.use(placesRouter);
-  app.use(createSubmissionsRouter(config));
+  app.use(createSubmissionsRouter(config, db));
 
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (err instanceof multer.MulterError) {
