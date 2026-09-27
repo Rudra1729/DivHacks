@@ -94,6 +94,22 @@ describe('GrokAgent', () => {
     expect(body.messages[1].content).toContain('rUser');
   });
 
+  it('passes the raw reply to onRawReply, even when it is malformed', async () => {
+    const seen: string[] = [];
+    const agent = new GrokAgent({
+      apiKey: 'key',
+      model: 'grok-test',
+      endpoint: 'https://grok.test',
+      fetchFn: grokReplying('sorry, I cannot do that') as unknown as typeof fetch,
+      onRawReply: (text) => seen.push(text),
+    });
+
+    const proposal = await agent.propose(input);
+
+    expect(seen).toEqual(['sorry, I cannot do that']);
+    expect(proposal).toEqual(fallback);
+  });
+
   it('falls back to the base reward when the reply is malformed', async () => {
     const proposal = await agentWith(grokReplying('sorry, I cannot do that')).propose(input);
     expect(proposal).toEqual(fallback);
