@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, rmSync } from 'fs';
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { appendGeneratedMissions, readGeneratedMissions, uniquePlaceId } from '../../src/missions/store';
@@ -47,6 +47,33 @@ describe('generated missions store', () => {
   it('returns [] when the file does not exist yet', () => {
     expect(readGeneratedMissions(path)).toEqual([]);
     expect(existsSync(path)).toBe(false);
+  });
+
+  it('reads a UTF-16LE file with a BOM, which PowerShell\'s > redirection writes by default', () => {
+    writeFileSync(path, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from('[]\r\n', 'utf16le')]));
+    expect(readGeneratedMissions(path)).toEqual([]);
+  });
+
+  it('reads a UTF-16BE file with a BOM', () => {
+    const le = Buffer.from('[]', 'utf16le');
+    const be = Buffer.from(le).swap16();
+    writeFileSync(path, Buffer.concat([Buffer.from([0xfe, 0xff]), be]));
+    expect(readGeneratedMissions(path)).toEqual([]);
+  });
+
+  it('strips a UTF-8 byte-order mark', () => {
+    writeFileSync(path, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from('[]')]));
+    expect(readGeneratedMissions(path)).toEqual([]);
+  });
+
+  it('treats unparseable content as empty instead of throwing', () => {
+    writeFileSync(path, 'not json at all');
+    expect(readGeneratedMissions(path)).toEqual([]);
+  });
+
+  it('treats a truncated/odd-length file as empty instead of throwing', () => {
+    writeFileSync(path, Buffer.from([0xff, 0xfe, 0x5b])); // BOM plus one stray byte
+    expect(readGeneratedMissions(path)).toEqual([]);
   });
 
   it('appends a candidate, assigns it an ID, and persists it', () => {

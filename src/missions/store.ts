@@ -27,17 +27,50 @@ export interface GeneratedMissionRecord extends Place {
 Args:
     path (string): File to read. Defaults to generatedMissionsPath().
 
+Never throws: a missing, empty, wrongly-encoded (for example UTF-16, which
+some shells write by default, e.g. PowerShell's `>` redirection), or corrupt
+file is treated as "no generated missions yet" rather than taking down
+whatever called this, since it sits underneath GET /places and the policy
+engine's allowlist check.
+
 Returns:
-    GeneratedMissionRecord[]: The stored missions, or [] if the file does not exist yet.
+    GeneratedMissionRecord[]: The stored missions, or [] if the file does
+        not exist, is empty, or could not be read as a JSON array.
 */
 export function readGeneratedMissions(path: string = generatedMissionsPath()): GeneratedMissionRecord[] {
   if (!existsSync(path)) {
     return [];
   }
-  const raw = readFileSync(path, 'utf8').trim();
-  if (!raw) return [];
-  const parsed = JSON.parse(raw) as unknown;
-  return Array.isArray(parsed) ? (parsed as GeneratedMissionRecord[]) : [];
+  try {
+    const raw = decodeFileText(readFileSync(path)).trim();
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as GeneratedMissionRecord[]) : [];
+  } catch (error) {
+    console.warn(`Could not read ${path}, treating it as empty: ${error instanceof Error ? error.message : String(error)}`);
+    return [];
+  }
+}
+
+/** Decode a file's bytes to text, handling UTF-16 (with or without a BOM) and
+a UTF-8 BOM, since appendGeneratedMissions always writes plain UTF-8 but the
+file can be hand-edited or recreated by a shell that defaults to something else.
+
+Args:
+    buffer (Buffer): Raw file bytes.
+
+Returns:
+    string: Decoded text, with any byte-order mark stripped.
+*/
+function decodeFileText(buffer: Buffer): string {
+  if (buffer.length >= 2 && buffer[0] === 0xff && buffer[1] === 0xfe) {
+    return buffer.slice(2).toString('utf16le');
+  }
+  if (buffer.length >= 2 && buffer[0] === 0xfe && buffer[1] === 0xff) {
+    return buffer.swap16().slice(2).toString('utf16le');
+  }
+  const text = buffer.toString('utf8');
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
 /** Turn a place name into a URL- and ID-safe slug.
