@@ -319,6 +319,17 @@ async function refreshAccount() {
     refreshAccount();
     return;
   }
+  const serverWallets = {
+    solanaAddress: stamps.ok ? stamps.body.solanaAddress : undefined,
+    xrplAddress: balance.ok ? balance.body.xrplAddress : undefined
+  };
+  const staleWallet = Object.entries(serverWallets).some(([key, value]) => value && value !== currentAuth.user[key]);
+  if (staleWallet) {
+    saveAuth(currentAuth.token, {
+      ...currentAuth.user,
+      ...Object.fromEntries(Object.entries(serverWallets).filter(([, value]) => value))
+    });
+  }
   if (stamps.ok) {
     myStamps = stamps.body.stamps || [];
     markStampedPlaces();
