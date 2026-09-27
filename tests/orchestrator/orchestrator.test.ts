@@ -3,7 +3,7 @@ import { AgentProposal, PayoutAgent } from '../../src/agent/types';
 import { Orchestrator } from '../../src/orchestrator/orchestrator';
 import { Place, SubmissionInput } from '../../src/orchestrator/types';
 import { FakeSentinel } from '../../src/sentinel/fakeSentinel';
-import { FakeSolana } from '../../src/solana/fakeSolana';
+import { FakeStampService } from '../../src/solana/fakeStamps';
 import { FakeStorage } from '../../src/storage/fakeStorage';
 import { FakeXrpl } from '../../src/xrpl/fakeXrpl';
 
@@ -44,7 +44,7 @@ function build(overrides: {
   xrpl?: FakeXrpl;
 } = {}) {
   const xrpl = overrides.xrpl ?? new FakeXrpl(10);
-  const solana = new FakeSolana();
+  const solana = new FakeStampService();
   const storage = new FakeStorage([place]);
   const agent = overrides.agent ?? stubAgent(goodProposal);
   const orchestrator = new Orchestrator({
@@ -189,7 +189,9 @@ describe('Orchestrator', () => {
   describe('stamp failure', () => {
     it('keeps the payment, queues the mint for retry, and never re-pays', async () => {
       const { orchestrator, xrpl, solana, storage } = build();
-      solana.setFailMints(true);
+      const failingMint = jest
+        .spyOn(solana, 'mintStamp')
+        .mockResolvedValue({ ok: false, error: 'fake mint failure' });
       const result = await orchestrator.runSubmission(submission);
 
       expect(result.status).toBe('STAMP_FAILED');
@@ -206,7 +208,7 @@ describe('Orchestrator', () => {
         },
       ]);
 
-      solana.setFailMints(false);
+      failingMint.mockRestore();
       const again = await orchestrator.runSubmission(submission);
       expect(again).toEqual(result);
       expect(await xrpl.getBalance('rUser')).toBe(2);

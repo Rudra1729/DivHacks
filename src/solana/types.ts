@@ -1,10 +1,17 @@
-/**Solana stamp interface consumed by the orchestrator.
+/**Shared types for the Solana stamps module.
 
-MintStampInput, MintStampResult, and the three method signatures come from
-the hand-off contract in CONTRIBUTING.md. The Stamp shape is not spelled out
-there, so it is a minimal assumption to confirm with the Solana owner.
+These types are the hand-off contract agreed in CONTRIBUTING.md section 6.
+The orchestrator, Sentinel, and API use them through src/solana/index.ts.
 */
 
+/** Everything the orchestrator passes in to mint one stamp.
+
+Attributes:
+    decisionId (string): Shared decision ID, also the SQLite key and XRPL memo.
+    placeId (string): ID of the place in the shared places file.
+    userSolanaAddress (string): Wallet that receives the stamp.
+    xrplTxHash (string): Hash of the RLUSD payment for this decision.
+*/
 export interface MintStampInput {
   decisionId: string;
   placeId: string;
@@ -12,20 +19,42 @@ export interface MintStampInput {
   xrplTxHash: string;
 }
 
+/** Result of a mint. Never thrown, always returned.
+
+On success it carries the new asset address and transaction signature.
+On failure (after one retry) it carries a plain-language error message.
+*/
 export type MintStampResult =
   | { ok: true; assetAddress: string; signature: string }
   | { ok: false; error: string };
 
-/** A stamp held by a wallet. */
+/** A passport stamp as read back from Solana.
+
+Attributes:
+    assetAddress (string): Metaplex Core asset address.
+    owner (string): Wallet that holds the stamp.
+    collection (string): Neighborhood collection address.
+    name (string): On-chain asset name.
+    uri (string): Metadata URL hosted by the API server.
+    placeId (string): Place the stamp was earned at.
+    neighborhood (string): Neighborhood of the place.
+    decisionId (string): Decision that minted this stamp.
+    xrplTxHash (string): RLUSD payment hash for the same decision.
+*/
 export interface Stamp {
   assetAddress: string;
+  owner: string;
+  collection: string;
+  name: string;
+  uri: string;
   placeId: string;
+  neighborhood: string;
   decisionId: string;
   xrplTxHash: string;
 }
 
-/** The three functions of the hand-off contract, as an injectable object. */
-export interface SolanaStamps {
+/** The three operations every stamp implementation (real or fake) provides. */
+export interface StampService {
   mintStamp(input: MintStampInput): Promise<MintStampResult>;
   hasStampForPlace(solanaAddress: string, placeId: string): Promise<boolean>;
   getStamps(solanaAddress: string): Promise<Stamp[]>;

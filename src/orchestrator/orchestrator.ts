@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto';
 import { AgentProposal, PayoutAgent } from '../agent/types';
 import { evaluatePolicy } from '../policy/policy';
 import { Sentinel } from '../sentinel/types';
-import { MintStampInput, MintStampResult, SolanaStamps } from '../solana/types';
+import { MintStampInput, MintStampResult, StampService } from '../solana/types';
 import { StorageLayer } from '../storage/types';
 import { XrplClient } from '../xrpl/types';
 import { DecisionResult, SubmissionInput } from './types';
@@ -19,7 +19,7 @@ export interface OrchestratorDeps {
   sentinel: Sentinel;
   agent: PayoutAgent;
   xrpl: XrplClient;
-  solana: SolanaStamps;
+  solana: StampService;
   storage: StorageLayer;
   /** Gates the policy bypass. Outside test mode the bypass is ignored. */
   isTestMode: boolean;
