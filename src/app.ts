@@ -48,7 +48,7 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
     res.status(200).json({ status: 'ok', testMode: config.isTestMode });
   });
 
-  app.use(createPlacesRouter(config));
+  app.use(createPlacesRouter(config, db));
   app.use(createSubmissionsRouter(config, orchestrator));
   app.use(createMetadataRouter(db));
   app.use(createDecisionsRouter(db));
