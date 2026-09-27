@@ -945,6 +945,15 @@ body.knowyork-theme {
   margin: 0 auto 3rem auto;
 }
 
+.comic-tag {
+  /* Lucide swaps the <i> for an inline SVG whose default baseline sits
+     above the label text, so it looks pushed up next to it. Flex-center
+     the icon and label instead of relying on text baseline alignment. */
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .section-title {
   font-family: var(--font-comic);
   font-size: 3rem;
