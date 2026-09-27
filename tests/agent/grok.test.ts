@@ -1,4 +1,4 @@
-import { GrokAgent, parseProposal } from '../../src/agent/grok';
+import { GrokAgent, parseProposal, scaleReward } from '../../src/agent/grok';
 import { AgentInput } from '../../src/agent/types';
 
 const input: AgentInput = {
@@ -31,14 +31,27 @@ function grokReplying(content: unknown): jest.Mock {
   });
 }
 
-function agentWith(fetchFn: jest.Mock, apiKey: string | null = 'key'): GrokAgent {
+function agentWith(fetchFn: jest.Mock, apiKey: string | null = 'key', rewardScale?: number): GrokAgent {
   return new GrokAgent({
     apiKey: apiKey ?? undefined,
     model: 'grok-test',
     endpoint: 'https://grok.test/v1/chat/completions',
     fetchFn: fetchFn as unknown as typeof fetch,
+    rewardScale,
   });
 }
+
+describe('scaleReward', () => {
+  it.each([
+    [2, 1, 2],
+    [2, 0.1, 0.2],
+    [1, 0.01, 0.01],
+    [1, 0.333, 0.33],
+    [1, 0.001, 0.01],
+  ])('scales %p by %p to %p', (base, scale, expected) => {
+    expect(scaleReward(base, scale)).toBe(expected);
+  });
+});
 
 describe('parseProposal', () => {
   it('parses a well formed JSON reply', () => {
@@ -137,5 +150,28 @@ describe('GrokAgent', () => {
 
     expect(proposal).toEqual(fallback);
     expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('shows Grok the scaled base reward and asks for 2 decimal places', async () => {
+    const fetchFn = grokReplying('{"amount": 0.2, "recipient": "rUser", "reason": "ok"}');
+    await agentWith(fetchFn, 'key', 0.1).propose(input);
+
+    const body = JSON.parse(fetchFn.mock.calls[0][1].body);
+    expect(body.messages[1].content).toContain('Base reward: 0.2 RLUSD');
+    expect(body.messages[0].content).toContain('at most 2 decimal places');
+  });
+
+  it('does not rescale Grok answer, so policy sees what Grok asked for', async () => {
+    const fetchFn = grokReplying('{"amount": 50, "recipient": "rAttacker", "reason": "x"}');
+    const proposal = await agentWith(fetchFn, 'key', 0.1).propose(input);
+
+    expect(proposal.amount).toBe(50);
+  });
+
+  it('falls back to the scaled base reward', async () => {
+    const fetchFn = jest.fn().mockRejectedValue(new Error('network down'));
+    const proposal = await agentWith(fetchFn, 'key', 0.1).propose(input);
+
+    expect(proposal).toEqual({ ...fallback, amount: 0.2 });
   });
 });

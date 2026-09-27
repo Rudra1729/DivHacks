@@ -27,4 +27,19 @@ describe('loadConfig', () => {
     expect(config.grokApiKey).toBe('xai-test');
     expect(config.grokModel).toBe('grok-test');
   });
+
+  it('defaults the reward scale to 1', () => {
+    delete process.env.REWARD_SCALE;
+    expect(loadConfig().rewardScale).toBe(1);
+  });
+
+  it('reads the reward scale from the environment', () => {
+    process.env.REWARD_SCALE = '0.1';
+    expect(loadConfig().rewardScale).toBe(0.1);
+  });
+
+  it.each(['0', '-0.5', '1.5', 'abc'])('rejects reward scale %s', (value) => {
+    process.env.REWARD_SCALE = value;
+    expect(() => loadConfig()).toThrow(ConfigError);
+  });
 });
