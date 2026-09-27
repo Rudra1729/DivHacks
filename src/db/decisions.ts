@@ -22,6 +22,8 @@ export interface Decision {
   xrplResult?: string | null;
   solanaAsset?: string | null;
   solanaSignature?: string | null;
+  stampSerial?: number | null;
+  stampTier?: string | null;
   stampFailed: boolean;
   createdAt: string;
 }
@@ -41,6 +43,8 @@ interface DecisionRow {
   xrpl_result: string | null;
   solana_asset: string | null;
   solana_signature: string | null;
+  stamp_serial: number | null;
+  stamp_tier: string | null;
   stamp_failed: number;
   created_at: string;
 }
@@ -61,6 +65,8 @@ function fromRow(row: DecisionRow): Decision {
     xrplResult: row.xrpl_result,
     solanaAsset: row.solana_asset,
     solanaSignature: row.solana_signature,
+    stampSerial: row.stamp_serial,
+    stampTier: row.stamp_tier,
     stampFailed: Boolean(row.stamp_failed),
     createdAt: row.created_at,
   };
@@ -81,6 +87,8 @@ export interface UpsertDecisionInput {
   xrplResult?: string | null;
   solanaAsset?: string | null;
   solanaSignature?: string | null;
+  stampSerial?: number | null;
+  stampTier?: string | null;
   stampFailed?: boolean;
 }
 
@@ -97,10 +105,12 @@ export function upsertDecision(db: Database.Database, input: UpsertDecisionInput
   db.prepare(
     `INSERT INTO decisions (
        id, request_id, place_id, xrpl_address, solana_address, amount, status, reasons,
-       grok_proposal, policy_version, xrpl_hash, xrpl_result, solana_asset, solana_signature, stamp_failed
+       grok_proposal, policy_version, xrpl_hash, xrpl_result, solana_asset, solana_signature,
+       stamp_serial, stamp_tier, stamp_failed
      ) VALUES (
        @id, @requestId, @placeId, @xrplAddress, @solanaAddress, @amount, @status, @reasons,
-       @grokProposal, @policyVersion, @xrplHash, @xrplResult, @solanaAsset, @solanaSignature, @stampFailed
+       @grokProposal, @policyVersion, @xrplHash, @xrplResult, @solanaAsset, @solanaSignature,
+       @stampSerial, @stampTier, @stampFailed
      )
      ON CONFLICT(id) DO UPDATE SET
        place_id = COALESCE(excluded.place_id, decisions.place_id),
@@ -115,6 +125,8 @@ export function upsertDecision(db: Database.Database, input: UpsertDecisionInput
        xrpl_result = excluded.xrpl_result,
        solana_asset = excluded.solana_asset,
        solana_signature = excluded.solana_signature,
+       stamp_serial = excluded.stamp_serial,
+       stamp_tier = excluded.stamp_tier,
        stamp_failed = excluded.stamp_failed`
   ).run({
     id: input.id,
@@ -131,6 +143,8 @@ export function upsertDecision(db: Database.Database, input: UpsertDecisionInput
     xrplResult: input.xrplResult ?? null,
     solanaAsset: input.solanaAsset ?? null,
     solanaSignature: input.solanaSignature ?? null,
+    stampSerial: input.stampSerial ?? null,
+    stampTier: input.stampTier ?? null,
     stampFailed: input.stampFailed ? 1 : 0,
   });
   return getDecision(db, input.id) as Decision;
@@ -280,6 +294,14 @@ export function updateDecision(
   if (fields.solanaSignature !== undefined) {
     columns.push('solana_signature = @solanaSignature');
     params.solanaSignature = fields.solanaSignature;
+  }
+  if (fields.stampSerial !== undefined) {
+    columns.push('stamp_serial = @stampSerial');
+    params.stampSerial = fields.stampSerial;
+  }
+  if (fields.stampTier !== undefined) {
+    columns.push('stamp_tier = @stampTier');
+    params.stampTier = fields.stampTier;
   }
   if (fields.stampFailed !== undefined) {
     columns.push('stamp_failed = @stampFailed');
