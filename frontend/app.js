@@ -379,6 +379,8 @@ function setSpideyBotState(state, text) {
   const stateBadge = document.getElementById('botStateBadge');
   const statusDot = document.getElementById('botStatusDot');
 
+  if (!leftEye || !rightEye || !talkText || !stateBadge || !statusDot) return;
+
   talkText.innerText = text;
 
   if (state === 'approved') {

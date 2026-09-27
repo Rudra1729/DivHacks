@@ -308,8 +308,8 @@ body.spidey-theme {
 
 .title-text-main {
   font-family: var(--font-comic);
-  font-size: 3.8rem;
-  letter-spacing: 3px;
+  font-size: 5.5rem;
+  letter-spacing: 4px;
   line-height: 1;
 }
 
@@ -355,7 +355,7 @@ body.spidey-theme {
 
 @media (max-width: 992px) {
   .collage-grid { grid-template-columns: 1fr; }
-  .title-text-main { font-size: 2.8rem; }
+  .title-text-main { font-size: 3.6rem; }
   .title-text-sub { font-size: 1.6rem; }
 }
 
