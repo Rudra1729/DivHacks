@@ -8,7 +8,7 @@ ledger would, so the bypass test can run against the fake.
 
 import { amountProblem, startOfUtcDay } from './amount';
 import { loadXrplConfig } from './config';
-import { PaymentService, SendPaymentInput, SendPaymentResult } from './types';
+import { SendPaymentInput, SendPaymentResult, XrplService } from './types';
 
 interface FakePayment {
   to: string;
@@ -25,7 +25,7 @@ Attributes:
     txCount (number): Number of fake transactions, used for fake hashes.
     results (Map<string, SendPaymentResult>): First result per decision ID.
 */
-export class FakePaymentService implements PaymentService {
+export class FakePaymentService implements XrplService {
   private agentBalance: number | null = null;
   private balances = new Map<string, number>();
   private payments: FakePayment[] = [];
@@ -117,6 +117,15 @@ export class FakePaymentService implements PaymentService {
     return this.payments
       .filter((payment) => payment.to === xrplAddress && payment.at >= since)
       .reduce((sum, payment) => sum + payment.amount, 0);
+  }
+
+  /** Address of the fake agent wallet.
+
+  Returns:
+      string: The agent address from the XRPL config.
+  */
+  getAgentAddress(): string {
+    return loadXrplConfig().agentAddress;
   }
 
   /** Forget all fake state and restore the starting allowance. Used between tests. */

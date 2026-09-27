@@ -13,19 +13,19 @@ Example:
 
 import { loadXrplConfig } from './config';
 import { fakePaymentService } from './fakePayments';
-import { PaymentService, SendPaymentInput, SendPaymentResult } from './types';
+import { SendPaymentInput, SendPaymentResult, XrplService } from './types';
 
-export type { PaymentFailureReason, SendPaymentInput, SendPaymentResult } from './types';
+export type { SendPaymentInput, SendPaymentResult, XrplService } from './types';
 
 /** Pick the payment service for the current XRPL_MODE.
 
 Returns:
-    PaymentService: The real or fake implementation.
+    XrplService: The real or fake implementation.
 
 Raises:
     XrplConfigError: If the XRPL config is invalid.
 */
-function activeService(): PaymentService {
+function activeService(): XrplService {
   if (loadXrplConfig().mode === 'real') {
     throw new Error('XRPL_MODE=real is not implemented yet');
   }
@@ -85,3 +85,15 @@ Returns:
 export function getAgentAddress(): string {
   return loadXrplConfig().agentAddress;
 }
+
+/** The module as a single injectable object, for the orchestrator's `xrpl` setting.
+
+Every call picks the real or fake implementation from XRPL_MODE, so the
+server can pass this in once and never change when the mode changes.
+*/
+export const xrplService: XrplService = {
+  sendPayment,
+  getRlusdBalance,
+  getPaidToday,
+  getAgentAddress,
+};

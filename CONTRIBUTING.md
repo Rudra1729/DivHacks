@@ -162,3 +162,54 @@ export function getStamps(solanaAddress: string): Promise<Stamp[]>;
 Open item: ask Junaid for the metadata URL pattern (for example
 `GET /metadata/:decisionId`). Until he answers, use a `METADATA_BASE_URL`
 env var.
+
+### XRPL payments hand-off (owner: Tanish)
+
+Agreed interface for the XRPL payment module, in `src/xrpl/index.ts`
+(`XRPL_MODE=fake|real`, same pattern as `SOLANA_MODE`):
+
+```typescript
+export interface SendPaymentInput {
+  decisionId: string;   // memo + idempotency key
+  recipient: string;    // sent exactly as given
+  amount: number;       // RLUSD, > 0, max 2 decimals
+}
+
+export type SendPaymentResult =
+  | { ok: true; txHash: string; resultCode: 'tesSUCCESS' }
+  | { ok: false; reason: 'ledger_rejected' | 'unconfirmed' | 'network_error' | 'invalid_input';
+      resultCode?: string; txHash?: string; error: string };
+
+export function sendPayment(input: SendPaymentInput): Promise<SendPaymentResult>;
+export function getRlusdBalance(xrplAddress: string): Promise<number>;
+export function getPaidToday(xrplAddress: string): Promise<number>;
+export function getAgentAddress(): string;   // for the bypass test
+```
+
+What each failure reason means for the caller:
+
+- `ledger_rejected`: the ledger refused the payment. Nothing was paid.
+- `network_error`: nothing was paid (never submitted, or it expired without
+  applying). Safe to retry.
+- `unconfirmed`: submitted but not confirmed yet, `txHash` included. It may
+  still succeed, so do not mark the claim failed. Call `sendPayment` again
+  with the same `decisionId` to re-check the ledger without sending anything
+  new.
+- `invalid_input`: bad amount or address. Nothing was sent.
+
+Rules agreed with the owner:
+
+- `recipient` is sent exactly as given. The module only checks that it is a
+  valid address format and never swaps or blocks it. The bypass test relies
+  on this: it sends the attacker's address and expects the ledger to reject
+  the overspend.
+- `sendPayment` never throws, even on a bad config, and never pays twice for
+  the same `decisionId`. Repeat calls reuse the first result, including when
+  two calls arrive at once and after a server restart (it searches the agent
+  wallet's ledger history for the decision ID memo before sending).
+- "Today" for `getPaidToday` is the UTC calendar day. This matches the
+  database, whose timestamps are UTC, and the ledger's close times. Note that
+  UTC midnight is 8 PM New York time (7 PM in winter), so the daily cap
+  resets in the evening local time.
+- Fake mode behaves the same way, including the 10 RLUSD agent allowance and
+  ledger-style rejections.
