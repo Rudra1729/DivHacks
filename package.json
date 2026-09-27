@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "jest",
-    "lint": "eslint \"src/**/*.ts\""
+    "lint": "eslint \"src/**/*.ts\"",
+    "xrpl:setup": "tsx scripts/xrpl/setup.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.3.0",
