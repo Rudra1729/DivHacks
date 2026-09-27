@@ -124,7 +124,7 @@ export async function startExpectingRefusal(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const match = /exited early \(code (-?\d+)\)/.exec(message);
-    return { exited: match !== null, code: match ? Number(match[1]) : null, output: message };
+    return { exited: match !== null, code: match ? Number(match[1]) : null, output: server.logText || message };
   } finally {
     await server.stop();
   }

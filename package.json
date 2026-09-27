@@ -13,6 +13,8 @@
     "db:reset": "node -e \"const fs=require('fs');const p=process.env.DB_PATH||'webpass.sqlite';for (const f of [p,p+'-wal',p+'-shm']) fs.rmSync(f,{force:true});console.log('Deleted local database:',p);\"",
     "lint": "eslint \"src/**/*.ts\"",
     "typecheck": "tsc -p tsconfig.scripts.json",
+    "live:check": "tsx --env-file=.env scripts/live/run.ts",
+    "live:check:dry": "tsx --env-file=.env scripts/live/run.ts --fake",
     "solana:setup": "tsx scripts/solana/setup.ts",
     "solana:mint-test": "tsx scripts/solana/mintTest.ts",
     "solana:transfer-test": "tsx scripts/solana/transferTest.ts",
