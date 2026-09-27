@@ -60,7 +60,13 @@ Rewards: cultural places (marked CULTURAL) earn only the Solana stamp, and
 civic bounties also pay RLUSD. `CULTURAL_REWARDS=on` makes cultural visits pay
 too. `REWARD_SCALE` shrinks every payout and the policy caps by the same
 factor, so `REWARD_SCALE=0.01` pays 0.01 RLUSD per civic visit and never more
-than 0.05 per visit or 0.10 per wallet per day.
+than 0.05 per visit or 0.10 per wallet per day. Each civic bounty names the
+local organization that sponsors it on its mission card and map card.
+
+Photo check: with `GROK_API_KEY` set, Grok's vision model looks at every photo
+and blocks the visit (`BLOCKED_PHOTO`) unless it is confident the photo shows
+the place. Nothing is claimed or paid before this check. Photos must be JPEG
+or PNG. `PHOTO_CHECK=off` turns it off and `PHOTO_MIN_CONFIDENCE` sets the bar.
 
 The page talks to the server it was loaded from. To point it at another
 server, add `?api=http://host:port` to the URL.
@@ -144,4 +150,5 @@ networks with `XRPL_MODE=real` and `SOLANA_MODE=real`. In real XRPL mode a
 user's wallet is funded from the testnet faucet and given an RLUSD trust line
 before its first payment. Fake-mode stamps are reloaded from the database when
 the server starts, so a restart keeps everyone's passport. The Grok agent
-falls back to the base reward until `GROK_API_KEY` is set. See open PRs and [PRD.md](./PRD.md) for what's left.
+falls back to the base reward until `GROK_API_KEY` is set, and the photo check
+only runs with a key. See open PRs and [PRD.md](./PRD.md) for what's left.
