@@ -83,6 +83,15 @@ async function balances(ctx: Ctx): Promise<Record<string, number>> {
   };
 }
 
+/** The environment the guardian runs in: the runner's, minus every key the guardian must never see. */
+function cleanGuardianEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+  for (const name of ['AGENT_SEED', 'GROK_API_KEY', 'TREASURY_SEED', 'XRPL_MODE', 'SOLANA_MODE', 'REWARD_SCALE']) {
+    delete env[name];
+  }
+  return env;
+}
+
 export const CHECKS: Check[] = [
   {
     id: 'C01',
@@ -312,6 +321,114 @@ export const CHECKS: Check[] = [
 
   {
     id: 'C08',
+    title: 'A visit from the wrong place is rejected',
+    proves: 'The location check blocks a submission made about 2 km away from the place.',
+    cost: 'none',
+    async run(ctx) {
+      const a = new Assertions();
+      const user = ctx.users['user-3'];
+      const res = await submit(ctx.serverA.baseUrl, {
+        ...at(MARCUS),
+        latitude: MARCUS.latitude + 0.02,
+        xrplAddress: user.xrpl,
+        solanaAddress: user.solana,
+      });
+      a.that('server answered 422', res.status === 422, res.status);
+      a.that('status is BLOCKED_SENTINEL', res.body?.status === 'BLOCKED_SENTINEL', res.body?.status);
+      a.that('the reason is location', (res.body?.reasons ?? []).some((r: string) => r.startsWith('location:')), res.body?.reasons);
+      return { assertions: a.list, evidence: { response: res.body }, links: [], summary: `Blocked: ${(res.body?.reasons ?? []).join('; ')}` };
+    },
+  },
+
+  {
+    id: 'C09',
+    title: 'An old photo is rejected',
+    proves: 'The freshness check blocks a photo taken an hour ago.',
+    cost: 'none',
+    async run(ctx) {
+      const a = new Assertions();
+      const user = ctx.users['user-3'];
+      const res = await submit(ctx.serverA.baseUrl, {
+        ...at(MARCUS),
+        timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        xrplAddress: user.xrpl,
+        solanaAddress: user.solana,
+      });
+      a.that('server answered 422', res.status === 422, res.status);
+      a.that('the reason is freshness', (res.body?.reasons ?? []).some((r: string) => r.startsWith('freshness:')), res.body?.reasons);
+      return { assertions: a.list, evidence: { response: res.body }, links: [], summary: `Blocked: ${(res.body?.reasons ?? []).join('; ')}` };
+    },
+  },
+
+  {
+    id: 'C10',
+    title: 'Every problem is reported together',
+    proves: 'When a submission fails several checks at once, all of them are reported in one answer instead of one at a time.',
+    cost: 'none',
+    async run(ctx) {
+      const a = new Assertions();
+      const user = ctx.users['user-3'];
+      const res = await submit(ctx.serverA.baseUrl, {
+        ...at(MARCUS),
+        latitude: MARCUS.latitude + 0.02,
+        timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        xrplAddress: user.xrpl,
+        solanaAddress: user.solana,
+      });
+      const reasons: string[] = res.body?.reasons ?? [];
+      a.that('two or more reasons were reported together', reasons.length >= 2, reasons);
+      a.that('one of them is location', reasons.some((r) => r.startsWith('location:')), reasons);
+      a.that('one of them is freshness', reasons.some((r) => r.startsWith('freshness:')), reasons);
+      return { assertions: a.list, evidence: { response: res.body }, links: [], summary: `${reasons.length} problems reported at once.` };
+    },
+  },
+
+  {
+    id: 'C11',
+    title: 'Malformed requests are refused before anything happens',
+    proves: 'A bad XRPL address, a missing photo, and an unknown place are each rejected with a clear error and no side effects.',
+    cost: 'none',
+    async run(ctx) {
+      const a = new Assertions();
+      const user = ctx.users['user-3'];
+      const badAddress = await submit(ctx.serverA.baseUrl, { ...at(MARCUS), xrplAddress: 'not-an-address', solanaAddress: user.solana });
+      a.that('a malformed XRPL address gets 400', badAddress.status === 400, badAddress.status);
+      a.that('the error says the address is malformed', JSON.stringify(badAddress.body).includes('malformed'), badAddress.body);
+      const noPhoto = await submit(ctx.serverA.baseUrl, { ...at(MARCUS), xrplAddress: user.xrpl, solanaAddress: user.solana, photo: null });
+      a.that('a missing photo gets 400', noPhoto.status === 400, noPhoto.status);
+      a.that('the error says the photo is required', JSON.stringify(noPhoto.body).includes('photo is required'), noPhoto.body);
+      const unknown = await submit(ctx.serverA.baseUrl, { ...at(MARCUS), placeId: 'not-a-real-place', xrplAddress: user.xrpl, solanaAddress: user.solana });
+      a.that('an unknown place gets 400', unknown.status === 400, unknown.status);
+      return {
+        assertions: a.list,
+        evidence: { badAddress: badAddress.body, noPhoto: noPhoto.body, unknownPlace: unknown.body },
+        links: [],
+        summary: 'All three malformed requests were refused with 400.',
+      };
+    },
+  },
+
+  {
+    id: 'C12',
+    title: 'Blocked submissions move no money',
+    proves: 'After all the blocked attempts above, the agent, the visitors, and the attacker hold exactly what they held before, so a block never costs anything.',
+    cost: 'none',
+    async run(ctx) {
+      if (!ctx.real || !ctx.state.blocksStart) {
+        return skipped('needs the real ledger');
+      }
+      const a = new Assertions();
+      const start = ctx.state.blocksStart as Record<string, number>;
+      const now = await balances(ctx);
+      for (const name of Object.keys(start)) {
+        a.that(`${name} balance is unchanged`, near(start[name], now[name]), { before: start[name], after: now[name] });
+      }
+      return { assertions: a.list, evidence: { before: start, after: now }, links: [], summary: 'Every balance is exactly what it was before the blocked attempts.' };
+    },
+  },
+
+  {
+    id: 'C13',
     title: 'One reward per place survives losing the database',
     proves: 'Stamp ownership on Solana is the source of truth: a wallet that already holds a stamp for a place is blocked even if the server starts with an empty database.',
     cost: 'none if blocked, 0.01 RLUSD if it wrongly pays',
@@ -342,114 +459,6 @@ export const CHECKS: Check[] = [
       } finally {
         await server.stop();
       }
-    },
-  },
-
-  {
-    id: 'C09',
-    title: 'A visit from the wrong place is rejected',
-    proves: 'The location check blocks a submission made about 2 km away from the place.',
-    cost: 'none',
-    async run(ctx) {
-      const a = new Assertions();
-      const user = ctx.users['user-3'];
-      const res = await submit(ctx.serverA.baseUrl, {
-        ...at(MARCUS),
-        latitude: MARCUS.latitude + 0.02,
-        xrplAddress: user.xrpl,
-        solanaAddress: user.solana,
-      });
-      a.that('server answered 422', res.status === 422, res.status);
-      a.that('status is BLOCKED_SENTINEL', res.body?.status === 'BLOCKED_SENTINEL', res.body?.status);
-      a.that('the reason is location', (res.body?.reasons ?? []).some((r: string) => r.startsWith('location:')), res.body?.reasons);
-      return { assertions: a.list, evidence: { response: res.body }, links: [], summary: `Blocked: ${(res.body?.reasons ?? []).join('; ')}` };
-    },
-  },
-
-  {
-    id: 'C10',
-    title: 'An old photo is rejected',
-    proves: 'The freshness check blocks a photo taken an hour ago.',
-    cost: 'none',
-    async run(ctx) {
-      const a = new Assertions();
-      const user = ctx.users['user-3'];
-      const res = await submit(ctx.serverA.baseUrl, {
-        ...at(MARCUS),
-        timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        xrplAddress: user.xrpl,
-        solanaAddress: user.solana,
-      });
-      a.that('server answered 422', res.status === 422, res.status);
-      a.that('the reason is freshness', (res.body?.reasons ?? []).some((r: string) => r.startsWith('freshness:')), res.body?.reasons);
-      return { assertions: a.list, evidence: { response: res.body }, links: [], summary: `Blocked: ${(res.body?.reasons ?? []).join('; ')}` };
-    },
-  },
-
-  {
-    id: 'C11',
-    title: 'Every problem is reported together',
-    proves: 'When a submission fails several checks at once, all of them are reported in one answer instead of one at a time.',
-    cost: 'none',
-    async run(ctx) {
-      const a = new Assertions();
-      const user = ctx.users['user-3'];
-      const res = await submit(ctx.serverA.baseUrl, {
-        ...at(MARCUS),
-        latitude: MARCUS.latitude + 0.02,
-        timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-        xrplAddress: user.xrpl,
-        solanaAddress: user.solana,
-      });
-      const reasons: string[] = res.body?.reasons ?? [];
-      a.that('two or more reasons were reported together', reasons.length >= 2, reasons);
-      a.that('one of them is location', reasons.some((r) => r.startsWith('location:')), reasons);
-      a.that('one of them is freshness', reasons.some((r) => r.startsWith('freshness:')), reasons);
-      return { assertions: a.list, evidence: { response: res.body }, links: [], summary: `${reasons.length} problems reported at once.` };
-    },
-  },
-
-  {
-    id: 'C12',
-    title: 'Malformed requests are refused before anything happens',
-    proves: 'A bad XRPL address, a missing photo, and an unknown place are each rejected with a clear error and no side effects.',
-    cost: 'none',
-    async run(ctx) {
-      const a = new Assertions();
-      const user = ctx.users['user-3'];
-      const badAddress = await submit(ctx.serverA.baseUrl, { ...at(MARCUS), xrplAddress: 'not-an-address', solanaAddress: user.solana });
-      a.that('a malformed XRPL address gets 400', badAddress.status === 400, badAddress.status);
-      a.that('the error says the address is malformed', JSON.stringify(badAddress.body).includes('malformed'), badAddress.body);
-      const noPhoto = await submit(ctx.serverA.baseUrl, { ...at(MARCUS), xrplAddress: user.xrpl, solanaAddress: user.solana, photo: null });
-      a.that('a missing photo gets 400', noPhoto.status === 400, noPhoto.status);
-      a.that('the error says the photo is required', JSON.stringify(noPhoto.body).includes('photo is required'), noPhoto.body);
-      const unknown = await submit(ctx.serverA.baseUrl, { ...at(MARCUS), placeId: 'not-a-real-place', xrplAddress: user.xrpl, solanaAddress: user.solana });
-      a.that('an unknown place gets 400', unknown.status === 400, unknown.status);
-      return {
-        assertions: a.list,
-        evidence: { badAddress: badAddress.body, noPhoto: noPhoto.body, unknownPlace: unknown.body },
-        links: [],
-        summary: 'All three malformed requests were refused with 400.',
-      };
-    },
-  },
-
-  {
-    id: 'C13',
-    title: 'Blocked submissions move no money',
-    proves: 'After all the blocked attempts above, the agent, the visitors, and the attacker hold exactly what they held before, so a block never costs anything.',
-    cost: 'none',
-    async run(ctx) {
-      if (!ctx.real || !ctx.state.blocksStart) {
-        return skipped('needs the real ledger');
-      }
-      const a = new Assertions();
-      const start = ctx.state.blocksStart as Record<string, number>;
-      const now = await balances(ctx);
-      for (const name of Object.keys(start)) {
-        a.that(`${name} balance is unchanged`, near(start[name], now[name]), { before: start[name], after: now[name] });
-      }
-      return { assertions: a.list, evidence: { before: start, after: now }, links: [], summary: 'Every balance is exactly what it was before the blocked attempts.' };
     },
   },
 
@@ -664,7 +673,11 @@ export const CHECKS: Check[] = [
       let output = '';
       let exitCode = 0;
       try {
-        output = execSync('npx tsx --env-file=.env.guardian guardian/index.ts --once --dry-run', { encoding: 'utf8', timeout: 120_000 });
+        output = execSync('npx tsx --env-file=.env.guardian guardian/index.ts --once --dry-run', {
+          encoding: 'utf8',
+          timeout: 120_000,
+          env: cleanGuardianEnv(),
+        });
       } catch (error) {
         const e = error as { status?: number; stdout?: string };
         exitCode = e.status ?? 1;
@@ -778,6 +791,37 @@ export const CHECKS: Check[] = [
         evidence: { history },
         links: paymentLinks(ctx.state.happy.body.xrplTxHash, ctx.state.happy.body.solanaAssetAddress),
         summary: `${history.length} steps recorded for decision ${id}.`,
+      };
+    },
+  },
+  {
+    id: 'C25',
+    title: 'The guardian refuses to run if it can see the agent key',
+    proves: 'Key separation works in both directions: the server may never hold the treasury key (C19), and the guardian, which holds the treasury key, may never hold the agent key.',
+    cost: 'none',
+    async run(ctx) {
+      const a = new Assertions();
+      let output = '';
+      let exitCode = 0;
+      try {
+        output = execSync('npx tsx --env-file=.env.guardian guardian/index.ts --once --dry-run', {
+          encoding: 'utf8',
+          timeout: 120_000,
+          env: { ...cleanGuardianEnv(), AGENT_SEED: 'sNotARealSeedJustATestValue0000' },
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+      } catch (error) {
+        const e = error as { status?: number; stdout?: string; stderr?: string };
+        exitCode = e.status ?? 1;
+        output = `${e.stdout ?? ''}${e.stderr ?? ''}`;
+      }
+      a.that('the guardian exited with an error instead of running', exitCode !== 0, exitCode);
+      a.that('the message says it must never hold the agent key', output.includes('must never hold the agent key'), output.slice(0, 200));
+      return {
+        assertions: a.list,
+        evidence: { testedWith: 'a dummy AGENT_SEED value, not a real key', exitCode, message: output.slice(0, 400) },
+        links: [],
+        summary: exitCode !== 0 ? 'The guardian refused to start with an agent key present, as designed.' : 'The guardian ran with an agent key present, which it must not.',
       };
     },
   },
