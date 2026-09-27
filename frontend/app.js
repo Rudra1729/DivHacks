@@ -93,6 +93,7 @@ const PLACES = [
     radius: 200,
     rewardRlusd: 0,
     type: 'cultural',
+    fixedTier: 'Epic',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80',
     desc: 'DivHacks HQ: check in at Columbia Engineering, 500 W 120th St at Amsterdam Ave.'
@@ -107,6 +108,7 @@ const PLACES = [
     rewardRlusd: 0.01,
     type: 'civic',
     sponsor: 'Columbia Engineering',
+    fixedTier: 'Legendary',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?auto=format&fit=crop&w=600&q=80',
     desc: 'CIVIC MISSION: Check the Mudd entrance on 120th St. Are the doors, ramp and signs clear and working? Photograph it to report.'
@@ -140,7 +142,7 @@ let RARITY_LADDER = [
   { tier: 'Late Explorer', fromSerial: 1001, toSerial: null }
 ];
 let STAMP_SUPPLY = 1000;
-PLACES.forEach(place => { place.rarity = { found: 0, nextSerial: 1, nextTier: 'Legendary' }; });
+PLACES.forEach(place => { place.rarity = { found: 0, nextSerial: 1, nextTier: place.fixedTier || 'Legendary' }; });
 
 /** CSS class for a tier, e.g. "tier-late-explorer". */
 function tierClass(tier) {
@@ -181,10 +183,11 @@ function renderPlaceRarity(place) {
   tierEl.className = `tier-badge ${tierClass(shown.tier)}`;
   tierEl.textContent = `${String(shown.tier).toUpperCase()} #${shown.serial}`;
 
-  const current = rungForSerial(nextSerial);
+  const fixedRung = place.fixedTier && RARITY_LADDER.find(rung => rung.tier === place.fixedTier);
+  const current = fixedRung || rungForSerial(nextSerial);
   ladder.replaceChildren(...RARITY_LADDER.map(rung => {
     const step = document.createElement('div');
-    const gone = rung.toSerial !== null && rung.toSerial < nextSerial;
+    const gone = !fixedRung && rung.toSerial !== null && rung.toSerial < nextSerial;
     step.className = `rarity-step ${tierClass(rung.tier)}${rung === current ? ' current' : ''}${gone ? ' gone' : ''}`;
     step.title = `${rung.tier}: ${rung.toSerial === null ? `#${rung.fromSerial}+` : `#${rung.fromSerial}-${rung.toSerial}`}`;
     const name = document.createElement('strong');
@@ -197,6 +200,10 @@ function renderPlaceRarity(place) {
 
   const left = current.toSerial === null ? 0 : current.toSerial - found;
   const nextFinder = mine && mine.tier ? `Next finder gets ${nextTier} #${nextSerial}. ` : '';
+  if (fixedRung) {
+    note.textContent = `${nextFinder}Every stamp here is ${place.fixedTier}. ${found} of ${STAMP_SUPPLY} found.`;
+    return;
+  }
   note.textContent = nextFinder + (current.toSerial === null
     ? `All ${STAMP_SUPPLY} numbered stamps are found. New finders get Late Explorer.`
     : `${found} of ${STAMP_SUPPLY} stamps found. ${left} ${current.tier} ${left === 1 ? 'stamp' : 'stamps'} left.`);
@@ -986,7 +993,8 @@ function placeFromServer(serverPlace) {
     rewardRlusd: serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd,
     type: serverPlace.kind || 'civic',
     sponsor: serverPlace.sponsor ?? null,
-    rarity: serverPlace.rarity || { found: 0, nextSerial: 1, nextTier: 'Legendary' },
+    rarity: serverPlace.rarity || { found: 0, nextSerial: 1, nextTier: serverPlace.fixedTier || 'Legendary' },
+    fixedTier: serverPlace.fixedTier || null,
     discovered: false,
     image: serverPlace.imageUrl || 'https://placehold.co/600x600/png?text=' + encodeURIComponent(serverPlace.name),
     desc: serverPlace.description || `A newly added WebPass NYC mission in ${serverPlace.neighborhood}.`
@@ -1011,6 +1019,7 @@ async function loadPlacesFromServer() {
     if (place) {
       place.name = serverPlace.name;
       if (serverPlace.rarity) place.rarity = serverPlace.rarity;
+      place.fixedTier = serverPlace.fixedTier || null;
       place.rewardRlusd = serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd;
       if (serverPlace.kind) place.type = serverPlace.kind;
       if ('sponsor' in serverPlace) place.sponsor = serverPlace.sponsor;
