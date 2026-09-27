@@ -10,7 +10,6 @@
   --ink-black: #121212;
   --paper-cream: #F7F4EB;
   --paper-white: #FFFFFF;
-  --neon-cyan: #00F0FF;
   --accent-yellow: #FFCC00;
   --accent-orange: #FF6600;
   --gray-dark: #1E1E24;
@@ -160,7 +159,7 @@ body.knowyork-theme {
 .brand-sub {
   font-size: 0.7rem;
   font-weight: 800;
-  color: var(--neon-cyan);
+  color: var(--web-blue);
   letter-spacing: 2px;
 }
 
@@ -293,7 +292,7 @@ body.knowyork-theme {
 
 .highlight-yellow { color: var(--hero-red); background: var(--accent-yellow); padding: 0.1rem 0.4rem; border-radius: 4px; }
 .highlight-red { color: white; background: var(--hero-red); padding: 0.1rem 0.4rem; border-radius: 4px; }
-.highlight-cyan { color: black; background: var(--neon-cyan); padding: 0.1rem 0.4rem; border-radius: 4px; }
+.highlight-cyan { color: white; background: var(--web-blue); padding: 0.1rem 0.4rem; border-radius: 4px; }
 
 /* HERO SECTION: MARVEL NEWSPAPER COLLAGE STYLE */
 .hero-section {
@@ -782,7 +781,7 @@ body.knowyork-theme {
   font-family: var(--font-comic);
   font-size: 3rem;
   color: var(--accent-yellow);
-  text-shadow: 4px 4px 0px var(--hero-red), 0 0 20px var(--neon-cyan);
+  text-shadow: 4px 4px 0px var(--hero-red), 0 0 20px var(--web-blue);
   pointer-events: none;
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
   opacity: 0;
@@ -881,7 +880,8 @@ body.knowyork-theme {
   font-size: 0.75rem;
   font-weight: 800;
   padding: 0.2rem 0.6rem;
-  background: var(--neon-cyan);
+  background: var(--web-blue);
+  color: white;
   border: 2px solid var(--ink-black);
   border-radius: 12px;
 }
@@ -1108,7 +1108,7 @@ body.knowyork-theme {
   margin-bottom: 0.4rem;
 }
 
-.node-badge.discovered { background: var(--neon-cyan); color: black; }
+.node-badge.discovered { background: var(--web-blue); color: white; }
 
 .node-title {
   font-family: var(--font-comic);
@@ -1264,7 +1264,7 @@ body.knowyork-theme {
   border-radius: 6px;
 }
 
-.mission-tag-badge.cultural { background: var(--neon-cyan); color: black; }
+.mission-tag-badge.cultural { background: var(--web-blue); color: white; }
 .mission-tag-badge.civic { background: var(--accent-yellow); color: black; }
 
 .mission-reward-chip {
@@ -1439,7 +1439,7 @@ body.knowyork-theme {
 .card-back-title {
   font-family: var(--font-comic);
   font-size: 1.4rem;
-  color: var(--neon-cyan);
+  color: var(--web-blue);
   border-bottom: 2px solid var(--hero-red);
   padding-bottom: 0.4rem;
   margin-bottom: 0.75rem;
@@ -1492,10 +1492,13 @@ body.knowyork-theme {
 }
 
 .gate-step.active {
-  background: var(--neon-cyan);
-  box-shadow: 0 0 15px var(--neon-cyan);
+  background: var(--web-blue);
+  box-shadow: 0 0 15px var(--web-blue);
+  color: white;
   transform: scale(1.05);
 }
+
+.gate-step.active .gate-sub { color: #FFF; }
 
 .gate-step.blocked {
   background: var(--hero-red);
@@ -1699,7 +1702,7 @@ input:checked + .slider:before { transform: translateX(24px); }
 }
 
 .footer-links { display: flex; gap: 1.5rem; }
-.footer-links a { color: var(--neon-cyan); text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; }
+.footer-links a { color: var(--web-blue); text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; }
 .footer-links a:hover { color: var(--accent-yellow); }
 
 /* FULL-WIDTH MAP: the map section spans the whole window and most of its height */

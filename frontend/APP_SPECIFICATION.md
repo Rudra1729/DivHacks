@@ -17,7 +17,6 @@
 * **Web Blue:** `#0055A5` / `#1976D2` (Primary brand blue, web nodes)
 * **Comic Ink Black:** `#121212` / `#0A0A0A` (Heavy outlines, comic boxes, shadows)
 * **Comic Newsprint Paper:** `#F7F4EB` / `#FFFDF5` (Warm off-white background texture)
-* **Neon Web Glow Cyan:** `#00F0FF` (Glowing active web threads & pulse beams)
 * **Spidey Suit Yellow Accent:** `#FFCC00` (Comic stars, warning banners, reward badges)
 * **Halftone Overlay Pattern:** Classic pop-art dot grid background pattern across containers.
 * **Torn Paper Edges:** Jagged comic-book paper tear borders separating sections.
