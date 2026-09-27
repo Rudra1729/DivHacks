@@ -118,9 +118,37 @@ const STAMPS_DATA = [
   }
 ];
 
+// REAL COORDINATES (same values as src/data/places.ts, ids match the backend)
+const PLACE_COORDS = {
+  'apollo-theater':         { lat: 40.8102,  lng: -73.9500 },
+  'studio-museum-harlem':   { lat: 40.80835, lng: -73.94766 },
+  'marcus-garvey-park':     { lat: 40.8043,  lng: -73.9439 },
+  'hamilton-grange':        { lat: 40.82138, lng: -73.94726 },
+  'malcolm-shabazz-market': { lat: 40.80147, lng: -73.94886 },
+  'morningside-park':       { lat: 40.8065,  lng: -73.9585 }
+};
+PLACES.forEach(place => Object.assign(place, PLACE_COORDS[place.id]));
+
+// Explored places are remembered in this browser between page loads.
+const DISCOVERED_KEY = 'webpass.discovered';
+
+/** Restore which places were explored from localStorage. */
+function loadDiscovered() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DISCOVERED_KEY) || '[]');
+    PLACES.forEach(place => { place.discovered = saved.includes(place.id); });
+  } catch (e) { /* storage unavailable: start with everything unexplored */ }
+}
+
+/** Remember which places are explored. */
+function saveDiscovered() {
+  try {
+    localStorage.setItem(DISCOVERED_KEY, JSON.stringify(PLACES.filter(p => p.discovered).map(p => p.id)));
+  } catch (e) { /* storage unavailable: ignore */ }
+}
+
 // APP STATE
 let selectedNodeId = 'apollo-theater';
-let activeWebAnimations = [];
 let attackModeActive = false;
 
 // DOM READY INITIALIZATION
@@ -130,8 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
   }
 
-  // Setup Canvas & Spiderweb
-  initSpiderwebCanvas();
+  // Restore explored places, then set up the real NYC map (see map.js)
+  loadDiscovered();
+  initRealMap();
+  selectNode(selectedNodeId, { pan: false });
 
   // Setup 3D Interactive Spider-Man Character (Three.js)
   init3DSpiderMan();
@@ -143,170 +173,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // Setup Event Listeners
   setupEventListeners();
 
-  // Start Canvas Animation Loop
-  requestAnimationFrame(animateCanvas);
 });
-
-/* ==========================================================================
-   SPIDERWEB CANVAS ENGINE
-   ========================================================================== */
-
-let canvas, ctx;
-
-function initSpiderwebCanvas() {
-  canvas = document.getElementById('spiderwebCanvas');
-  if (!canvas) return;
-  ctx = canvas.getContext('2d');
-  
-  // Set resolution
-  canvas.width = canvas.parentElement.clientWidth || 900;
-  canvas.height = canvas.parentElement.clientHeight || 550;
-
-  // Handle Resize
-  window.addEventListener('resize', () => {
-    canvas.width = canvas.parentElement.clientWidth || 900;
-    canvas.height = canvas.parentElement.clientHeight || 550;
-  });
-
-  // Canvas Click Handler
-  canvas.addEventListener('click', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
-    const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-    PLACES.forEach(place => {
-      const dist = Math.hypot(clickX - place.x, clickY - place.y);
-      if (dist < 30) {
-        selectNode(place.id);
-      }
-    });
-  });
-}
-
-function drawSpiderweb() {
-  if (!ctx) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-
-  // 1. Draw Spiderweb Background Strands (Concentric & Radial)
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-  ctx.lineWidth = 1.5;
-
-  // Concentric Web Rings
-  for (let r = 80; r <= 350; r += 70) {
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // Radial Threads connecting Central Hub to Nodes & Outskirts
-  PLACES.forEach(place => {
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(place.x, place.y);
-    ctx.strokeStyle = place.discovered ? 'rgba(0, 240, 255, 0.4)' : 'rgba(255, 255, 255, 0.12)';
-    ctx.lineWidth = place.discovered ? 2.5 : 1.5;
-    ctx.stroke();
-  });
-
-  // Inter-node threads
-  for (let i = 0; i < PLACES.length; i++) {
-    for (let j = i + 1; j < PLACES.length; j++) {
-      const dist = Math.hypot(PLACES[i].x - PLACES[j].x, PLACES[i].y - PLACES[j].y);
-      if (dist < 280) {
-        ctx.beginPath();
-        ctx.moveTo(PLACES[i].x, PLACES[i].y);
-        ctx.lineTo(PLACES[j].x, PLACES[j].y);
-        const bothDiscovered = PLACES[i].discovered && PLACES[j].discovered;
-        ctx.strokeStyle = bothDiscovered ? 'rgba(229, 36, 33, 0.5)' : 'rgba(255, 255, 255, 0.06)';
-        ctx.lineWidth = bothDiscovered ? 2 : 1;
-        ctx.stroke();
-      }
-    }
-  }
-
-  // 2. Draw Web-Shooting Animations (Active THWIP Threads)
-  activeWebAnimations.forEach((anim, index) => {
-    ctx.beginPath();
-    ctx.moveTo(anim.startX, anim.startY);
-    const currX = anim.startX + (anim.targetX - anim.startX) * anim.progress;
-    const currY = anim.startY + (anim.targetY - anim.startY) * anim.progress;
-    ctx.lineTo(currX, currY);
-    ctx.strokeStyle = '#00F0FF';
-    ctx.lineWidth = 4;
-    ctx.shadowColor = '#00F0FF';
-    ctx.shadowBlur = 15;
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Head pulse
-    ctx.beginPath();
-    ctx.arc(currX, currY, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#FFF';
-    ctx.fill();
-
-    anim.progress += 0.04;
-    if (anim.progress >= 1) {
-      activeWebAnimations.splice(index, 1);
-    }
-  });
-
-  // 3. Draw Nodes
-  PLACES.forEach(place => {
-    const isSelected = place.id === selectedNodeId;
-
-    // Outer Selection Halo
-    if (isSelected) {
-      ctx.beginPath();
-      ctx.arc(place.x, place.y, 28, 0, Math.PI * 2);
-      ctx.strokeStyle = '#FFCC00';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-
-    // Node Base Circle
-    ctx.beginPath();
-    ctx.arc(place.x, place.y, 18, 0, Math.PI * 2);
-    if (place.discovered) {
-      ctx.fillStyle = '#E52421';
-      ctx.shadowColor = '#E52421';
-      ctx.shadowBlur = 15;
-    } else {
-      ctx.fillStyle = '#2A2D34';
-      ctx.shadowBlur = 0;
-    }
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = '#121212';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // Node Center Dot
-    ctx.beginPath();
-    ctx.arc(place.x, place.y, 6, 0, Math.PI * 2);
-    ctx.fillStyle = place.discovered ? '#00F0FF' : '#666';
-    ctx.fill();
-
-    // Node Title Label
-    ctx.font = '12px "Outfit", sans-serif';
-    ctx.fillStyle = place.discovered ? '#FFF' : '#AAA';
-    ctx.textAlign = 'center';
-    ctx.fillText(place.name, place.x, place.y + 34);
-  });
-}
-
-function animateCanvas() {
-  drawSpiderweb();
-  requestAnimationFrame(animateCanvas);
-}
 
 /* ==========================================================================
    NODE SELECTION & THWIP UNLOCK ENGINE
    ========================================================================== */
 
-function selectNode(placeId) {
+function selectNode(placeId, { pan = true } = {}) {
   selectedNodeId = placeId;
   const place = PLACES.find(p => p.id === placeId);
   if (!place) return;
@@ -332,6 +205,9 @@ function selectNode(placeId) {
   }
 
   if (window.lucide) lucide.createIcons();
+
+  refreshMap();
+  if (pan && realMap && place.lat !== undefined) realMap.panTo([place.lat, place.lng]);
 }
 
 function selectAndScrollNode(placeId) {
@@ -349,14 +225,12 @@ function triggerThwipUnlock(placeId) {
   place.discovered = true;
   selectNode(place.id);
 
-  // Add Bezier Web Draw Animation from Center to Node
-  activeWebAnimations.push({
-    startX: canvas.width / 2,
-    startY: canvas.height / 2,
-    targetX: place.x,
-    targetY: place.y,
-    progress: 0
-  });
+  // Shoot a web thread from the nearest other explored place (or the map center) to this one
+  const others = PLACES.filter(p => p.discovered && p.id !== place.id);
+  const distanceTo = p => Math.hypot(p.lat - place.lat, p.lng - place.lng);
+  const origin = others.length ? others.reduce((best, p) => (distanceTo(p) < distanceTo(best) ? p : best)) : null;
+  animateWebThread(origin ? [origin.lat, origin.lng] : MAP_CENTER, [place.lat, place.lng]);
+  refreshMap();
 
   // Update Spidey-Bot Avatar Expression
   setSpideyBotState('approved', `"THWIP! Hero unlocked ${place.name}! Node illuminated on the NYC Spiderweb map!"`);
