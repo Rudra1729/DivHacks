@@ -8,6 +8,7 @@ without paying twice.
 */
 
 import { execSync } from 'child_process';
+import { Keypair } from '@metaplex-foundation/umi';
 import Database from 'better-sqlite3';
 import { getAgentAddress, sendPayment } from '../../src/xrpl';
 import { Place, PLACES } from '../../src/data/places';
@@ -21,7 +22,8 @@ import { Assertions, CheckOutcome, Link } from './lib/types';
 export interface TestUser {
   xrpl: string;
   solana: string;
-  solanaKey: string;
+  /** In-memory Solana key, present for the wallets created for this run. */
+  solanaKeypair?: Keypair;
 }
 
 export interface Ctx {
@@ -214,7 +216,7 @@ export const CHECKS: Check[] = [
         return skipped('no stamp was minted in C01');
       }
       const a = new Assertions();
-      const result = await ctx.chains!.tryTransfer(happy.body.solanaAssetAddress, 'demo-2', 'attacker');
+      const result = await ctx.chains!.tryTransfer(happy.body.solanaAssetAddress, happy.user.solanaKeypair, 'attacker');
       a.that('the owner signed a transfer to the attacker wallet and Solana refused it', result.rejected, result.error);
       a.that('the stamp still belongs to the visitor afterward', result.ownerAfter === happy.user.solana, result.ownerAfter);
       return {

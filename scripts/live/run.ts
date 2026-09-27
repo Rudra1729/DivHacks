@@ -97,13 +97,15 @@ async function main(): Promise<void> {
   if (!fake) {
     await chains.init();
   }
-  const user = (role: 'user-1' | 'user-2' | 'user-3', keyName: string): TestUser => ({
-    xrpl: wallets[role]!.classicAddress,
-    solana: chains.solanaAddress(keyName),
-    solanaKey: keyName,
-  });
-  const users = { 'user-1': user('user-1', 'demo-1'), 'user-2': user('user-2', 'demo-2'), 'user-3': user('user-3', 'demo-3') };
-  const attacker: TestUser = { xrpl: wallets.attacker!.classicAddress, solana: chains.solanaAddress('attacker'), solanaKey: 'attacker' };
+  // Each run uses brand new Solana wallets, so stamps from earlier runs never
+  // block this run. The XRPL demo wallets are reused because they already have
+  // an RLUSD trust line. The new Solana keys live in memory only.
+  const user = (role: 'user-1' | 'user-2' | 'user-3'): TestUser => {
+    const wallet = chains.newSolanaWallet();
+    return { xrpl: wallets[role]!.classicAddress, solana: wallet.address, solanaKeypair: wallet.keypair };
+  };
+  const users = { 'user-1': user('user-1'), 'user-2': user('user-2'), 'user-3': user('user-3') };
+  const attacker: TestUser = { xrpl: wallets.attacker!.classicAddress, solana: chains.solanaAddress('attacker') };
 
   const notes: string[] = [];
   const walletList: Record<string, string> = {
@@ -113,9 +115,9 @@ async function main(): Promise<void> {
     'demo user 2 (XRPL)': users['user-2'].xrpl,
     'demo user 3 (XRPL)': users['user-3'].xrpl,
     'attacker (XRPL)': attacker.xrpl,
-    'demo user 1 (Solana)': users['user-1'].solana,
-    'demo user 2 (Solana)': users['user-2'].solana,
-    'demo user 3 (Solana)': users['user-3'].solana,
+    'visitor 1 (Solana, new this run)': users['user-1'].solana,
+    'visitor 2 (Solana, new this run)': users['user-2'].solana,
+    'visitor 3 (Solana, new this run)': users['user-3'].solana,
     'attacker (Solana)': attacker.solana,
   };
 

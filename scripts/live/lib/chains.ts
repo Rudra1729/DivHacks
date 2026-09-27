@@ -6,7 +6,7 @@ Everything here only reads, except tryTransfer, which attempts a transfer that
 is expected to be rejected.
 */
 
-import { createSignerFromKeypair } from '@metaplex-foundation/umi';
+import { createSignerFromKeypair, Keypair } from '@metaplex-foundation/umi';
 import { fetchAsset, fetchCollection, transfer } from '@metaplex-foundation/mpl-core';
 import { Client } from 'xrpl';
 import { getPaidToday } from '../../../src/xrpl';
@@ -137,6 +137,16 @@ export class Chains {
     return loadKeypairFile(umi, `.keys/${name}.json`).publicKey.toString();
   }
 
+  /** Make a brand new Solana wallet. Its secret key exists only in memory and is never saved.
+
+  Returns:
+      { address: string; keypair: Keypair }: The public address and the in-memory key.
+  */
+  newSolanaWallet(): { address: string; keypair: Keypair } {
+    const keypair = getSolanaClient().eddsa.generateKeypair();
+    return { address: keypair.publicKey.toString(), keypair };
+  }
+
   /** SOL balance of the issuer wallet, which pays mint fees. */
   async issuerSol(): Promise<number> {
     const umi = getSolanaClient();
@@ -148,8 +158,8 @@ export class Chains {
 
   Args:
       assetAddress (string): The stamp's asset address.
-      ownerKey (string): Keypair name of the stamp's owner, such as demo-2.
-      newOwnerKey (string): Keypair name of the wallet to send it to.
+      owner (Keypair): The stamp owner's key, held in memory.
+      newOwnerKey (string): Keypair name of the saved wallet to send it to.
 
   Returns:
       Promise<{ rejected: boolean; error: string; ownerAfter: string; ownerBefore: string }>:
@@ -157,11 +167,11 @@ export class Chains {
   */
   async tryTransfer(
     assetAddress: string,
-    ownerKey: string,
+    owner: Keypair,
     newOwnerKey: string
   ): Promise<{ rejected: boolean; error: string; ownerAfter: string; ownerBefore: string }> {
     const umi = getSolanaClient();
-    const owner = createSignerFromKeypair(umi, loadKeypairFile(umi, `.keys/${ownerKey}.json`));
+    const ownerSigner = createSignerFromKeypair(umi, owner);
     const newOwner = loadKeypairFile(umi, `.keys/${newOwnerKey}.json`).publicKey;
 
     const asset = await fetchAsset(umi, assetAddress);
@@ -173,7 +183,7 @@ export class Chains {
 
     let error = '';
     try {
-      await transfer(umi, { asset, collection, newOwner, authority: owner }).sendAndConfirm(umi);
+      await transfer(umi, { asset, collection, newOwner, authority: ownerSigner }).sendAndConfirm(umi);
     } catch (caught) {
       error = (caught as Error).message.split('\n')[0];
     }
