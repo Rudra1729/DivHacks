@@ -31,4 +31,44 @@ describe('GET /metadata/:decisionId', () => {
     });
     expect(response.body.image).toBeTruthy();
   });
+
+  it('shows the serial, tier, and what is left at the place', async () => {
+    createDecision(db, 'dec-1', 'apollo-theater', 'OK');
+    updateDecision(db, 'dec-1', { stampSerial: 1, stampTier: 'Legendary' });
+    createDecision(db, 'dec-2', 'apollo-theater', 'OK');
+    updateDecision(db, 'dec-2', { stampSerial: 2, stampTier: 'Legendary' });
+
+    const response = await request(app).get('/metadata/dec-1');
+    expect(response.body).toMatchObject({
+      name: 'Apollo Theater #1',
+      serial: 1,
+      tier: 'Legendary',
+      supply: 1000,
+      stampsFoundAtPlace: 2,
+      remainingAtPlace: 998,
+      foundOut: false,
+    });
+    expect(response.body.attributes).toEqual(
+      expect.arrayContaining([
+        { trait_type: 'Tier', value: 'Legendary' },
+        { trait_type: 'Serial', value: '1 of 1000' },
+      ])
+    );
+  });
+
+  it('marks a place found out once all numbered stamps are taken', async () => {
+    createDecision(db, 'dec-late', 'apollo-theater', 'OK');
+    updateDecision(db, 'dec-late', { stampSerial: 1001, stampTier: 'Late Explorer' });
+
+    const response = await request(app).get('/metadata/dec-late');
+    expect(response.body).toMatchObject({ tier: 'Late Explorer', remainingAtPlace: 0, foundOut: true });
+  });
+
+  it('leaves serial and tier empty for stamps minted before rarity', async () => {
+    createDecision(db, 'dec-old', 'apollo-theater', 'OK');
+
+    const response = await request(app).get('/metadata/dec-old');
+    expect(response.body).toMatchObject({ name: 'Apollo Theater', serial: null, tier: null });
+    expect(response.body.attributes).toHaveLength(2);
+  });
 });
