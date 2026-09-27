@@ -24,7 +24,7 @@ import { amountProblem, formatAmount, startOfUtcDay } from './amount';
 import { getClient, readAssetBalance } from './client';
 import { loadXrplConfig, XrplConfig } from './config';
 import { SerialQueue } from './queue';
-import { PaymentService, SendPaymentInput, SendPaymentResult } from './types';
+import { SendPaymentInput, SendPaymentResult, XrplService } from './types';
 
 const POLL_INTERVAL_MS = 1000;
 const CONFIRM_TIMEOUT_MS = 60_000;
@@ -141,7 +141,7 @@ Attributes:
     attempts (Map<string, Promise<SendPaymentResult>>): Latest attempt per decision ID.
     lastLedgers (Map<string, number>): LastLedgerSequence of submitted payments, per decision ID.
 */
-export class RealPaymentService implements PaymentService {
+export class RealPaymentService implements XrplService {
   private queue = new SerialQueue();
   private attempts = new Map<string, Promise<SendPaymentResult>>();
   private lastLedgers = new Map<string, number>();
@@ -274,6 +274,15 @@ export class RealPaymentService implements PaymentService {
     } catch {
       return previous;
     }
+  }
+
+  /** Address of the agent wallet that sends every payment.
+
+  Returns:
+      string: The agent address derived from AGENT_SEED.
+  */
+  getAgentAddress(): string {
+    return loadXrplConfig().agentAddress;
   }
 
   /** Read a wallet's RLUSD balance from the validated ledger.
