@@ -48,7 +48,7 @@ export function buildTestApp(
 
   const solana = deps.solana ?? new FakeStampService();
   const orchestrator = new Orchestrator({
-    sentinel: new RealSentinel(db, solana),
+    sentinel: new RealSentinel(db, solana, { locationChecks: config.locationChecks }),
     agent: new BaseRewardAgent(),
     xrpl: new FakePaymentService(),
     solana,

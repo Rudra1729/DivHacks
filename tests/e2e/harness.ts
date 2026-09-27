@@ -18,7 +18,9 @@ import { FakeStampService } from '../../src/solana/fakeStamps';
 import { FakePaymentService } from '../../src/xrpl/fakePayments';
 import { SendPaymentInput, SendPaymentResult } from '../../src/xrpl/types';
 import { disablePolicyBypass } from '../../src/testMode/attackFlag';
+import { LocationSample } from '../../src/orchestrator/types';
 import { buildTestApp } from '../testHelpers/buildTestApp';
+import { endOf, realisticTrail } from '../testHelpers/locationTrail';
 
 const BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
@@ -108,15 +110,20 @@ Args:
     options.isTestMode (boolean): Whether test-only routes are mounted.
     options.solana (FakeStampService): Reuse an existing stamp store, so a second
         stack with a brand new database can see stamps from an earlier one.
+    options.locationChecks (boolean): Run Sentinel's location plausibility
+        checks. Defaults to true. Suites that move one user between places
+        in milliseconds turn them off, since the travel check would block that.
 
 Returns:
     E2eStack: The app plus handles to inspect the fakes and the database.
 */
-export function buildE2eStack(options: { isTestMode?: boolean; solana?: FakeStampService } = {}): E2eStack {
+export function buildE2eStack(
+  options: { isTestMode?: boolean; solana?: FakeStampService; locationChecks?: boolean } = {}
+): E2eStack {
   const xrpl = new SlowXrpl();
   const solana = options.solana ?? new FakeStampService();
   const { app, db } = buildTestApp(
-    { isTestMode: options.isTestMode ?? true },
+    { isTestMode: options.isTestMode ?? true, locationChecks: options.locationChecks ?? true },
     { agent: new ScriptedAgent(), xrpl, solana }
   );
   return { app, db, xrpl, solana };
@@ -142,6 +149,10 @@ export interface SubmitOptions {
   /** Wallet overrides, for mixing one user's wallets with another's. */
   xrplAddress?: string;
   solanaAddress?: string;
+  /** GPS trail to send. Defaults to a realistic phone trail near the place. */
+  trail?: LocationSample[] | null;
+  /** Location to submit. Defaults to the last reading of the trail. */
+  location?: { latitude: number; longitude: number };
 }
 
 /** Submit a fresh, valid mission for a user at a place.
@@ -149,19 +160,23 @@ export interface SubmitOptions {
 Args:
     app (Express): The app under test.
     user (TestUser): Who is submitting.
-    at (Place): Where they are. Their location is exactly the place's pin.
-    options (SubmitOptions): Caption, photo, request ID, or wallet overrides.
+    at (Place): Where they are. They send a realistic GPS trail a few meters
+        from the place's pin, ending at the location they submit.
+    options (SubmitOptions): Caption, photo, request ID, wallet, trail, or
+        location overrides. A null trail sends none.
 
 Returns:
     request.Test: The pending supertest request, resolve it with await.
 */
 export function submit(app: Express, user: TestUser, at: Place, options: SubmitOptions = {}): request.Test {
   photoCounter += 1;
+  const trail = options.trail === undefined ? realisticTrail(at) : options.trail;
+  const location = options.location ?? (trail && trail.length > 0 ? endOf(trail) : at);
   const req = request(app)
     .post('/submissions')
     .field('placeId', at.id)
-    .field('latitude', String(at.latitude))
-    .field('longitude', String(at.longitude))
+    .field('latitude', String(location.latitude))
+    .field('longitude', String(location.longitude))
     .field('timestamp', new Date().toISOString())
     .field('xrplAddress', options.xrplAddress ?? user.xrpl)
     .field('solanaAddress', options.solanaAddress ?? user.solana)
@@ -169,6 +184,9 @@ export function submit(app: Express, user: TestUser, at: Place, options: SubmitO
       filename: 'photo.jpg',
       contentType: 'image/jpeg',
     });
+  if (trail) {
+    req.field('locationTrail', JSON.stringify(trail));
+  }
   if (options.caption) {
     req.field('caption', options.caption);
   }
