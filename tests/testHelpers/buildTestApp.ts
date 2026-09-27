@@ -47,16 +47,17 @@ export function buildTestApp(
   const db = openDatabase(':memory:');
 
   const solana = deps.solana ?? new FakeStampService();
+  const xrpl = deps.xrpl ?? new FakePaymentService();
   const orchestrator = new Orchestrator({
     sentinel: new RealSentinel(db, solana),
     agent: new BaseRewardAgent(),
-    xrpl: new FakePaymentService(),
+    xrpl,
     solana,
     storage: new SqliteStorage(db),
     isTestMode: config.isTestMode,
     ...deps,
   });
 
-  const app = createApp(config, db, orchestrator);
+  const app = createApp(config, db, orchestrator, xrpl);
   return { app, db, orchestrator };
 }
