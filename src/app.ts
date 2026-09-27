@@ -62,7 +62,8 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
   }
 
   // Serve the web app too, so one server runs everything at http://localhost:PORT/.
-  app.use(express.static(FRONTEND_DIR));
+  // no-cache makes browsers revalidate (cheap, via ETag) instead of running stale files.
+  app.use(express.static(FRONTEND_DIR, { setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache') }));
 
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (err instanceof multer.MulterError) {
