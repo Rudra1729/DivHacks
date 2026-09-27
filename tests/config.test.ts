@@ -19,4 +19,12 @@ describe('loadConfig', () => {
     const config = loadConfig();
     expect(config.port).toBeGreaterThan(0);
   });
+
+  it('reads Grok settings from the environment', () => {
+    process.env.GROK_API_KEY = 'xai-test';
+    process.env.GROK_MODEL = 'grok-test';
+    const config = loadConfig();
+    expect(config.grokApiKey).toBe('xai-test');
+    expect(config.grokModel).toBe('grok-test');
+  });
 });
