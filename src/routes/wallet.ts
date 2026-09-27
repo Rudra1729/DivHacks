@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 import { requireAuth } from '../auth/middleware';
 import { getStamps } from '../integrations/solana';
 import { XrplService } from '../xrpl/types';
+import { asyncHandler } from './asyncHandler';
 
 /** Build the /me router.
 
@@ -22,15 +23,15 @@ export function createWalletRouter(db: Database.Database, xrpl: XrplService): Ro
   const router = Router();
   const auth = requireAuth(db);
 
-  router.get('/me/nft', auth, async (req, res) => {
+  router.get('/me/nft', auth, asyncHandler(async (req, res) => {
     const stamps = await getStamps(req.user!.solanaAddress);
     res.status(200).json({ solanaAddress: req.user!.solanaAddress, stamps });
-  });
+  }));
 
-  router.get('/me/rlusd-balance', auth, async (req, res) => {
+  router.get('/me/rlusd-balance', auth, asyncHandler(async (req, res) => {
     const balance = await xrpl.getRlusdBalance(req.user!.xrplAddress);
     res.status(200).json({ xrplAddress: req.user!.xrplAddress, balance });
-  });
+  }));
 
   return router;
 }
