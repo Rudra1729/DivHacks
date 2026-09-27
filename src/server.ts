@@ -1,9 +1,8 @@
 /**HTTP entry point. Loads config, wires the orchestrator's dependencies,
 and starts listening.
 
-XRPL is still the in-memory fake: Tanish's real client isn't merged yet.
-Swap FakeXrpl for the real XrplClient here once it lands, nothing else in
-this file or the orchestrator needs to change.
+XRPL and Solana each pick their implementation from config: XRPL_MODE and
+SOLANA_MODE, both 'fake' by default, so the server runs with no keys.
 */
 
 import { createApp } from './app';
@@ -13,7 +12,7 @@ import { Orchestrator } from './orchestrator/orchestrator';
 import { RealSentinel } from './sentinel/realSentinel';
 import { SqliteStorage } from './storage/sqliteStorage';
 import { GrokAgent } from './agent/grok';
-import { FakeXrpl } from './xrpl/fakeXrpl';
+import { xrplService } from './xrpl';
 import { solanaStamps } from './solana';
 
 const config = loadConfig();
@@ -26,7 +25,7 @@ const orchestrator = new Orchestrator({
     model: config.grokModel,
     endpoint: config.grokEndpoint,
   }),
-  xrpl: new FakeXrpl(10),
+  xrpl: xrplService,
   solana: solanaStamps,
   storage: new SqliteStorage(db),
   isTestMode: config.isTestMode,
