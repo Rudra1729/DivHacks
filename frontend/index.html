@@ -17,6 +17,8 @@
   <!-- Three.js CDN for Interactive 3D Spider-Man -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   
+  <!-- Leaflet: open-source map library, no API key needed -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="spidey-theme">
@@ -249,9 +251,14 @@
     </div>
 
     <div class="web-map-wrapper">
-      <!-- CANVAS SPIDERWEB GRAPH -->
+      <!-- REAL NYC MAP (Leaflet + CARTO dark tiles) -->
       <div class="canvas-container">
-        <canvas id="spiderwebCanvas" width="900" height="550"></canvas>
+        <div id="realMap" aria-label="Map of Harlem and Morningside Heights missions"></div>
+        <div class="map-legend">
+          <span><i class="legend-dot unexplored"></i> Unexplored</span>
+          <span><i class="legend-dot explored"></i> Explored</span>
+          <span><i class="legend-ring"></i> Geofence</span>
+        </div>
         <div class="canvas-overlay-controls">
           <button class="comic-icon-btn" id="resetWebBtn" title="Reset Web Progress"><i data-lucide="rotate-ccw"></i> Reset Web</button>
           <button class="comic-icon-btn" id="unlockAllBtn" title="THWIP Unlock All"><i data-lucide="sparkles"></i> THWIP All!</button>
@@ -513,6 +520,8 @@
     </div>
   </footer>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="map.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

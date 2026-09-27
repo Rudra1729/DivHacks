@@ -808,10 +808,15 @@ body.spidey-theme {
   height: 550px;
 }
 
-#spiderwebCanvas {
+#realMap {
   width: 100%;
   height: 100%;
-  display: block;
+  background: #0A0D14;
+}
+
+/* Turn the light OpenStreetMap tiles into a dark map. Markers and circles sit in other panes, so they keep their colors. */
+#realMap .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.7);
 }
 
 .canvas-overlay-controls {
@@ -820,7 +825,66 @@ body.spidey-theme {
   right: 15px;
   display: flex;
   gap: 0.5rem;
+  z-index: 1000;
 }
+
+.map-error {
+  color: #ccc;
+  padding: 2rem;
+  text-align: center;
+}
+
+/* Legend, bottom left of the map */
+.map-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 1000;
+  display: flex;
+  gap: 0.9rem;
+  padding: 0.4rem 0.7rem;
+  background: rgba(10, 13, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #ddd;
+  font-size: 0.75rem;
+}
+.map-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.legend-dot.unexplored { background: #2A2D34; border: 2px solid #777; }
+.legend-dot.explored { background: #E52421; border: 2px solid #121212; box-shadow: 0 0 6px #E52421; }
+.legend-ring { width: 12px; height: 12px; border-radius: 50%; border: 1px dashed #8a8f99; display: inline-block; }
+
+/* Place markers. Grey until the place is explored, then red with a cyan core. */
+.leaflet-container { font-family: 'Outfit', sans-serif; }
+.place-marker { position: relative; width: 44px; height: 44px; cursor: pointer; }
+.place-marker .halo {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 3px solid transparent; transition: border-color 0.2s;
+}
+.place-marker .dot {
+  position: absolute; left: 8px; top: 8px; width: 28px; height: 28px; border-radius: 50%;
+  background: #2A2D34; border: 3px solid #121212; box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+.place-marker .core { width: 10px; height: 10px; border-radius: 50%; background: #777; transition: background 0.3s; }
+.place-marker.selected .halo { border-color: #FFCC00; }
+.place-marker.discovered .dot { background: #E52421; box-shadow: 0 0 14px #E52421; }
+.place-marker.discovered .core { background: #00F0FF; }
+
+.leaflet-tooltip.place-label {
+  background: rgba(10, 13, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cfcfcf;
+  font-size: 12px;
+  box-shadow: none;
+}
+.leaflet-tooltip.place-label.discovered { color: #fff; border-color: #E52421; }
+.leaflet-tooltip-bottom.place-label::before { border-bottom-color: rgba(255, 255, 255, 0.15); }
+
+.leaflet-control-attribution { background: rgba(10, 13, 20, 0.8) !important; color: #aaa !important; }
+.leaflet-control-attribution a { color: #ccc !important; }
 
 .comic-icon-btn {
   font-family: var(--font-comic);
