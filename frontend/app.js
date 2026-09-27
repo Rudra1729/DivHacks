@@ -805,8 +805,8 @@ function addSimLog(msg, type = 'info') {
 
 // Final decision events from GET /events, with how the ticker labels them.
 const TICKER_LABELS = {
-  'decision.ok': ['THWIP!', 'highlight-yellow', 'A visit was verified: RLUSD paid and a soulbound stamp minted'],
-  'decision.stamp_failed': ['STAMP QUEUED', 'highlight-cyan', 'A visit was paid; its stamp will be minted on retry'],
+  'decision.ok': ['THWIP!', 'highlight-yellow', 'A visit was verified and a soulbound stamp minted'],
+  'decision.stamp_failed': ['STAMP QUEUED', 'highlight-cyan', 'A visit was verified; its stamp will be minted on retry'],
   'decision.payment_unconfirmed': ['CONFIRMING', 'highlight-cyan', 'A payment is waiting for the XRPL ledger'],
   'decision.blocked_sentinel': ['SNAG!', 'highlight-red'],
   'decision.blocked_policy': ['GUARDRAIL HELD!', 'highlight-red'],
