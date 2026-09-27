@@ -31,6 +31,9 @@ export interface Place {
   /** Solana collection address for this place's neighborhood. */
   collectionAddress: string;
   imageUrl: string;
+  /** Cultural visits earn only a stamp unless cultural rewards are on.
+      Civic bounties, and places with no kind, always pay RLUSD. */
+  kind?: 'cultural' | 'civic';
 }
 
 /** One GPS reading taken by the phone while the camera was open. */

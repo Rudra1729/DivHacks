@@ -33,6 +33,9 @@ export interface OrchestratorDeps {
   isTestMode: boolean;
   /** REWARD_SCALE. The policy caps shrink by the same factor. Defaults to 1. */
   rewardScale?: number;
+  /** Pay RLUSD for cultural visits too. Off (the default) mints the stamp
+      and skips the agent, policy, and XRPL steps for cultural places. */
+  culturalRewards?: boolean;
   /** How often to re-check an unconfirmed payment before giving up for now. */
   unconfirmedRecheck?: { attempts: number; delayMs: number };
 }
@@ -109,6 +112,12 @@ export class Orchestrator {
     });
     trail.add('claim', true, 'claim marked pending');
 
+    if (place.kind === 'cultural' && !this.deps.culturalRewards) {
+      trail.add('agent', true, 'cultural visit: stamp only, no RLUSD reward is proposed or paid');
+      await storage.updateClaimStatus(decisionId, 'paid');
+      return this.stamp(input, decisionId, [], trail, {});
+    }
+
     const bypass = options.bypassPolicy === true && this.deps.isTestMode;
     const notes = bypass ? [BYPASS_NOTE] : [];
 
@@ -169,7 +178,7 @@ export class Orchestrator {
     notes: string[],
     trail: AuditTrail
   ): Promise<DecisionResult> {
-    const { solana, storage } = this.deps;
+    const { storage } = this.deps;
 
     const payment = await this.pay(decisionId, proposal);
     if (!payment.ok) {
@@ -211,11 +220,37 @@ export class Orchestrator {
     trail.add('xrpl', true, `paid ${proposal.amount} RLUSD to ${proposal.recipient}, transaction ${payment.txHash}`);
     await storage.updateClaimStatus(decisionId, 'paid');
 
+    return this.stamp(input, decisionId, notes, trail, { proposal, policyVersion, xrplTxHash: payment.txHash });
+  }
+
+  /** Mint the visit's stamp and save the decision. A failed mint is queued
+      for retry and saved as STAMP_FAILED.
+
+  Args:
+      input (SubmissionInput): The submission being settled.
+      decisionId (string): The decision's ID.
+      notes (string[]): Reasons to carry on the saved decision.
+      trail (AuditTrail): History to save with the decision.
+      paid (object): proposal, policyVersion, and xrplTxHash of the payment
+          for this visit. Empty for a stamp-only cultural visit.
+
+  Returns:
+      DecisionResult: The saved decision, OK or STAMP_FAILED.
+  */
+  private async stamp(
+    input: SubmissionInput,
+    decisionId: string,
+    notes: string[],
+    trail: AuditTrail,
+    paid: { proposal?: AgentProposal; policyVersion?: string; xrplTxHash?: string }
+  ): Promise<DecisionResult> {
+    const { solana, storage } = this.deps;
+
     const mintInput: MintStampInput = {
       decisionId,
       placeId: input.placeId,
       userSolanaAddress: input.solanaAddress,
-      xrplTxHash: payment.txHash,
+      xrplTxHash: paid.xrplTxHash ?? '',
     };
     let mint: MintStampResult;
     try {
@@ -230,9 +265,7 @@ export class Orchestrator {
       return this.save(input, decisionId, {
         status: 'STAMP_FAILED',
         reasons: [...notes, `stamp mint failed, queued for retry: ${mint.error}`],
-        proposal,
-        policyVersion,
-        xrplTxHash: payment.txHash,
+        ...paid,
         stampFailed: true,
       }, trail);
     }
@@ -241,9 +274,7 @@ export class Orchestrator {
     return this.save(input, decisionId, {
       status: 'OK',
       reasons: notes,
-      proposal,
-      policyVersion,
-      xrplTxHash: payment.txHash,
+      ...paid,
       solanaAssetAddress: mint.assetAddress,
       solanaSignature: mint.signature,
       stampSerial: mint.serial,

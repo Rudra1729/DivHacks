@@ -45,6 +45,7 @@ export function toPlace(placeId: string): Place | undefined {
     baseReward: place.baseRewardRlusd,
     collectionAddress: place.solanaCollectionAddress ?? '',
     imageUrl: place.imageUrl,
+    kind: place.kind,
   };
 }
 

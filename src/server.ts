@@ -32,6 +32,7 @@ const orchestrator = new Orchestrator({
   storage: new SqliteStorage(db),
   isTestMode: config.isTestMode,
   rewardScale: config.rewardScale,
+  culturalRewards: config.culturalRewards,
 });
 
 const app = createApp(config, db, orchestrator);

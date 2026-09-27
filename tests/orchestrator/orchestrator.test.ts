@@ -44,10 +44,12 @@ function build(overrides: {
   xrpl?: FakePaymentService;
   recheck?: { attempts: number; delayMs: number };
   rewardScale?: number;
+  place?: Place;
+  culturalRewards?: boolean;
 } = {}) {
   const xrpl = overrides.xrpl ?? new FakePaymentService();
   const solana = new FakeStampService();
-  const storage = new FakeStorage([place]);
+  const storage = new FakeStorage([overrides.place ?? place]);
   const agent = overrides.agent ?? stubAgent(goodProposal);
   const orchestrator = new Orchestrator({
     sentinel: overrides.sentinel ?? new FakeSentinel(),
@@ -57,6 +59,7 @@ function build(overrides: {
     storage,
     isTestMode: overrides.isTestMode ?? true,
     rewardScale: overrides.rewardScale,
+    culturalRewards: overrides.culturalRewards,
     unconfirmedRecheck: overrides.recheck ?? { attempts: 2, delayMs: 0 },
   });
   return { orchestrator, xrpl, solana, storage, agent };
@@ -82,6 +85,42 @@ describe('Orchestrator', () => {
 
       expect(storage.getClaims()[0]).toMatchObject({ decisionId: result.decisionId, status: 'paid' });
       expect(await storage.getDecisionByRequestId('req-1')).toEqual(result);
+    });
+  });
+
+  describe('cultural places', () => {
+    const cultural: Place = { ...place, kind: 'cultural' };
+
+    it('mints the stamp without asking the agent or paying anything', async () => {
+      const { orchestrator, xrpl, solana, storage, agent } = build({ place: cultural });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('OK');
+      expect(result.proposal).toBeUndefined();
+      expect(result.xrplTxHash).toBeUndefined();
+      expect(result.solanaAssetAddress).toBeDefined();
+      expect(agent.propose).not.toHaveBeenCalled();
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(0);
+
+      const [stamp] = await solana.getStamps('solUser');
+      expect(stamp.decisionId).toBe(result.decisionId);
+      expect(stamp.xrplTxHash).toBe('');
+      expect(storage.getClaims()[0].status).toBe('paid');
+    });
+
+    it('pays as usual when cultural rewards are on', async () => {
+      const { orchestrator, xrpl } = build({ place: cultural, culturalRewards: true });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('OK');
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
+    });
+
+    it('always pays at a civic bounty', async () => {
+      const { orchestrator, xrpl } = build({ place: { ...place, kind: 'civic' } });
+      await orchestrator.runSubmission(submission);
+
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(2);
     });
   });
 
