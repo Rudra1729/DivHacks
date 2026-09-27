@@ -23,6 +23,7 @@
     "xrpl:recycle": "tsx scripts/xrpl/recycle.ts",
     "grok:try": "tsx --env-file=.env scripts/grok/try.ts",
     "missions:refresh": "tsx --env-file=.env scripts/missions/refresh.ts",
+    "reset:user": "tsx --env-file=.env scripts/reset-user.ts",
     "guardian": "tsx --env-file=.env.guardian guardian/index.ts",
     "guardian:once": "tsx --env-file=.env.guardian guardian/index.ts --once"
   },
