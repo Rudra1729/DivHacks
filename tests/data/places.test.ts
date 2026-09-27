@@ -11,7 +11,7 @@ import { collectionForPlace } from '../../src/solana/places';
 const REFERENCE: Record<string, [number, number]> = {
   'apollo-theater': [40.80993, -73.95011],
   'studio-museum-harlem': [40.80829, -73.94769],
-  'marcus-garvey-park': [40.80417, -73.94333],
+  'butler-library': [40.806389, -73.963333],
   'hamilton-grange': [40.82139, -73.94722],
   'malcolm-shabazz-market': [40.80147, -73.94886],
   'morningside-park': [40.8062, -73.9586],

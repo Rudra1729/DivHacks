@@ -209,6 +209,19 @@ function addGeofenceCircle(place) {
   return circle;
 }
 
+/** Take a place's pin and geofence circle off the map, closing its card if it is open.
+
+Args:
+    placeId (string): The place to remove.
+*/
+function removePlaceMarker(placeId) {
+  if (pinnedPlaceId === placeId || (selectedNodeId === placeId && isCardOpen())) closeCard();
+  placeMarkers.get(placeId)?.remove();
+  placeMarkers.delete(placeId);
+  geofenceCircles.get(placeId)?.remove();
+  geofenceCircles.delete(placeId);
+}
+
 /** Whether this browser can draw the vector map, which needs WebGL. */
 function webglAvailable() {
   try {

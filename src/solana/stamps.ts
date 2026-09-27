@@ -23,7 +23,7 @@ import { getSolanaClient } from './client';
 import { SolanaConfig, loadSolanaConfig } from './config';
 import { mintQueue, withOneRetry } from './mintQueue';
 import { StampPlace, collectionForPlace, findPlace } from './places';
-import { STAMP_SUPPLY_PER_PLACE, tierForSerial } from './rarity';
+import { STAMP_SUPPLY_PER_PLACE, isStampTier, tierForPlace, tierForSerial } from './rarity';
 import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 
 const MAX_NAME_LENGTH = 32;
@@ -167,7 +167,7 @@ export function mintStampForPlace(input: MintStampInput, place: StampPlace): Pro
       const owner = parseAddress(input.userSolanaAddress, 'Solana address');
       const collection = parseAddress(collectionForPlace(config, place), 'collection address');
       const serial = await nextSerial(umi, collection, place.id);
-      const tier = tierForSerial(serial);
+      const tier = tierForPlace(place, serial);
       const asset = generateSigner(umi);
       let signature = '';
 
@@ -241,6 +241,7 @@ function toStamp(asset: AssetV1): Stamp {
     (asset.attributes?.attributeList ?? []).map((attribute) => [attribute.key, attribute.value])
   );
   const serial = parseSerial(attributes.get('serial'));
+  const tierAttribute = attributes.get('tier');
   return {
     assetAddress: asset.publicKey,
     owner: asset.owner,
@@ -252,7 +253,7 @@ function toStamp(asset: AssetV1): Stamp {
     decisionId: attributes.get('decisionId') ?? '',
     xrplTxHash: attributes.get('xrplTxHash') ?? '',
     serial,
-    tier: serial === null ? null : tierForSerial(serial),
+    tier: isStampTier(tierAttribute) ? tierAttribute : serial === null ? null : tierForSerial(serial),
   };
 }
 
