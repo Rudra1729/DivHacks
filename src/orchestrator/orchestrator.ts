@@ -146,7 +146,7 @@ export class Orchestrator {
       trail.add('solvency', true, `agent wallet holds ${solvency.balance} RLUSD, enough to cover the ${reward} RLUSD reward`);
     }
 
-    const verification = await sentinel.verify(input, place);
+    const verification = await sentinel.verify(input, place, decisionId);
     if (!verification.ok) {
       trail.addAll('sentinel', false, verification.failures);
       return this.save(input, decisionId, {

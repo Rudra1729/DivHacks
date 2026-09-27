@@ -36,6 +36,7 @@ npm run test:e2e # end-to-end tests only
 npm run grok:try # try the Grok agent against the real API (needs GROK_API_KEY in .env)
 npm run missions:refresh # ask Grok for new overlooked NYC missions, add them to GET /places
 npm run db:reset # delete your local SQLite file (see note below)
+npm run reset:user -- you@example.com # let one account do every place again
 ```
 
 The server reads settings from `.env` in the folder it runs from.
@@ -68,6 +69,17 @@ Photo check: with `GROK_API_KEY` set, Grok's vision model looks at every photo
 and blocks the visit (`BLOCKED_PHOTO`) unless it is confident the photo shows
 the place. Nothing is claimed or paid before this check. Photos must be JPEG
 or PNG. `PHOTO_CHECK=off` turns it off and `PHOTO_MIN_CONFIDENCE` sets the bar.
+
+Testing again: each place can be done once per account, and stamps are
+soulbound, so they can never be deleted from a wallet. To let one account
+start over, run `npm run reset:user -- you@example.com`. It deletes that
+account's visits, claims, audit history, GPS points and the fingerprints of
+photos it used, and gives it a fresh Solana wallet. The old stamps stay on the
+old wallet, and the XRPL wallet and RLUSD balance are kept. It works while the
+server is running, and the page switches to the new wallet on its next
+refresh. A photo that Grok rejected is not linked to an account, so it stays
+blocked as a reused photo; use a new photo instead. `npm run db:reset` wipes
+every account instead.
 
 The page talks to the server it was loaded from. To point it at another
 server, add `?api=http://host:port` to the URL.

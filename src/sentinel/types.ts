@@ -13,5 +13,17 @@ export type SentinelResult =
   | { ok: false; failures: string[] };
 
 export interface Sentinel {
-  verify(input: SubmissionInput, place: Place): Promise<SentinelResult>;
+  /** Check a submission.
+
+  Args:
+      input (SubmissionInput): The submission.
+      place (Place): The place being claimed.
+      decisionId (string): The decision this submission will be saved as, so
+          anything recorded along the way (such as the photo fingerprint) can be
+          traced back to it.
+
+  Returns:
+      Promise<SentinelResult>: Pass, or every failed check.
+  */
+  verify(input: SubmissionInput, place: Place, decisionId?: string): Promise<SentinelResult>;
 }
