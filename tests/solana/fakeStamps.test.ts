@@ -1,7 +1,7 @@
 /**Tests for the fake stamp service and the SOLANA_MODE switch.*/
 
 import { FakeStampService, fakeStampService } from '../../src/solana/fakeStamps';
-import { getStamps, hasStampForPlace, mintStamp } from '../../src/solana';
+import { getStamps, hasStampForPlace, mintStamp, solanaStamps } from '../../src/solana';
 
 const input = {
   decisionId: 'dec-1',
@@ -54,5 +54,11 @@ describe('fake stamps', () => {
 
     solana.setFailMints(false);
     expect((await solana.mintStamp(input)).ok).toBe(true);
+  });
+
+  it('exposes the same functions as an injectable solanaStamps object', async () => {
+    expect((await solanaStamps.mintStamp(input)).ok).toBe(true);
+    expect(await solanaStamps.hasStampForPlace('user-wallet', 'apollo-theater')).toBe(true);
+    expect(await solanaStamps.getStamps('user-wallet')).toHaveLength(1);
   });
 });
