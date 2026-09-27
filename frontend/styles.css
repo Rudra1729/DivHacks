@@ -814,11 +814,6 @@ body.spidey-theme {
   background: #0A0D14;
 }
 
-/* Turn the light OpenStreetMap tiles into a dark map. Markers and circles sit in other panes, so they keep their colors. */
-#realMap .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.7);
-}
-
 .canvas-overlay-controls {
   position: absolute;
   top: 15px;
@@ -883,8 +878,14 @@ body.spidey-theme {
 .leaflet-tooltip.place-label.discovered { color: #fff; border-color: #E52421; }
 .leaflet-tooltip-bottom.place-label::before { border-bottom-color: rgba(255, 255, 255, 0.15); }
 
-.leaflet-control-attribution { background: rgba(10, 13, 20, 0.8) !important; color: #aaa !important; }
-.leaflet-control-attribution a { color: #ccc !important; }
+/* Base map switcher (Streets / Satellite / Classic) in the comic style */
+.leaflet-control-layers {
+  border: 2px solid #121212 !important;
+  border-radius: 8px !important;
+  box-shadow: 2px 2px 0 #121212 !important;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+}
 
 .comic-icon-btn {
   font-family: var(--font-comic);
