@@ -87,6 +87,17 @@ export const PLACES: Place[] = [
     solanaCollectionAddress: null,
     imageUrl: 'https://placehold.co/600x600/png?text=morningside+park',
   },
+  {
+    id: 'mudd-building',
+    name: 'Seeley W. Mudd Building',
+    neighborhood: 'Morningside Heights',
+    latitude: 40.81005,
+    longitude: -73.96030,
+    geofenceRadiusMeters: 200,
+    baseRewardRlusd: 1,
+    solanaCollectionAddress: null,
+    imageUrl: 'https://placehold.co/600x600/png?text=mudd+building',
+  },
 ];
 
 /** Look up a place by ID.

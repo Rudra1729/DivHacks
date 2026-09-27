@@ -4,7 +4,8 @@ import { collectionForPlace } from '../../src/solana/places';
 
 /**
  * Independent reference coordinates, from OpenStreetMap and Wikidata.
- * Malcolm Shabazz Harlem Market has an OpenStreetMap entry only.
+ * Malcolm Shabazz Harlem Market has an OpenStreetMap entry only. The Mudd
+ * building reference is its street corner, 120th Street and Amsterdam Avenue.
  */
 const REFERENCE: Record<string, [number, number]> = {
   'apollo-theater': [40.80993, -73.95011],
@@ -13,6 +14,7 @@ const REFERENCE: Record<string, [number, number]> = {
   'hamilton-grange': [40.82139, -73.94722],
   'malcolm-shabazz-market': [40.80147, -73.94886],
   'morningside-park': [40.8062, -73.9586],
+  'mudd-building': [40.810807, -73.959811],
 };
 
 function metersBetween(aLat: number, aLon: number, bLat: number, bLon: number): number {
@@ -22,8 +24,8 @@ function metersBetween(aLat: number, aLon: number, bLat: number, bLon: number): 
 }
 
 describe('PLACES', () => {
-  it('has the 6 places the PRD calls for', () => {
-    expect(PLACES).toHaveLength(6);
+  it('has the 6 places the PRD calls for, plus the Mudd building for on-site testing', () => {
+    expect(PLACES).toHaveLength(7);
   });
 
   it('gives every place a unique ID', () => {

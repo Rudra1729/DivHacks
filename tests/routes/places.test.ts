@@ -6,7 +6,7 @@ describe('GET /places', () => {
     const { app } = buildTestApp();
     const response = await request(app).get('/places');
     expect(response.status).toBe(200);
-    expect(response.body.places.length).toBe(6);
+    expect(response.body.places.length).toBe(7);
     expect(response.body.places[0]).toHaveProperty('id');
     expect(response.body.places[0]).toHaveProperty('neighborhood');
   });
