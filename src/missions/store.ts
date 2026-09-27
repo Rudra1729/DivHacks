@@ -130,6 +130,9 @@ export function appendGeneratedMissions(
     return {
       id,
       name: candidate.name,
+      // Civic, not cultural, so a visit always pays: that is the whole point of a scouted mission,
+      // and cultural places pay 0 unless CULTURAL_REWARDS is on.
+      kind: 'civic',
       neighborhood: candidate.neighborhood,
       latitude: candidate.latitude,
       longitude: candidate.longitude,
@@ -138,6 +141,10 @@ export function appendGeneratedMissions(
       solanaCollectionAddress: null,
       imageUrl: `https://placehold.co/600x600/png?text=${encodeURIComponent(candidate.name)}`,
       description: candidate.description,
+      // No organization funds a scouted mission.
+      sponsor: null,
+      // Grok's photo check has nothing more specific to go on than its own description.
+      photoHint: candidate.description,
       generatedAt: now,
       reason: candidate.reason,
     };

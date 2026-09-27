@@ -5,6 +5,7 @@ import { MissionCandidate } from '../../src/missions/types';
 const APOLLO: Place = {
   id: 'apollo-theater',
   name: 'Apollo Theater',
+  kind: 'cultural',
   neighborhood: 'Harlem',
   latitude: 40.8102,
   longitude: -73.95,
@@ -12,6 +13,8 @@ const APOLLO: Place = {
   baseRewardRlusd: 1,
   solanaCollectionAddress: null,
   imageUrl: 'https://example.com/apollo.png',
+  sponsor: null,
+  photoHint: 'The Apollo Theater marquee.',
 };
 
 const candidate = (overrides: Partial<MissionCandidate> = {}): MissionCandidate => ({

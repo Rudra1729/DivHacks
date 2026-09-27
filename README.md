@@ -15,7 +15,7 @@ for commit/PR rules.
 - SQLite (`better-sqlite3`) for local storage
 - XRPL testnet (RLUSD payments)
 - Solana devnet (Metaplex Core soulbound stamps)
-- Grok (payout agent)
+- Grok (payout agent and independent payout reviewer)
 
 ## Getting started
 
@@ -40,6 +40,38 @@ npm run db:reset # delete your local SQLite file (see note below)
 
 The server reads settings from `.env` in the folder it runs from.
 
+## Run the full app
+
+The backend also serves the web app in `frontend/`, so one command runs
+everything:
+
+1. In `.env`, set `SESSION_SECRET` and `WALLET_ENCRYPTION_KEY` to long random
+   strings (`openssl rand -hex 32` works) and keep `EMAIL_MODE=fake`.
+2. Run `npm run dev` and open http://localhost:3000.
+3. Log in with any email. In fake email mode the six digit code is printed in
+   the server console (`[fake email] login code for ...`).
+4. Open a mission, take or upload a photo, and wait for the GPS trail
+   (5 readings over 10 seconds) before submitting.
+
+Away from Harlem, open http://localhost:3000/?demo=1 instead. It shows a
+"pretend my phone is standing at this place" checkbox that sends a simulated
+GPS trail near the place, so the whole flow can be demoed from a laptop.
+
+Rewards: cultural places (marked CULTURAL) earn only the Solana stamp, and
+civic bounties also pay RLUSD. `CULTURAL_REWARDS=on` makes cultural visits pay
+too. `REWARD_SCALE` shrinks every payout and the policy caps by the same
+factor, so `REWARD_SCALE=0.01` pays 0.01 RLUSD per civic visit and never more
+than 0.05 per visit or 0.10 per wallet per day. Each civic bounty names the
+local organization that sponsors it on its mission card and map card.
+
+Photo check: with `GROK_API_KEY` set, Grok's vision model looks at every photo
+and blocks the visit (`BLOCKED_PHOTO`) unless it is confident the photo shows
+the place. Nothing is claimed or paid before this check. Photos must be JPEG
+or PNG. `PHOTO_CHECK=off` turns it off and `PHOTO_MIN_CONFIDENCE` sets the bar.
+
+The page talks to the server it was loaded from. To point it at another
+server, add `?api=http://host:port` to the URL.
+
 ## Live checks and evidence
 
 `npm run live:check` starts a real server, sends real requests, and confirms the
@@ -58,7 +90,7 @@ for what each check proves and how to read the results. Use
 
 ```
 src/
-  agent/         Grok payout agent
+  agent/         Grok payout agent and payout reviewer
   claims/        per-user submission lock
   data/          shared places list
   db/            SQLite schema and data access
@@ -79,13 +111,19 @@ tasks/           local planning notes (not committed)
 
 1. `POST /submissions` validates the request (place, photo, location,
    timestamp, wallet addresses) and hands it to the orchestrator.
-2. The orchestrator runs, in order: duplicate-request check, Sentinel
-   verification, mark claim pending, Grok proposal, policy check, XRPL
-   payment, Solana stamp mint, save decision.
+2. The orchestrator runs, in order: duplicate-request check, solvency
+   check, Sentinel verification, mark claim pending, Grok proposal, policy
+   check, independent reviewer check, XRPL payment, Solana stamp mint, save
+   decision.
 3. The response is the saved `DecisionResult`: a `status`
-   (`OK`, `BLOCKED_SENTINEL`, `BLOCKED_POLICY`, `REJECTED_BY_LEDGER`, or
-   `STAMP_FAILED`) plus `reasons`, the XRPL tx hash, and the Solana asset
-   info when applicable.
+   (`OK`, `BLOCKED_SOLVENCY`, `BLOCKED_SENTINEL`, `BLOCKED_POLICY`,
+   `BLOCKED_REVIEW`, `REJECTED_BY_LEDGER`, `PAYMENT_UNCONFIRMED`,
+   `PAYMENT_FAILED`, or `STAMP_FAILED`) plus `reasons`, the XRPL tx hash,
+   and the Solana asset info when applicable.
+
+`GET /places` also reports whether each place is currently payable from the
+agent wallet. The ledger-backed `payable` value is cached briefly, and
+`payableCheck` explains whether the ledger read succeeded.
 
 ## Location checks
 
@@ -115,5 +153,9 @@ the cheap tricks (DevTools overrides, typed coordinates, shared spoofing setups)
 
 Backend is under active development for a hackathon build. XRPL payments
 and Solana stamps each run in fake mode by default and switch to the real
-networks with `XRPL_MODE=real` and `SOLANA_MODE=real`; the Grok agent
-falls back to the base reward until `GROK_API_KEY` is set. See open PRs and [PRD.md](./PRD.md) for what's left.
+networks with `XRPL_MODE=real` and `SOLANA_MODE=real`. In real XRPL mode a
+user's wallet is funded from the testnet faucet and given an RLUSD trust line
+before its first payment. Fake-mode stamps are reloaded from the database when
+the server starts, so a restart keeps everyone's passport. The Grok agent
+falls back to the base reward until `GROK_API_KEY` is set, and the photo check
+only runs with a key. See open PRs and [PRD.md](./PRD.md) for what's left.

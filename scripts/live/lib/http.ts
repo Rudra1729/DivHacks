@@ -89,16 +89,21 @@ export async function getJson(baseUrl: string, path: string): Promise<ApiRespons
   return { status: response.status, body: await response.json().catch(() => null) };
 }
 
-/** POST with no body, for the test-only routes.
+/** POST JSON, for the test-only routes.
 
 Args:
     baseUrl (string): The server's address.
     path (string): Path such as /test/attack.
+    body (unknown): Optional JSON body.
 
 Returns:
     Promise<ApiResponse>: HTTP status and parsed JSON body.
 */
-export async function post(baseUrl: string, path: string): Promise<ApiResponse> {
-  const response = await fetch(`${baseUrl}${path}`, { method: 'POST' });
+export async function post(baseUrl: string, path: string, body?: unknown): Promise<ApiResponse> {
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: 'POST',
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
   return { status: response.status, body: await response.json().catch(() => null) };
 }

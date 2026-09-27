@@ -805,7 +805,7 @@ body.spidey-theme {
   box-shadow: var(--comic-shadow-lg);
   position: relative;
   overflow: hidden;
-  height: 550px;
+  height: clamp(600px, calc(100vh - 120px), 760px);
 }
 
 #realMap {
@@ -1112,6 +1112,33 @@ body.spidey-theme {
   gap: 0.3rem;
 }
 
+.mission-sponsor,
+.node-sponsor {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #FFF4C2;
+  border: 2px solid var(--ink-black);
+  border-radius: 6px;
+  padding: 0.3rem 0.55rem;
+  margin-bottom: 0.75rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.mission-sponsor svg,
+.node-sponsor svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.node-sponsor .stat-label {
+  margin: 0;
+}
+
 .mission-desc {
   font-size: 0.95rem;
   color: #444;
@@ -1203,6 +1230,18 @@ body.spidey-theme {
 }
 
 .card-meta { font-size: 0.8rem; font-weight: 700; color: #666; }
+.card-reward {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.2rem 0.55rem;
+  border: 2px solid #111;
+  border-radius: 6px;
+  font-family: var(--font-comic);
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+.card-reward.paid { background: #2E7D32; color: #fff; }
+.card-reward.stamp-only { background: #eee; color: #444; }
 
 .card-back-title {
   font-family: var(--font-comic);
@@ -1492,11 +1531,13 @@ input:checked + .slider:before { transform: translateX(24px); }
 /* Place card: floats over the right side of the map */
 .node-overlay {
   position: absolute;
-  top: 74px;
+  top: 68px;
+  bottom: 16px;
   right: 16px;
-  width: 340px;
+  width: 400px;
   max-width: calc(100% - 32px);
-  max-height: calc(100% - 92px);
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   z-index: 1100;
   opacity: 0;
@@ -1511,7 +1552,20 @@ input:checked + .slider:before { transform: translateX(24px); }
   transform: none;
   pointer-events: auto;
 }
-.node-overlay .panel-card { position: relative; padding: 1.2rem; }
+.node-overlay .panel-card {
+  position: relative;
+  padding: 1rem 1.3rem;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+.node-overlay .panel-body { flex: 1 0 auto; display: flex; flex-direction: column; }
+.node-overlay .panel-header,
+.node-overlay .panel-body > * { margin-bottom: 0.7rem; }
+/* The photo takes whatever height is left, so the whole card fits the map. */
+.node-overlay .node-image-wrap { flex: 1 1 0; height: auto; min-height: 80px; max-height: 240px; }
+.node-overlay .node-desc { font-size: 0.9rem; line-height: 1.4; }
+.node-overlay .node-actions { margin-top: auto; }
 .node-close {
   position: absolute;
   top: 8px;
@@ -1533,3 +1587,97 @@ input:checked + .slider:before { transform: translateX(24px); }
   .node-overlay { top: auto; bottom: 12px; right: 12px; left: 12px; width: auto; max-height: 60%; }
   .map-legend { display: none; }
 }
+
+/* LIVE SUBMISSION: camera, GPS trail status, and the server's answer */
+.photo-preview-wrap video { width: 100%; height: 100%; object-fit: cover; background: var(--ink-black); }
+.photo-preview-wrap img.placeholder { opacity: 0.35; filter: grayscale(1); }
+.photo-preview-wrap img[src=""] { visibility: hidden; }
+.photo-buttons { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 0.4rem; }
+
+.gps-status-box.pending { background: #FFF8E1; color: #7A5B00; }
+.gps-status-box.warning { background: #FFF3E0; color: #9A3D00; }
+.gps-status-box.error { background: #FFEBEE; color: #B71C1C; }
+
+.demo-location-toggle { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.5rem; font-size: 0.8rem; font-weight: 700; color: #9A3D00; }
+
+#submitProofBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.submission-result {
+  margin-top: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid var(--ink-black);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  word-break: break-word;
+}
+.submission-result.ok { background: #E8F5E9; color: #1B5E20; }
+.submission-result.warn { background: #FFF8E1; color: #7A5B00; }
+.submission-result.blocked { background: #FFEBEE; color: #B71C1C; }
+.submission-result h4 { font-family: var(--font-comic); font-size: 1.2rem; margin: 0 0 0.4rem; }
+.submission-result ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+.submission-result code { font-size: 0.8rem; }
+.submission-result a { color: inherit; font-weight: 700; text-decoration: underline; }
+
+.cards-empty { grid-column: 1 / -1; text-align: center; padding: 2rem; font-weight: 700; }
+
+/* STAMP RARITY: one colour per tier, shared by the map card, missions and passport */
+.tier-badge {
+  display: inline-block;
+  font-family: var(--font-comic);
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  padding: 0.15rem 0.55rem;
+  border: 2px solid var(--ink-black);
+  border-radius: 6px;
+  background: var(--gray-light);
+  color: var(--ink-black);
+  white-space: nowrap;
+}
+.tier-legendary { background: linear-gradient(135deg, #FFE066, #FFB300); color: var(--ink-black); }
+.tier-epic { background: #8E44AD; color: #fff; }
+.tier-rare { background: var(--web-blue); color: #fff; }
+.tier-common { background: var(--gray-light); color: var(--ink-black); }
+.tier-late-explorer { background: #2E7D32; color: #fff; }
+
+.node-rarity {
+  background: var(--paper-cream);
+  border: 2px solid var(--ink-black);
+  border-radius: 8px;
+  padding: 0.6rem;
+  margin-bottom: 1rem;
+}
+.node-rarity-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.rarity-ladder { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+.rarity-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.25rem 0.1rem;
+  border: 2px solid var(--ink-black);
+  border-radius: 5px;
+  opacity: 0.45;
+  line-height: 1.1;
+}
+.rarity-step strong { font-family: var(--font-comic); font-size: 0.75rem; letter-spacing: 0.3px; }
+.rarity-step small { font-size: 0.6rem; font-weight: 700; }
+.rarity-step.current { opacity: 1; transform: translateY(-2px); box-shadow: 2px 2px 0 var(--ink-black); }
+.rarity-step.gone { opacity: 0.25; text-decoration: line-through; }
+.node-rarity-note { font-size: 0.75rem; font-weight: 700; color: #555; margin-top: 0.45rem; }
+
+.mission-rarity { display: flex; align-items: center; gap: 0.5rem; margin: 0.35rem 0 0.5rem; }
+.mission-rarity small { font-size: 0.75rem; font-weight: 700; color: #666; }
+
+.rarity-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin: -0.5rem auto 1.5rem;
+}
+.rarity-legend-title { font-weight: 800; color: var(--ink-black); }
+
+.card-3d-wrapper.tier-legendary .card-face-front { box-shadow: 0 0 0 3px #FFB300, var(--comic-shadow-lg); }
+.card-3d-wrapper.tier-epic .card-face-front { box-shadow: 0 0 0 3px #8E44AD, var(--comic-shadow-lg); }
+.card-3d-wrapper.tier-rare .card-face-front { box-shadow: 0 0 0 3px var(--web-blue), var(--comic-shadow-lg); }
+.card-3d-wrapper.tier-late-explorer .card-face-front { box-shadow: 0 0 0 3px #2E7D32, var(--comic-shadow-lg); }

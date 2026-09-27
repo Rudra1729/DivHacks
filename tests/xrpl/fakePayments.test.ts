@@ -74,4 +74,12 @@ describe('fake XRPL payments', () => {
 
     expect(await getPaidToday(USER)).toBe(4.5);
   });
+
+  it('can be topped up, like a guardian refill', async () => {
+    fakePaymentService.fundAgent(5);
+
+    expect(await getRlusdBalance(getAgentAddress())).toBe(15);
+    const result = await sendPayment({ decisionId: 'big', recipient: USER, amount: 12 });
+    expect(result.ok).toBe(true);
+  });
 });

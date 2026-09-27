@@ -6,7 +6,7 @@
 
 * **Theme Aesthetics:** High-octane Spider-Man / Spider-Verse comic book aesthetic (halftone dot pop art, torn paper collage banners, radial action rays, speech bubbles, bold action sound typography: *THWIP! POW! BOOM! GUARDIAN BLOCKED!*).
 * **Grok AI Bot Referee:** Re-imagined as **"Spidey-Bot / Grok-Spidey"** — an animated Grok AI referee with expressive, animated Spider-Man eyes that react to submission verification gates in real-time.
-* **Animations:** Dynamic canvas motion graphics, parallax floating stars/threads, web-shooting projectile animations on mission unlock, holographic comic card 3D tilts, and pulsing 5-gate security audit beams.
+* **Animations:** Dynamic canvas motion graphics, parallax floating stars/threads, web-shooting projectile animations on mission unlock, holographic comic card 3D tilts, and pulsing security audit beams.
 
 ---
 
@@ -65,9 +65,9 @@ The AI Referee (Grok) is visually represented as an **interactive Spidey-Bot Ava
 * **Tilt Interaction:** Mouse move triggers 3D card tilt with a metallic holographic foil sheen shader.
 * **Flip Motion:** Click action flips card 180° around Y-axis with realistic paper/foil perspective depth.
 
-### 4.4 5-Gate Security Pipeline Beam Motion
-* Horizontal comic pipeline showing 5 nodes:
-  1. *Intake* → 2. *Sentinel* → 3. *Spidey-Bot Grok* → 4. *Policy Engine* → 5. *Ledger Settlement*.
+### 4.4 Security Pipeline Beam Motion
+* Horizontal comic pipeline showing the backend gates:
+  1. *Intake* → 2. *Solvency* → 3. *Sentinel* → 4. *Spidey-Bot Grok* → 5. *Policy Engine* → 6. *Reviewer* → 7. *Ledger Settlement* → 8. *Stamp Mint*.
 * Active submission triggers a pulsing energy ball traveling along the comic pipeline, stopping at any gate that triggers a block.
 
 ---
@@ -76,12 +76,13 @@ The AI Referee (Grok) is visually represented as an **interactive Spidey-Bot Ava
 
 | Backend Endpoint | Method | Functionality | Frontend Component/Tab Usage |
 | :--- | :--- | :--- | :--- |
-| `/places` | `GET` | Returns list of eligible NYC places & coordinates | **Spiderweb Map**, **Mission Hub** |
+| `/places` | `GET` | Returns list of eligible NYC places, coordinates, `payable`, and `payableCheck` | **Spiderweb Map**, **Mission Hub** |
 | `/submissions` | `POST` | Submits photo, GPS, wallet addresses, place ID | **Mission Verification Drawer / Form** |
 | `/users/:wallet/stamps` | `GET` | Fetches soulbound Solana stamps for a wallet | **Digital Passport & Collectible Cards** |
 | `/decisions/:id` | `GET` | Fetches full audit history for a submission | **AI Referee Audit Modal** |
 | `/events` | `GET` | SSE stream for real-time decision & verification logs | **AI Referee Live Stream Banner & Audit Log** |
 | `/test/attack` | `POST` / `DELETE` | Toggles policy-bypass attack mode for testing | **AI Referee Guardrail Attack Simulator** |
+| `/test/attack/force-proposal` | `POST` / `DELETE` | Test-only forced proposal route for the 50 RLUSD overspend demo | **AI Referee Guardrail Attack Simulator** |
 
 ---
 
@@ -135,13 +136,13 @@ The application header features a **Comic Action Banner Navigation Bar**:
 
 ### 7.5 Tab 4: Spidey-Bot AI Referee Command Center ("Ledger Audit")
 * **Spidey-Bot Live Status Window:** Interactive mascot with animated eyes reacting live to incoming SSE events.
-* **5-Gate Visual Pipeline:** Animated comic beam passing through Sentinel → Grok Spidey → Policy Engine → XRPL → Solana.
+* **Visual Pipeline:** Animated comic beam passing through Solvency → Sentinel → Grok Spidey → Policy Engine → Reviewer → XRPL → Solana.
 * **Interactive Attack Simulator (Testing Mode):**
   * Toggle Switch to activate test attack mode (`POST /test/attack`).
   * Action buttons to launch simulated attacks:
     * *Attack 1: Duplicate Photo Fraud* → Triggers Sentinel alert animation + `SNAG!` callout.
     * *Attack 2: Grok Prompt Injection ($100 Request)* → Triggers Policy Guardrail block animation + `GUARDRAIL HELD!` banner.
-    * *Attack 3: Ledger Allowance Bypass* → Shows XRPL ledger rejecting payout due to strict wallet key separation.
+    * *Attack 3: Ledger Allowance Bypass* → Uses the forced 50 RLUSD test route, shows policy stopping it first, then shows XRPL rejecting it when the test-only policy bypass is enabled.
 
 ---
 

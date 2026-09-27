@@ -1,9 +1,16 @@
 /**Submission orchestrator.
 
 Runs one submission through the pipeline in a fixed order: duplicate check,
-Sentinel, pending claim, agent, policy, XRPL payment, Solana stamp, save.
-Money moves only after every earlier gate passes, and a payment is never
+solvency, Sentinel, photo check, pending claim, agent, policy, review, XRPL
+payment, Solana stamp, save. The photo check runs only when a checker is
+configured. Stamp-only cultural visits skip solvency, the agent, policy,
+review, and payment. Money moves only after every earlier gate passes, and a
+payment is never
 repeated because a stamp mint failed: the mint is queued for retry instead.
+
+Solvency runs before Sentinel on purpose. Sentinel records the photo as used
+when a submission passes, so a wallet that cannot pay must be caught first,
+or a visitor blocked for something that is not their fault could not retry.
 
 A payment that is submitted but not yet confirmed is never treated as
 failed, since it may still land. The submission is saved as
@@ -12,33 +19,53 @@ ID again re-checks the ledger and carries on.
 */
 
 import { randomUUID } from 'crypto';
-import { AgentProposal, PayoutAgent } from '../agent/types';
+import { PhotoChecker, PhotoCheckResult } from '../agent/photoCheck';
+import { AgentProposal, PayoutAgent, PayoutReviewer, ReviewVerdict } from '../agent/types';
 import { evaluatePolicy } from '../policy/policy';
+import { checkSolvency, rewardFor } from '../solvency/solvency';
 import { Sentinel } from '../sentinel/types';
 import { MintStampInput, MintStampResult, StampService } from '../solana/types';
 import { StorageLayer } from '../storage/types';
 import { SendPaymentResult, XrplService } from '../xrpl/types';
 import { AuditTrail } from './auditTrail';
-import { DecisionResult, SubmissionInput } from './types';
+import { resolveReview, ReviewOutcome } from './review';
+import { DecisionResult, Place, SubmissionInput } from './types';
 
 const BYPASS_NOTE = 'policy skipped: test mode bypass';
+const REVIEW_NOTE_PREFIX = 'reviewer lowered the payout';
+const DEFAULT_REVIEW_TIMEOUT_MS = 15000;
 
 export interface OrchestratorDeps {
   sentinel: Sentinel;
+  /** Checks that the photo shows the place. Unset skips the check. */
+  photoChecker?: PhotoChecker;
   agent: PayoutAgent;
+  reviewer: PayoutReviewer;
   xrpl: XrplService;
   solana: StampService;
   storage: StorageLayer;
   /** Gates the policy bypass. Outside test mode the bypass is ignored. */
   isTestMode: boolean;
+  /** Multiplier on each place's reward, the same one the agent is given.
+      The policy caps shrink by the same factor. Defaults to 1. */
+  rewardScale?: number;
+  /** Pay RLUSD for cultural visits too. Off (the default) mints the stamp
+      and skips the solvency, agent, policy, review, and XRPL steps for
+      cultural places. */
+  culturalRewards?: boolean;
   /** How often to re-check an unconfirmed payment before giving up for now. */
   unconfirmedRecheck?: { attempts: number; delayMs: number };
+  /** How long the reviewer may take before the payout falls back to the base reward. */
+  reviewTimeoutMs?: number;
 }
 
 export interface RunOptions {
   /** Skip the policy step. Honored only in test mode, to prove the ledger
       layer stops an overspend on its own. */
   bypassPolicy?: boolean;
+  /** Replace the agent's proposal. Honored only in test mode, for the
+      forced overspend attack demo. */
+  forceProposal?: AgentProposal;
 }
 
 type Outcome = Omit<DecisionResult, 'decisionId' | 'stampFailed'> & { stampFailed?: boolean };
@@ -62,22 +89,28 @@ export class Orchestrator {
   Raises:
       Error: If a dependency throws before any payment was made. The pending
           claim is marked failed first so it does not block the user forever.
+
+  A request that was stopped by the solvency gate is not final: the wallet may
+  be topped up a minute later, so sending the same request ID again runs it
+  afresh under the same decision ID.
   */
   async runSubmission(input: SubmissionInput, options: RunOptions = {}): Promise<DecisionResult> {
     const { sentinel, agent, xrpl, storage } = this.deps;
 
     const earlier = await storage.getDecisionByRequestId(input.requestId);
     if (earlier && earlier.status === 'PAYMENT_UNCONFIRMED' && earlier.proposal) {
-      const notes = earlier.reasons.filter((reason) => reason === BYPASS_NOTE);
+      const notes = earlier.reasons.filter(
+        (reason) => reason === BYPASS_NOTE || reason.startsWith(REVIEW_NOTE_PREFIX)
+      );
       const resumed = new AuditTrail();
       resumed.add('orchestrator', true, 'repeat request for an unconfirmed payment: checking the ledger again');
       return this.settle(input, earlier.decisionId, earlier.proposal, earlier.policyVersion, notes, resumed);
     }
-    if (earlier) {
+    if (earlier && earlier.status !== 'BLOCKED_SOLVENCY') {
       return earlier;
     }
 
-    const decisionId = randomUUID();
+    const decisionId = earlier?.decisionId ?? randomUUID();
     const trail = new AuditTrail();
 
     const place = await storage.getPlace(input.placeId);
@@ -87,6 +120,30 @@ export class Orchestrator {
         status: 'BLOCKED_SENTINEL',
         reasons: [`unknown place: ${input.placeId}`],
       }, trail);
+    }
+
+    const stampOnly = place.kind === 'cultural' && !this.deps.culturalRewards;
+    const reward = rewardFor(place, this.deps.rewardScale);
+    const solvency = stampOnly ? undefined : await checkSolvency(xrpl, reward);
+    if (solvency && !solvency.ok) {
+      const detail =
+        solvency.reason === 'insufficient'
+          ? `the agent wallet holds ${solvency.balance} RLUSD, which cannot cover this place's ${solvency.needed} RLUSD reward`
+          : `the agent wallet balance could not be read from the ledger (${solvency.error})`;
+      trail.add('solvency', false, detail);
+      return this.save(input, decisionId, {
+        status: 'BLOCKED_SOLVENCY',
+        reasons: [
+          solvency.reason === 'insufficient'
+            ? `the agent wallet holds ${solvency.balance} RLUSD, which cannot cover this place's ${solvency.needed} RLUSD reward, so no reward can be promised right now. ` +
+              'Nothing was used up, so try again later.'
+            : 'could not read the agent wallet balance from the ledger, so no reward can be promised right now. ' +
+              'Nothing was used up, so try again later.',
+        ],
+      }, trail);
+    }
+    if (solvency) {
+      trail.add('solvency', true, `agent wallet holds ${solvency.balance} RLUSD, enough to cover the ${reward} RLUSD reward`);
     }
 
     const verification = await sentinel.verify(input, place);
@@ -99,6 +156,17 @@ export class Orchestrator {
     }
     trail.add('sentinel', true, 'location, freshness, replay, and once-per-place checks passed');
 
+    if (this.deps.photoChecker) {
+      const photoCheck = await this.checkPhoto(this.deps.photoChecker, input, place);
+      trail.add('photo', photoCheck.passed, photoCheck.message);
+      if (!photoCheck.passed) {
+        return this.save(input, decisionId, {
+          status: 'BLOCKED_PHOTO',
+          reasons: [photoCheck.message],
+        }, trail);
+      }
+    }
+
     await storage.markClaimPending({
       decisionId,
       xrplAddress: input.xrplAddress,
@@ -107,18 +175,30 @@ export class Orchestrator {
     });
     trail.add('claim', true, 'claim marked pending');
 
+    if (stampOnly) {
+      trail.add('agent', true, 'cultural visit: stamp only, no RLUSD reward is proposed or paid');
+      await storage.updateClaimStatus(decisionId, 'paid');
+      return this.stamp(input, decisionId, [], trail, {});
+    }
+
     const bypass = options.bypassPolicy === true && this.deps.isTestMode;
     const notes = bypass ? [BYPASS_NOTE] : [];
 
     let proposal: AgentProposal;
     let policyVersion: string | undefined;
+    let paidTodayByVisitor = 0;
     try {
-      proposal = await agent.propose({
-        place,
-        xrplAddress: input.xrplAddress,
-        caption: input.caption,
-      });
-      trail.add('agent', true, `proposed ${proposal.amount} RLUSD to ${proposal.recipient}: ${proposal.reason}`);
+      if (options.forceProposal && this.deps.isTestMode) {
+        proposal = options.forceProposal;
+        trail.add('agent', true, `forced test proposal ${proposal.amount} RLUSD to ${proposal.recipient}: ${proposal.reason}`);
+      } else {
+        proposal = await agent.propose({
+          place,
+          xrplAddress: input.xrplAddress,
+          caption: input.caption,
+        });
+        trail.add('agent', true, `proposed ${proposal.amount} RLUSD to ${proposal.recipient}: ${proposal.reason}`);
+      }
 
       if (bypass) {
         trail.add('policy', true, 'skipped: test mode bypass');
@@ -128,11 +208,13 @@ export class Orchestrator {
           storage.getDailyTotal(input.xrplAddress),
           xrpl.getPaidToday(input.xrplAddress),
         ]);
+        paidTodayByVisitor = Math.max(storedTotal, ledgerTotal);
         const policy = evaluatePolicy(proposal, {
           submitterXrplAddress: input.xrplAddress,
           placeId: input.placeId,
           allowedPlaceIds,
-          dailyTotal: Math.max(storedTotal, ledgerTotal),
+          dailyTotal: paidTodayByVisitor,
+          capScale: this.deps.rewardScale,
         });
         policyVersion = policy.policyVersion;
 
@@ -147,6 +229,35 @@ export class Orchestrator {
           }, trail);
         }
         trail.add('policy', true, `policy ${policy.policyVersion}: proposal allowed`);
+      }
+
+      if (bypass) {
+        trail.add('review', true, 'skipped: test mode bypass');
+      } else {
+        const review = await this.reviewPayout({
+          placeName: place.name,
+          baseReward: reward,
+          proposedAmount: proposal.amount,
+          recipientIsSubmitter: proposal.recipient === input.xrplAddress,
+          paidTodayByVisitor,
+        });
+        const decision = resolveReview(proposal.amount, reward, review);
+        if (decision.action === 'reject') {
+          trail.add('review', false, `reviewer rejected the payout: ${decision.reason}`);
+          await storage.updateClaimStatus(decisionId, 'failed');
+          return this.save(input, decisionId, {
+            status: 'BLOCKED_REVIEW',
+            reasons: [`reviewer rejected the payout: ${decision.reason}`],
+            proposal,
+            policyVersion,
+          }, trail);
+        }
+
+        trail.add('review', true, decision.message);
+        if (decision.note) {
+          notes.push(decision.note);
+        }
+        proposal = { ...proposal, amount: decision.amount };
       }
     } catch (error) {
       await storage.updateClaimStatus(decisionId, 'failed');
@@ -166,7 +277,7 @@ export class Orchestrator {
     notes: string[],
     trail: AuditTrail
   ): Promise<DecisionResult> {
-    const { solana, storage } = this.deps;
+    const { storage } = this.deps;
 
     const payment = await this.pay(decisionId, proposal);
     if (!payment.ok) {
@@ -208,11 +319,37 @@ export class Orchestrator {
     trail.add('xrpl', true, `paid ${proposal.amount} RLUSD to ${proposal.recipient}, transaction ${payment.txHash}`);
     await storage.updateClaimStatus(decisionId, 'paid');
 
+    return this.stamp(input, decisionId, notes, trail, { proposal, policyVersion, xrplTxHash: payment.txHash });
+  }
+
+  /** Mint the visit's stamp and save the decision. A failed mint is queued
+      for retry and saved as STAMP_FAILED.
+
+  Args:
+      input (SubmissionInput): The submission being settled.
+      decisionId (string): The decision's ID.
+      notes (string[]): Reasons to carry on the saved decision.
+      trail (AuditTrail): History to save with the decision.
+      paid (object): proposal, policyVersion, and xrplTxHash of the payment
+          for this visit. Empty for a stamp-only cultural visit.
+
+  Returns:
+      DecisionResult: The saved decision, OK or STAMP_FAILED.
+  */
+  private async stamp(
+    input: SubmissionInput,
+    decisionId: string,
+    notes: string[],
+    trail: AuditTrail,
+    paid: { proposal?: AgentProposal; policyVersion?: string; xrplTxHash?: string }
+  ): Promise<DecisionResult> {
+    const { solana, storage } = this.deps;
+
     const mintInput: MintStampInput = {
       decisionId,
       placeId: input.placeId,
       userSolanaAddress: input.solanaAddress,
-      xrplTxHash: payment.txHash,
+      xrplTxHash: paid.xrplTxHash ?? '',
     };
     let mint: MintStampResult;
     try {
@@ -227,9 +364,7 @@ export class Orchestrator {
       return this.save(input, decisionId, {
         status: 'STAMP_FAILED',
         reasons: [...notes, `stamp mint failed, queued for retry: ${mint.error}`],
-        proposal,
-        policyVersion,
-        xrplTxHash: payment.txHash,
+        ...paid,
         stampFailed: true,
       }, trail);
     }
@@ -238,14 +373,31 @@ export class Orchestrator {
     return this.save(input, decisionId, {
       status: 'OK',
       reasons: notes,
-      proposal,
-      policyVersion,
-      xrplTxHash: payment.txHash,
+      ...paid,
       solanaAssetAddress: mint.assetAddress,
       solanaSignature: mint.signature,
       stampSerial: mint.serial,
       stampTier: mint.tier,
     }, trail);
+  }
+
+  /** Run the photo check, treating a throw as a blocked result.
+
+  Args:
+      checker (PhotoChecker): The configured photo checker.
+      input (SubmissionInput): The submission, for its photo.
+      place (Place): The place being claimed.
+
+  Returns:
+      PhotoCheckResult: The checker's result, or a blocked one if it threw.
+  */
+  private async checkPhoto(checker: PhotoChecker, input: SubmissionInput, place: Place): Promise<PhotoCheckResult> {
+    try {
+      return await checker.check({ place, photo: input.photo });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { passed: false, message: `photo check: could not check the photo (${message}), take a new photo and try again` };
+    }
   }
 
   /** Send the payment, re-checking a few times while it is unconfirmed.
@@ -275,6 +427,35 @@ export class Orchestrator {
     return result;
   }
 
+  /** Ask the reviewer for a second opinion, with a timeout and safe fallback. */
+  private async reviewPayout(input: Parameters<PayoutReviewer['review']>[0]): Promise<ReviewOutcome> {
+    const timeoutMs = this.deps.reviewTimeoutMs ?? DEFAULT_REVIEW_TIMEOUT_MS;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<ReviewOutcome>((resolve) => {
+      timer = setTimeout(() => resolve({ kind: 'failed', error: 'timed out' }), timeoutMs);
+    });
+
+    const call = this.deps.reviewer
+      .review(input)
+      .then((verdict: unknown): ReviewOutcome => (
+        isReviewVerdict(verdict)
+          ? { kind: 'verdict', verdict }
+          : { kind: 'failed', error: 'unusable answer' }
+      ))
+      .catch((error): ReviewOutcome => ({
+        kind: 'failed',
+        error: error instanceof Error ? error.message : String(error),
+      }));
+
+    try {
+      return await Promise.race([call, timeout]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
   /** Save the decision, then its step-by-step history. The history goes second
       so every entry has a saved decision to belong to. */
   private async save(
@@ -288,4 +469,18 @@ export class Orchestrator {
     await this.deps.storage.recordAuditEvents(decisionId, trail.entries);
     return decision;
   }
+}
+
+function isReviewVerdict(value: unknown): value is ReviewVerdict {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const { decision, reason, amount } = value as Record<string, unknown>;
+  if (decision !== 'approve' && decision !== 'reduce' && decision !== 'reject') {
+    return false;
+  }
+  if (typeof reason !== 'string') {
+    return false;
+  }
+  return decision !== 'reduce' || typeof amount === 'number';
 }

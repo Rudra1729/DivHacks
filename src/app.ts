@@ -7,10 +7,11 @@ Express app directly with supertest, without binding a real port.
 import cors from 'cors';
 import express, { Express, NextFunction, Request, Response } from 'express';
 import multer from 'multer';
+import path from 'path';
 import Database from 'better-sqlite3';
 import { AppConfig } from './config';
 import { Orchestrator } from './orchestrator/orchestrator';
-import { placesRouter } from './routes/places';
+import { createPlacesRouter } from './routes/places';
 import { createMissionsRouter } from './routes/missions';
 import { createSubmissionsRouter } from './routes/submissions';
 import { createMetadataRouter } from './routes/metadata';
@@ -22,6 +23,10 @@ import { createAuthRouter } from './routes/auth';
 import { createWalletRouter } from './routes/wallet';
 import { finalErrorHandler } from './routes/errorHandler';
 import { xrplService } from './xrpl';
+import { XrplService } from './xrpl/types';
+
+/** The static web app, one level above both src/ and dist/. */
+const FRONTEND_DIR = path.resolve(__dirname, '..', 'frontend');
 
 /** Build the Express application.
 
@@ -29,11 +34,18 @@ Args:
     config (AppConfig): The resolved app configuration.
     db (Database.Database): Open database handle, passed to routes that need storage.
     orchestrator (Orchestrator): Runs the submission pipeline for POST /submissions.
+    xrpl (XrplService): The ledger the places list and wallet routes read from.
+        Defaults to the XRPL module, which picks real or fake from XRPL_MODE.
 
 Returns:
     Express: A configured Express app, not yet listening.
 */
-export function createApp(config: AppConfig, db: Database.Database, orchestrator: Orchestrator): Express {
+export function createApp(
+  config: AppConfig,
+  db: Database.Database,
+  orchestrator: Orchestrator,
+  xrpl: XrplService = xrplService
+): Express {
   const app = express();
 
   // The frontend is served from a different origin (npm run dev under
@@ -45,7 +57,7 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
     res.status(200).json({ status: 'ok', testMode: config.isTestMode });
   });
 
-  app.use(placesRouter);
+  app.use(createPlacesRouter(xrpl, db, { rewardScale: config.rewardScale, culturalRewards: config.culturalRewards }));
   app.use(createMissionsRouter(config));
   app.use(createSubmissionsRouter(config, orchestrator));
   app.use(createMetadataRouter(db));
@@ -53,11 +65,15 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
   app.use(usersRouter);
   app.use(eventsRouter);
   app.use(createAuthRouter(db));
-  app.use(createWalletRouter(db, xrplService));
+  app.use(createWalletRouter(db, xrpl));
 
   if (config.isTestMode) {
     app.use(createTestAttackRouter());
   }
+
+  // Serve the web app too, so one server runs everything at http://localhost:PORT/.
+  // no-cache makes browsers revalidate (cheap, via ETag) instead of running stale files.
+  app.use(express.static(FRONTEND_DIR, { setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache') }));
 
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (err instanceof multer.MulterError) {

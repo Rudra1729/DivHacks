@@ -27,7 +27,42 @@ Example:
     durationMs: 20000,
     intervalMs: 2000,
     readingTimeoutMs: 10000,
+    maxReadings: 60,
   };
+
+  /** What the server needs before it will look at a trail. */
+  const TRAIL_REQUIREMENTS = { minReadings: 5, minSpanMs: 10000 };
+
+  /** Safari on macOS counts GeolocationPosition.timestamp from 2001-01-01
+      (Apple's reference date) instead of 1970, so its fixes look 31 years old. */
+  const APPLE_EPOCH_OFFSET_MS = 978307200000;
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  /** Turn a browser fix timestamp into epoch ms, fixing Safari's 2001-based clock.
+
+  Args:
+      timestamp (number): position.timestamp as the browser reported it.
+      now (number): The current time in epoch ms.
+
+  Returns:
+      number: The fix time in epoch ms.
+  */
+  function normalizeTimestamp(timestamp, now = Date.now()) {
+    const ms = Math.round(timestamp);
+    if (Math.abs(now - ms) > DAY_MS && Math.abs(now - (ms + APPLE_EPOCH_OFFSET_MS)) < DAY_MS) {
+      return ms + APPLE_EPOCH_OFFSET_MS;
+    }
+    return ms;
+  }
+
+  function toReading(position) {
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+      timestamp: normalizeTimestamp(position.timestamp),
+    };
+  }
 
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -125,13 +160,7 @@ Example:
 
     while (Date.now() < endAt) {
       const tickStarted = Date.now();
-      const position = await readPosition(DEFAULTS.readingTimeoutMs);
-      const reading = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        timestamp: Math.round(position.timestamp),
-      };
+      const reading = toReading(await readPosition(DEFAULTS.readingTimeoutMs));
       const previous = trail[trail.length - 1];
       if (!previous || reading.timestamp > previous.timestamp) {
         trail.push(reading);
@@ -142,6 +171,102 @@ Example:
       await sleep(Math.max(0, intervalMs - (Date.now() - tickStarted)));
     }
     return trail;
+  }
+
+  /** Keep sampling GPS in the background until stopped, for flows where the
+  user takes their time framing the photo.
+
+  Only the newest readings are kept, so the trail stays recent however long
+  the camera is open.
+
+  Args:
+      options (Object): Optional settings.
+      options.intervalMs (number): Time between readings. Defaults to 2 seconds.
+      options.maxReadings (number): How many of the newest readings to keep. Defaults to 60.
+      options.onReading (function): Called with (reading, trail) after each new reading.
+      options.onError (function): Called with each location error. Sampling stops
+          for good if the user refuses location access.
+
+  Returns:
+      { stop: function, trail: function, repeatedReadings: function }: stop()
+          ends sampling; trail() returns the readings so far, oldest first;
+          repeatedReadings() counts fixes in a row that repeated the last
+          timestamp, which is what a location override or a stuck GPS does.
+  */
+  function startTrail(options = {}) {
+    const intervalMs = options.intervalMs ?? DEFAULTS.intervalMs;
+    const maxReadings = options.maxReadings ?? DEFAULTS.maxReadings;
+    const trail = [];
+    let stopped = false;
+    let repeated = 0;
+
+    if (!navigator.geolocation) {
+      stopped = true;
+      setTimeout(() => options.onError && options.onError(new Error('This browser cannot read the location. Use https:// or localhost.')), 0);
+    }
+
+    (async () => {
+      while (!stopped) {
+        const tickStarted = Date.now();
+        try {
+          const reading = toReading(await readPosition(DEFAULTS.readingTimeoutMs));
+          if (stopped) break;
+          const previous = trail[trail.length - 1];
+          if (!previous || reading.timestamp > previous.timestamp) {
+            repeated = 0;
+            trail.push(reading);
+            if (trail.length > maxReadings) {
+              trail.shift();
+            }
+            if (options.onReading) {
+              options.onReading(reading, trail.slice());
+            }
+          } else {
+            repeated += 1;
+          }
+        } catch (error) {
+          if (stopped) break;
+          if (options.onError) {
+            options.onError(error);
+          }
+          if (error && error.code === 1) {
+            stopped = true;
+            break;
+          }
+        }
+        await sleep(Math.max(0, intervalMs - (Date.now() - tickStarted)));
+      }
+    })();
+
+    return {
+      stop() {
+        stopped = true;
+      },
+      trail() {
+        return trail.slice();
+      },
+      repeatedReadings() {
+        return repeated;
+      },
+    };
+  }
+
+  /** How close a trail is to what the server needs.
+
+  Args:
+      trail (Array): GPS readings, oldest first.
+
+  Returns:
+      { readings: number, spanMs: number, ready: boolean }: Reading count, time
+          covered, and whether both meet the server's minimums.
+  */
+  function trailProgress(trail) {
+    const spanMs = trail.length > 1 ? trail[trail.length - 1].timestamp - trail[0].timestamp : 0;
+    return {
+      readings: trail.length,
+      spanMs,
+      ready: trail.length >= TRAIL_REQUIREMENTS.minReadings && spanMs >= TRAIL_REQUIREMENTS.minSpanMs,
+    };
   }
 
   /** Build the multipart form for POST /submissions.
@@ -217,5 +342,16 @@ Example:
     }
   }
 
-  window.WebPassCapture = { openCamera, closeCamera, capturePhoto, collectTrail, buildSubmission, verifyVisit };
+  window.WebPassCapture = {
+    TRAIL_REQUIREMENTS,
+    openCamera,
+    closeCamera,
+    capturePhoto,
+    collectTrail,
+    startTrail,
+    trailProgress,
+    normalizeTimestamp,
+    buildSubmission,
+    verifyVisit,
+  };
 })();
