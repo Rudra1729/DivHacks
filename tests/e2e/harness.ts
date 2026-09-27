@@ -16,6 +16,7 @@ import { AgentInput, AgentProposal, PayoutAgent } from '../../src/agent/types';
 import { PLACES, Place } from '../../src/data/places';
 import { FakeStampService } from '../../src/solana/fakeStamps';
 import { FakeXrpl } from '../../src/xrpl/fakeXrpl';
+import { SendPaymentInput, SendPaymentResult } from '../../src/xrpl/types';
 import { disablePolicyBypass } from '../../src/testMode/attackFlag';
 import { buildTestApp } from '../testHelpers/buildTestApp';
 
@@ -70,6 +71,30 @@ export class ScriptedAgent implements PayoutAgent {
   }
 }
 
+const LEDGER_LATENCY_MS = 10;
+
+function pause(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * A fake ledger that takes time to answer, like the real one.
+ *
+ * Without this, every fake call finishes instantly and two simultaneous
+ * requests never overlap, so the race tests could not fail even with no locking.
+ */
+class SlowXrpl extends FakeXrpl {
+  async sendPayment(input: SendPaymentInput): Promise<SendPaymentResult> {
+    await pause(LEDGER_LATENCY_MS);
+    return super.sendPayment(input);
+  }
+
+  async getPaidToday(xrplAddress: string): Promise<number> {
+    await pause(LEDGER_LATENCY_MS);
+    return super.getPaidToday(xrplAddress);
+  }
+}
+
 export interface E2eStack {
   app: Express;
   db: Database.Database;
@@ -86,7 +111,7 @@ Returns:
     E2eStack: The app plus handles to inspect the fakes and the database.
 */
 export function buildE2eStack(options: { isTestMode?: boolean } = {}): E2eStack {
-  const xrpl = new FakeXrpl(10);
+  const xrpl = new SlowXrpl(10);
   const solana = new FakeStampService();
   const { app, db } = buildTestApp(
     { isTestMode: options.isTestMode ?? true },
