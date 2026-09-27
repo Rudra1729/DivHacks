@@ -13,6 +13,7 @@ Example:
 
 import { loadSolanaConfig } from './config';
 import { fakeStampService } from './fakeStamps';
+import { realStampService } from './stamps';
 import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 
 export type { MintStampInput, MintStampResult, Stamp } from './types';
@@ -26,11 +27,7 @@ Raises:
     SolanaConfigError: If the Solana config is invalid.
 */
 function activeService(): StampService {
-  const { mode } = loadSolanaConfig();
-  if (mode === 'real') {
-    throw new Error('SOLANA_MODE=real is not implemented yet, use SOLANA_MODE=fake');
-  }
-  return fakeStampService;
+  return loadSolanaConfig().mode === 'real' ? realStampService : fakeStampService;
 }
 
 /** Mint a soulbound stamp into the user's Solana wallet.
