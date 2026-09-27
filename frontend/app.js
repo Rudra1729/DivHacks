@@ -334,6 +334,14 @@ function selectNode(placeId) {
   if (window.lucide) lucide.createIcons();
 }
 
+function selectAndScrollNode(placeId) {
+  selectNode(placeId);
+  const mapElem = document.getElementById('spiderweb');
+  if (mapElem) {
+    mapElem.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
 function triggerThwipUnlock(placeId) {
   const place = PLACES.find(p => p.id === placeId || p.id === selectedNodeId);
   if (!place) return;

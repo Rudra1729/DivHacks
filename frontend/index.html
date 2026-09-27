@@ -72,47 +72,139 @@
     </div>
   </div>
 
-  <!-- HERO SECTION -->
+  <!-- HERO SECTION: MARVEL NEWSPAPER COLLAGE STYLE -->
   <section class="hero-section" id="hero">
-    <div class="hero-container">
-      <div class="hero-badge-container">
-        <span class="comic-tag yellow-tag"><i data-lucide="sparkles"></i> DIVHACKS 2026 SPECIAL</span>
-        <span class="comic-tag cyan-tag"><i data-lucide="shield"></i> XRPL + SOLANA GUARDRAILED</span>
-      </div>
-
-      <h1 class="hero-title">
-        SUIT UP HEROES!<br>
-        <span class="text-glow-red">UNWEB NEW YORK CITY</span>
-      </h1>
-
-      <p class="hero-description">
-        NYC is drawn like a giant spiderweb. Right now, it's gray and unexplored. 
-        Go out on missions, take verified photos of murals & civic spots, and 
-        <strong class="text-yellow">THWIP!</strong> Watch the web light up while collecting 
-        soulbound trading cards & real RLUSD micro-rewards!
-      </p>
-
-      <div class="hero-cta-group">
-        <a href="#spiderweb" class="comic-btn hero-red-btn big-btn">
-          <i data-lucide="compass"></i> EXPLORE NYC WEB MAP
-        </a>
-        <a href="#referee" class="comic-btn hero-blue-btn big-btn">
-          <i data-lucide="bot"></i> TEST SPIDEY-BOT AI
-        </a>
-      </div>
-
-      <!-- INTERACTIVE 3D SPIDER-MAN CHARACTER VIEWPORT -->
-      <div class="spidey-3d-card comic-box">
-        <div class="spidey-3d-header">
-          <span class="comic-tag red-tag"><i data-lucide="box"></i> REAL-TIME WEBGL 3D</span>
-          <h3 class="spidey-3d-title">INTERACTIVE 3D SPIDER-MAN HERO</h3>
-          <span class="spidey-3d-subtitle">Move your mouse to rotate 3D Spidey • Click 3D Spidey to THWIP Web Shoot!</span>
+    <div class="collage-hero-wrapper">
+      
+      <!-- TOP MAIN COLLAGE TITLE BANNER -->
+      <div class="collage-title-banner">
+        <div class="pushpin pushpin-top-left"></div>
+        <div class="pushpin pushpin-top-right"></div>
+        <div class="title-tape-box title-black-box">
+          <span class="title-text-main">SPIDEY-VERSE</span>
         </div>
-        <div class="spidey-3d-viewport" id="spidey3dViewport">
-          <canvas id="spidey3dCanvas"></canvas>
-          <div class="web-shoot-thwip-text" id="webShootThwipText">THWIP!</div>
+        <div class="title-tape-box title-white-box">
+          <span class="title-text-sub">UNWEB NEW YORK CITY</span>
         </div>
       </div>
+
+      <!-- MAIN COLLAGE GRID CONTENT -->
+      <div class="collage-grid">
+        
+        <!-- LEFT COLUMN: HARLEM CULTURAL SITES & LEAVING BEHIND -->
+        <div class="collage-column collage-left">
+          
+          <!-- TOP LEFT PINNED CARD -->
+          <div class="collage-card pinned-card card-rotate-left">
+            <div class="pushpin pushpin-red"></div>
+            <h4 class="collage-card-title">HARLEM CULTURAL SITES</h4>
+            <div class="tiny-photo-box">
+              <img src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=400&q=80" alt="Apollo Theater">
+              <div class="photo-tape"></div>
+            </div>
+            <div class="tape-buttons-stack">
+              <button class="tape-badge red-tape" onclick="selectAndScrollNode('apollo-theater')">APOLLO THEATER</button>
+              <button class="tape-badge blue-tape" onclick="selectAndScrollNode('studio-museum-harlem')">STUDIO MUSEUM</button>
+              <button class="tape-badge red-tape" onclick="selectAndScrollNode('apollo-theater')">125TH ST MURALS</button>
+            </div>
+          </div>
+
+          <!-- BOTTOM LEFT CARD -->
+          <div class="collage-card torn-paper-card card-rotate-right">
+            <h4 class="collage-card-title text-handwritten">CIVIC GOOD BOUNTIES</h4>
+            <div class="tape-buttons-stack">
+              <button class="tape-badge blue-tape" onclick="selectAndScrollNode('marcus-garvey-park')">WHEELCHAIR RAMPS</button>
+              <button class="tape-badge red-tape" onclick="selectAndScrollNode('malcolm-shabazz-market')">COMMUNITY FRIDGE</button>
+              <button class="tape-badge red-tape" onclick="selectAndScrollNode('marcus-garvey-park')">STREET ACCESS</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- CENTER COLUMN: SPIDERWEB + SMALL 3D SPIDEY + RIBBON -->
+        <div class="collage-column collage-center">
+          
+          <!-- BACKGROUND SPIDERWEB GRAPHIC & STARS -->
+          <div class="center-spiderweb-bg">
+            <svg class="spiderweb-center-svg" viewBox="0 0 300 300">
+              <!-- Concentric Web Rings -->
+              <circle cx="150" cy="150" r="40" stroke="rgba(0,0,0,0.2)" stroke-width="1.5" fill="none"/>
+              <circle cx="150" cy="150" r="80" stroke="rgba(0,0,0,0.25)" stroke-width="1.5" fill="none"/>
+              <circle cx="150" cy="150" r="120" stroke="rgba(0,0,0,0.3)" stroke-width="2" fill="none"/>
+              <circle cx="150" cy="150" r="140" stroke="rgba(0,0,0,0.35)" stroke-width="2" fill="none"/>
+              <!-- Radial Web Threads -->
+              <line x1="150" y1="10" x2="150" y2="290" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
+              <line x1="10" y1="150" x2="290" y2="150" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
+              <line x1="50" y1="50" x2="250" y2="250" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
+              <line x1="250" y1="50" x2="50" y2="250" stroke="rgba(0,0,0,0.3)" stroke-width="2"/>
+            </svg>
+
+            <div class="star-icon star-1">★</div>
+            <div class="star-icon star-2">★</div>
+            <div class="star-icon star-3">★</div>
+            <div class="star-icon star-4">★</div>
+            
+            <!-- SMALL SPIDER-MAN VIEWPORT -->
+            <div class="small-spidey-3d-wrap">
+              <div class="spidey-3d-viewport" id="spidey3dViewport">
+                <canvas id="spidey3dCanvas"></canvas>
+                <div class="web-shoot-thwip-text" id="webShootThwipText">THWIP!</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BLACK RIBBON BANNER -->
+          <div class="black-ribbon-banner">
+            <span>THE WEB OF NYC EXPLORATION</span>
+          </div>
+
+          <!-- HERO CTA BUTTONS -->
+          <div class="collage-cta-group">
+            <a href="#spiderweb" class="comic-btn hero-red-btn big-btn">
+              <i data-lucide="compass"></i> EXPLORE NYC WEB MAP
+            </a>
+            <a href="#referee" class="comic-btn hero-blue-btn big-btn">
+              <i data-lucide="bot"></i> TEST SPIDEY-BOT AI
+            </a>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: MORNINGSIDE HEIGHTS & WHAT WE COLLECT -->
+        <div class="collage-column collage-right">
+          
+          <!-- TOP RIGHT PINNED CARD -->
+          <div class="collage-card pinned-card card-rotate-right">
+            <div class="pushpin pushpin-red"></div>
+            <h4 class="collage-card-title">MORNINGSIDE & LANDMARKS</h4>
+            <div class="tiny-photo-box">
+              <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80" alt="Morningside Park">
+              <div class="photo-tape"></div>
+            </div>
+            <div class="tape-buttons-stack">
+              <button class="tape-badge red-tape" onclick="selectAndScrollNode('morningside-park')">MORNINGSIDE PARK</button>
+              <button class="tape-badge blue-tape" onclick="selectAndScrollNode('hamilton-grange')">HAMILTON GRANGE</button>
+            </div>
+          </div>
+
+          <!-- BOTTOM RIGHT CARD -->
+          <div class="collage-card torn-paper-card card-rotate-left">
+            <h4 class="collage-card-title">WHAT YOU <span class="circled-text">COLLECT</span></h4>
+            <div class="tiny-photo-box small-photo">
+              <img src="https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=400&q=80" alt="Marcus Garvey Park">
+            </div>
+            <div class="tape-buttons-stack">
+              <button class="tape-badge red-tape">SOLANA STAMPS</button>
+              <button class="tape-badge red-tape">XRPL RLUSD</button>
+              <button class="tape-badge blue-tape">MY SPIDEY-SENSE</button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
 
       <!-- SPIDEY-BOT FLOATING MASCOT & DIALOGUE -->
       <div class="spidey-bot-card">
