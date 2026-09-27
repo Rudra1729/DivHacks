@@ -836,47 +836,33 @@ body.spidey-theme {
   bottom: 12px;
   z-index: 1000;
   display: flex;
-  gap: 0.9rem;
-  padding: 0.4rem 0.7rem;
-  background: rgba(10, 13, 20, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  gap: 1rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid var(--ink-black);
   border-radius: 8px;
-  color: #ddd;
-  font-size: 0.75rem;
+  box-shadow: 2px 2px 0 var(--ink-black);
+  color: #222;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
-.map-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
-.legend-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
-.legend-dot.unexplored { background: #2A2D34; border: 2px solid #777; }
-.legend-dot.explored { background: #E52421; border: 2px solid #121212; box-shadow: 0 0 6px #E52421; }
-.legend-ring { width: 12px; height: 12px; border-radius: 50%; border: 1px dashed #8a8f99; display: inline-block; }
+.map-legend span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.legend-pin .pin-body { fill: #EA4335; stroke: #B3261E; stroke-width: 1.5; }
+.legend-pin.explored .pin-body { fill: #0055A5; stroke: #003a73; }
 
-/* Place markers. Grey until the place is explored, then red with a cyan core. */
+/* Place pins: a red Google-style teardrop. Explored places turn Web Blue with a check mark. */
 .leaflet-container { font-family: 'Outfit', sans-serif; }
-.place-marker { position: relative; width: 44px; height: 44px; cursor: pointer; }
-.place-marker .halo {
-  position: absolute; inset: 0; border-radius: 50%;
-  border: 3px solid transparent; transition: border-color 0.2s;
-}
-.place-marker .dot {
-  position: absolute; left: 8px; top: 8px; width: 28px; height: 28px; border-radius: 50%;
-  background: #2A2D34; border: 3px solid #121212; box-sizing: border-box;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.3s, box-shadow 0.3s;
-}
-.place-marker .core { width: 10px; height: 10px; border-radius: 50%; background: #777; transition: background 0.3s; }
-.place-marker.selected .halo { border-color: #FFCC00; }
-.place-marker.discovered .dot { background: #E52421; box-shadow: 0 0 14px #E52421; }
-.place-marker.discovered .core { background: #00F0FF; }
-
-.leaflet-tooltip.place-label {
-  background: rgba(10, 13, 20, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #cfcfcf;
-  font-size: 12px;
-  box-shadow: none;
-}
-.leaflet-tooltip.place-label.discovered { color: #fff; border-color: #E52421; }
-.leaflet-tooltip-bottom.place-label::before { border-bottom-color: rgba(255, 255, 255, 0.15); }
+.place-pin-icon { background: none; border: 0; }
+.place-pin { position: relative; width: 34px; height: 46px; cursor: pointer; transform-origin: 50% 100%; transition: transform 0.15s ease; }
+.place-pin:hover, .place-pin.selected { transform: scale(1.18); }
+.place-pin .pin-svg { display: block; filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.35)); }
+.place-pin .pin-body { fill: #EA4335; stroke: #B3261E; stroke-width: 1.5; transition: fill 0.25s; }
+.place-pin .pin-dot { fill: #fff; }
+.place-pin .pin-check { display: none; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.place-pin.discovered .pin-body { fill: #0055A5; stroke: #003a73; }
+.place-pin.discovered .pin-dot { display: none; }
+.place-pin.discovered .pin-check { display: block; }
+.place-pin.selected .pin-svg { filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.45)); }
 
 /* Base map switcher (Streets / Satellite / Classic) in the comic style */
 .leaflet-control-layers {
@@ -1483,3 +1469,67 @@ input:checked + .slider:before { transform: translateX(24px); }
 .footer-links { display: flex; gap: 1.5rem; }
 .footer-links a { color: var(--neon-cyan); text-decoration: none; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; }
 .footer-links a:hover { color: var(--accent-yellow); }
+
+/* FULL-WIDTH MAP: the map section spans the whole window and most of its height */
+.section-container.map-fullbleed {
+  max-width: none;
+  padding: 2.5rem 0 0;
+}
+.map-fullbleed .section-header { padding: 0 1.5rem; margin-bottom: 1.5rem; }
+.map-fullbleed .web-map-wrapper { display: block; }
+.map-fullbleed .canvas-container {
+  height: calc(100vh - 80px);
+  min-height: 560px;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  box-shadow: none;
+  isolation: isolate; /* keeps the map and card under the sticky navbar */
+  z-index: 1;
+  scroll-margin-top: 80px; /* scrolling to the map leaves room for the sticky navbar */
+}
+
+/* Place card: floats over the right side of the map */
+.node-overlay {
+  position: absolute;
+  top: 74px;
+  right: 16px;
+  width: 340px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 92px);
+  overflow-y: auto;
+  z-index: 1100;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(18px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+.node-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+}
+.node-overlay .panel-card { position: relative; padding: 1.2rem; }
+.node-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--ink-black);
+  border-radius: 50%;
+  background: var(--paper-white);
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+.node-close:hover { background: var(--accent-yellow); }
+
+@media (max-width: 700px) {
+  .map-fullbleed .canvas-container { height: calc(100vh - 70px); }
+  .node-overlay { top: auto; bottom: 12px; right: 12px; left: 12px; width: auto; max-height: 60%; }
+  .map-legend { display: none; }
+}
