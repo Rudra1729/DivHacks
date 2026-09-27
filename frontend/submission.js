@@ -28,6 +28,9 @@ const submission = {
   statusTimer: null,
 };
 
+// Fixes in a row with an unchanged timestamp before the status calls GPS stuck.
+const STUCK_GPS_REPEATS = 4;
+
 const GATE_BY_LAYER = { sentinel: 'gate2', claim: 'gate2', agent: 'gate3', policy: 'gate4', xrpl: 'gate5', solana: 'gate5' };
 
 /** Distance between two points in meters (haversine).
@@ -128,7 +131,10 @@ function updateSubmissionStatus() {
     const last = trail[trail.length - 1];
     const progress = WebPassCapture.trailProgress(trail);
     const where = `${formatDistance(metersBetween(last, place))} from ${place.name} (±${Math.round(last.accuracy)} m)`;
-    if (!progress.ready) {
+    const repeats = submission.sampler ? submission.sampler.repeatedReadings() : 0;
+    if (!progress.ready && repeats >= STUCK_GPS_REPEATS) {
+      setGpsStatus('error', `GPS is not updating: the same reading came back ${repeats} times. Turn off any location override, or step outside for a fresh fix.`);
+    } else if (!progress.ready) {
       const seconds = Math.min(Math.floor(progress.spanMs / 1000), need.minSpanMs / 1000);
       setGpsStatus('pending', `Collecting GPS trail: ${Math.min(progress.readings, need.minReadings)}/${need.minReadings} readings, ${seconds}/${need.minSpanMs / 1000}s. ${where}`);
     } else if (metersBetween(last, place) > place.radius) {

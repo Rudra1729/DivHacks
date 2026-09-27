@@ -166,14 +166,17 @@ Example:
           for good if the user refuses location access.
 
   Returns:
-      { stop: function, trail: function }: stop() ends sampling; trail() returns
-          the readings so far, oldest first.
+      { stop: function, trail: function, repeatedReadings: function }: stop()
+          ends sampling; trail() returns the readings so far, oldest first;
+          repeatedReadings() counts fixes in a row that repeated the last
+          timestamp, which is what a location override or a stuck GPS does.
   */
   function startTrail(options = {}) {
     const intervalMs = options.intervalMs ?? DEFAULTS.intervalMs;
     const maxReadings = options.maxReadings ?? DEFAULTS.maxReadings;
     const trail = [];
     let stopped = false;
+    let repeated = 0;
 
     if (!navigator.geolocation) {
       stopped = true;
@@ -188,6 +191,7 @@ Example:
           if (stopped) break;
           const previous = trail[trail.length - 1];
           if (!previous || reading.timestamp > previous.timestamp) {
+            repeated = 0;
             trail.push(reading);
             if (trail.length > maxReadings) {
               trail.shift();
@@ -195,6 +199,8 @@ Example:
             if (options.onReading) {
               options.onReading(reading, trail.slice());
             }
+          } else {
+            repeated += 1;
           }
         } catch (error) {
           if (stopped) break;
@@ -216,6 +222,9 @@ Example:
       },
       trail() {
         return trail.slice();
+      },
+      repeatedReadings() {
+        return repeated;
       },
     };
   }
