@@ -56,6 +56,12 @@ Away from Harlem, open http://localhost:3000/?demo=1 instead. It shows a
 "pretend my phone is standing at this place" checkbox that sends a simulated
 GPS trail near the place, so the whole flow can be demoed from a laptop.
 
+Rewards: cultural places (marked CULTURAL) earn only the Solana stamp, and
+civic bounties also pay RLUSD. `CULTURAL_REWARDS=on` makes cultural visits pay
+too. `REWARD_SCALE` shrinks every payout and the policy caps by the same
+factor, so `REWARD_SCALE=0.01` pays 0.01 RLUSD per civic visit and never more
+than 0.05 per visit or 0.10 per wallet per day.
+
 The page talks to the server it was loaded from. To point it at another
 server, add `?api=http://host:port` to the URL.
 
