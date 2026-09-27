@@ -915,25 +915,64 @@ function runAttackSimulation(type) {
       setSpideyBotState('policy_blocked', '"GUARDRAIL HELD! Even though Grok proposed $100, my Policy Engine blocked it automatically!"');
       addTickerItem('GUARDRAIL HELD! $100 prompt injection blocked by Policy Engine');
     }, 1800);
-
-  } else if (type === 'bypass') {
-    g1.className = 'gate-step active';
-    addSimLog('[GATE 1] Intake: Policy Bypass Attack Flag = TRUE', 'warning');
-
-    setTimeout(() => {
-      g2.className = 'gate-step active';
-      g3.className = 'gate-step active';
-      g4.className = 'gate-step active';
-      addSimLog('[GATE 4] Policy Gate Bypassed in Attack Mode!', 'warning');
-    }, 800);
-
-    setTimeout(() => {
-      g5.className = 'gate-step blocked';
-      addSimLog('[GATE 5 - XRPL LEDGER] REJECTED_BY_LEDGER: Agent wallet allowance empty ($10 max daily). Ledger rejected transaction!', 'error');
-      setSpideyBotState('sentinel_blocked', '"LEDGER STOP! Key isolation prevented the agent from accessing treasury funds directly!"');
-      addTickerItem('REJECTED BY LEDGER! XRPL allowance wallet empty, treasury key safe');
-    }, 1600);
   }
+}
+
+/** The address the forced payout targets. Only meaningful in XRPL_MODE=fake
+(the format doesn't need to be a valid classic address there); against a
+real testnet server, replace this with a real testnet address. */
+const DEMO_ATTACKER_XRPL_ADDRESS = 'rATTACKER00000000000000000000';
+
+/** REAL demo, not a canned animation: enables the server's policy bypass and
+forces its next payout proposal, both via genuine calls to /test/attack and
+/test/attack/force-proposal. Submitting any real mission afterward runs
+through the actual orchestrator, and the ledger genuinely rejects the
+forced payout because the agent wallet only holds its small allowance.
+The resulting gate-by-gate breakdown comes from the real audit trail via
+showDecisionInPipeline, once that submission's decision comes back. */
+async function runRealLedgerStopDemo() {
+  const gates = ['gate1', 'gate2', 'gate3', 'gate4', 'gate5'].map((id) => document.getElementById(id));
+  gates.forEach((g) => { g.className = 'gate-step'; });
+
+  addSimLog('[REAL] POST /test/attack — enabling the policy bypass on the server...', 'warning');
+  const attackResult = await WebPassApi.setAttackMode(true);
+  if (attackResult.status === 404) {
+    addSimLog('[REAL] 404: /test/attack only exists when the server runs with NODE_ENV=test. Restart it that way for this demo.', 'error');
+    return;
+  }
+  if (!attackResult.ok) {
+    addSimLog(`[REAL] ${WebPassApi.errorMessage(attackResult, 'Could not enable the bypass.')}`, 'error');
+    return;
+  }
+  attackModeActive = true;
+  addSimLog(`[REAL] Server confirmed: policyBypassEnabled=${attackResult.body.policyBypassEnabled}`, 'success');
+
+  addSimLog(`[REAL] POST /test/attack/force-proposal — forcing a $50 payout to ${DEMO_ATTACKER_XRPL_ADDRESS}...`, 'warning');
+  const forceResult = await WebPassApi.forceProposal(DEMO_ATTACKER_XRPL_ADDRESS, 50, 'forced demo overspend');
+  if (!forceResult.ok) {
+    addSimLog(`[REAL] ${WebPassApi.errorMessage(forceResult, 'Could not force the proposal.')}`, 'error');
+    return;
+  }
+  addSimLog('[REAL] Server confirmed the forced proposal. Every submission now uses it, skipping Grok and the policy engine.', 'success');
+  addSimLog('[ACTION NEEDED] Submit any real mission below (a real photo, any place) — watch Gate 5.', 'warning');
+  setSpideyBotState('sentinel_blocked', '"Attack mode is live on the real server. Submit a mission and watch the ledger stop it."');
+
+  gates[0].className = 'gate-step active';
+  openSubmissionModal(selectedNodeId);
+}
+
+/** Restores normal enforcement after the demo: real DELETE calls, not a reset animation. */
+async function resetRealAttackDemo() {
+  await WebPassApi.setAttackMode(false);
+  await WebPassApi.clearForcedProposal();
+  attackModeActive = false;
+  const toggle = document.getElementById('testAttackToggle');
+  if (toggle) toggle.checked = false;
+  ['gate1', 'gate2', 'gate3', 'gate4', 'gate5'].forEach((id) => {
+    document.getElementById(id).className = 'gate-step';
+  });
+  addSimLog('[REAL] DELETE /test/attack and /test/attack/force-proposal — normal policy enforcement restored.', 'success');
+  setSpideyBotState('ready', '"Normal guardrails restored."');
 }
 
 function addSimLog(msg, type = 'info') {
@@ -1204,7 +1243,8 @@ function setupEventListeners() {
   // Attack Simulator Buttons
   document.getElementById('attackDuplicateBtn')?.addEventListener('click', () => runAttackSimulation('duplicate'));
   document.getElementById('attackInjectionBtn')?.addEventListener('click', () => runAttackSimulation('injection'));
-  document.getElementById('attackBypassBtn')?.addEventListener('click', () => runAttackSimulation('bypass'));
+  document.getElementById('attackBypassBtn')?.addEventListener('click', runRealLedgerStopDemo);
+  document.getElementById('attackResetBtn')?.addEventListener('click', resetRealAttackDemo);
 
   // Test Attack Mode Toggle
   document.getElementById('testAttackToggle')?.addEventListener('change', (e) => setAttackMode(e.target));
