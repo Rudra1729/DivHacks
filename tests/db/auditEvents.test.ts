@@ -8,7 +8,7 @@ describe('audit_events table', () => {
 
   beforeEach(() => {
     db = openDatabase(':memory:');
-    createDecision(db, 'dec-1', 'PENDING');
+    createDecision(db, 'dec-1', 'apollo-theater', 'PENDING');
   });
 
   it('records and lists events in order', () => {

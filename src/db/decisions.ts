@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 
 export interface Decision {
   id: string;
+  placeId: string | null;
   status: string;
   reasons: string[];
   grokProposal?: string | null;
@@ -22,6 +23,7 @@ export interface Decision {
 
 interface DecisionRow {
   id: string;
+  place_id: string | null;
   status: string;
   reasons: string;
   grok_proposal: string | null;
@@ -37,6 +39,7 @@ interface DecisionRow {
 function fromRow(row: DecisionRow): Decision {
   return {
     id: row.id,
+    placeId: row.place_id,
     status: row.status,
     reasons: JSON.parse(row.reasons),
     grokProposal: row.grok_proposal,
@@ -55,6 +58,7 @@ function fromRow(row: DecisionRow): Decision {
 Args:
     db (Database.Database): Open database handle.
     id (string): The decision ID.
+    placeId (string): The place this decision is for.
     status (string): Initial status, e.g. "PENDING".
     reasons (string[]): Reasons recorded so far, if any.
 
@@ -64,12 +68,13 @@ Returns:
 export function createDecision(
   db: Database.Database,
   id: string,
+  placeId: string,
   status: string,
   reasons: string[] = []
 ): Decision {
   db.prepare(
-    'INSERT INTO decisions (id, status, reasons) VALUES (@id, @status, @reasons)'
-  ).run({ id, status, reasons: JSON.stringify(reasons) });
+    'INSERT INTO decisions (id, place_id, status, reasons) VALUES (@id, @placeId, @status, @reasons)'
+  ).run({ id, placeId, status, reasons: JSON.stringify(reasons) });
   return getDecision(db, id) as Decision;
 }
 

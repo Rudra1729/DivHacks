@@ -10,15 +10,16 @@ describe('decisions table', () => {
   });
 
   it('creates and reads a decision', () => {
-    createDecision(db, 'dec-1', 'PENDING');
+    createDecision(db, 'dec-1', 'apollo-theater', 'PENDING');
     const decision = getDecision(db, 'dec-1');
+    expect(decision?.placeId).toBe('apollo-theater');
     expect(decision?.status).toBe('PENDING');
     expect(decision?.reasons).toEqual([]);
     expect(decision?.stampFailed).toBe(false);
   });
 
   it('updates mutable fields', () => {
-    createDecision(db, 'dec-2', 'PENDING');
+    createDecision(db, 'dec-2', 'apollo-theater', 'PENDING');
     updateDecision(db, 'dec-2', { status: 'PAID', xrplHash: 'ABC123' });
     const decision = getDecision(db, 'dec-2');
     expect(decision?.status).toBe('PAID');
