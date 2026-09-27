@@ -94,6 +94,19 @@ const PLACES = [
     discovered: false,
     image: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80',
     desc: 'DivHacks HQ: check in at Columbia Engineering, 500 W 120th St at Amsterdam Ave.'
+  },
+  {
+    id: 'mudd-entrance',
+    name: 'Mudd Building Entrance',
+    neighborhood: 'Morningside Heights',
+    x: 270,
+    y: 235,
+    radius: 200,
+    rewardRlusd: 0.01,
+    type: 'civic',
+    discovered: false,
+    image: 'https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?auto=format&fit=crop&w=600&q=80',
+    desc: 'CIVIC MISSION: Check the Mudd entrance on 120th St. Are the doors, ramp and signs clear and working? Photograph it to report.'
   }
 ];
 
@@ -109,7 +122,8 @@ const PLACE_COORDS = {
   'hamilton-grange':        { lat: 40.82138, lng: -73.94726 },
   'malcolm-shabazz-market': { lat: 40.80147, lng: -73.94886 },
   'morningside-park':       { lat: 40.8065,  lng: -73.9585 },
-  'mudd-building':          { lat: 40.81005, lng: -73.96030 }
+  'mudd-building':          { lat: 40.81005, lng: -73.96030 },
+  'mudd-entrance':          { lat: 40.8106,  lng: -73.9601 }
 };
 PLACES.forEach(place => Object.assign(place, PLACE_COORDS[place.id]));
 
