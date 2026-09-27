@@ -21,6 +21,7 @@ describe('e2e: happy path', () => {
     expect(decisionId).toBeTruthy();
     expect(xrplTxHash).toBeTruthy();
     expect(solanaAssetAddress).toBeTruthy();
+    expect(response.body).toMatchObject({ stampSerial: 1, stampTier: 'Legendary' });
 
     // Money moved: the user got the place's base reward from the agent wallet.
     expect(await stack.xrpl.getRlusdBalance(user.xrpl)).toBe(apollo.baseRewardRlusd);
@@ -31,7 +32,7 @@ describe('e2e: happy path', () => {
     // Solana: the stamp carries the same decision ID and the XRPL payment hash.
     const stamps = await stack.solana.getStamps(user.solana);
     expect(stamps).toHaveLength(1);
-    expect(stamps[0]).toMatchObject({ placeId: apollo.id, decisionId, xrplTxHash });
+    expect(stamps[0]).toMatchObject({ placeId: apollo.id, decisionId, xrplTxHash, serial: 1, tier: 'Legendary' });
 
     // SQLite: one saved decision under the same ID, linking both chains.
     const saved = await request(stack.app).get(`/decisions/${decisionId}`);
@@ -41,8 +42,17 @@ describe('e2e: happy path', () => {
       status: 'OK',
       xrplHash: xrplTxHash,
       solanaAsset: solanaAssetAddress,
+      stampSerial: 1,
+      stampTier: 'Legendary',
       stampFailed: false,
     });
+  });
+
+  it('gives the second finder of a place the next serial', async () => {
+    await submit(stack.app, makeUser(1), place(0));
+    const second = await submit(stack.app, makeUser(2), place(0));
+
+    expect(second.body).toMatchObject({ status: 'OK', stampSerial: 2, stampTier: 'Legendary' });
   });
 
   it('records the policy version and the agent proposal on the decision', async () => {

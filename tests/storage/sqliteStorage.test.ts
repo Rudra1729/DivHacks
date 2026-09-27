@@ -54,6 +54,8 @@ describe('SqliteStorage', () => {
       xrplTxHash: 'TXHASH123',
       solanaAssetAddress: 'asset-1',
       solanaSignature: 'sig-1',
+      stampSerial: 4,
+      stampTier: 'Legendary',
       stampFailed: false,
     };
     await storage.saveDecision('req-1', decision);
@@ -63,6 +65,7 @@ describe('SqliteStorage', () => {
     expect(saved?.status).toBe('OK');
     expect(saved?.proposal?.amount).toBe(2);
     expect(saved?.xrplTxHash).toBe('TXHASH123');
+    expect(saved).toMatchObject({ stampSerial: 4, stampTier: 'Legendary' });
   });
 
   it('returns undefined for an unhandled request ID', async () => {

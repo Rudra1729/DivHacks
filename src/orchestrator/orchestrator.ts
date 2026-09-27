@@ -243,6 +243,8 @@ export class Orchestrator {
       xrplTxHash: payment.txHash,
       solanaAssetAddress: mint.assetAddress,
       solanaSignature: mint.signature,
+      stampSerial: mint.serial,
+      stampTier: mint.tier,
     }, trail);
   }
 
