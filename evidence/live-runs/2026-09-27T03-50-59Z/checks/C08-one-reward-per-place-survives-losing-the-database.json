@@ -1,0 +1,49 @@
+{
+  "id": "C08",
+  "title": "One reward per place survives losing the database",
+  "proves": "Stamp ownership on Solana is the source of truth: a wallet that already holds a stamp for a place is blocked even if the server starts with an empty database.",
+  "cost": "none if blocked, 0.01 RLUSD if it wrongly pays",
+  "status": "fail",
+  "summary": "NOT blocked: the server paid again (OK) because it only checks its own database, not the stamp already on Solana.",
+  "assertions": [
+    {
+      "description": "a brand new server (empty database) still blocks the claim",
+      "passed": false,
+      "actual": "OK"
+    },
+    {
+      "description": "no second payment was made",
+      "passed": false,
+      "actual": "D4774B5F66D0A66EBDE37D50D27660505C7179EF25CCE180744559A66CDC5A62"
+    }
+  ],
+  "evidence": {
+    "response": {
+      "decisionId": "4611c8c5-c0dd-42a5-af0c-468e5bce52e3",
+      "stampFailed": false,
+      "status": "OK",
+      "reasons": [],
+      "proposal": {
+        "amount": 0.01,
+        "recipient": "rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe",
+        "reason": "Visit to Apollo Theater"
+      },
+      "policyVersion": "1.0.0",
+      "xrplTxHash": "D4774B5F66D0A66EBDE37D50D27660505C7179EF25CCE180744559A66CDC5A62",
+      "solanaAssetAddress": "HSoQHrxmVNyBqHiLx711bcKfYqVgTqZFVXMGyz99HK6R",
+      "solanaSignature": "apwDH4ZMsZZ23QfWpZxy9RFX7CzQM6pkYhCD93S8gZFfBU4wvcJ7bjPuAZ7jE2jg3SR5aAQrwst8172TEXAkypw"
+    },
+    "note": "This wallet already holds an Apollo Theater stamp from C01."
+  },
+  "links": [
+    {
+      "label": "XRPL payment on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/D4774B5F66D0A66EBDE37D50D27660505C7179EF25CCE180744559A66CDC5A62"
+    },
+    {
+      "label": "Solana stamp (asset) on the devnet explorer",
+      "url": "https://explorer.solana.com/address/HSoQHrxmVNyBqHiLx711bcKfYqVgTqZFVXMGyz99HK6R?cluster=devnet"
+    }
+  ],
+  "durationMs": 19444
+}

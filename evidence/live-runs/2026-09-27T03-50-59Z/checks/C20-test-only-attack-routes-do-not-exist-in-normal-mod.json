@@ -1,0 +1,21 @@
+{
+  "id": "C20",
+  "title": "Test-only attack routes do not exist in normal mode",
+  "proves": "The policy bypass switch used for the attack demo is not reachable on a normally running server.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "The bypass route is not mounted outside test mode.",
+  "assertions": [
+    {
+      "description": "POST /test/attack returns 404",
+      "passed": true,
+      "actual": 404
+    }
+  ],
+  "evidence": {
+    "response": null,
+    "status": 404
+  },
+  "links": [],
+  "durationMs": 13
+}

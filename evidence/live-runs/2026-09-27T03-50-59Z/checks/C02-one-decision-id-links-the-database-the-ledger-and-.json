@@ -1,0 +1,94 @@
+{
+  "id": "C02",
+  "title": "One decision ID links the database, the ledger, and the stamp",
+  "proves": "The same decision ID appears in the saved decision, the XRPL payment memo, the Solana stamp, and the stamp metadata page, so any record can be traced to the others.",
+  "cost": "none (re-reads C01)",
+  "status": "pass",
+  "summary": "Decision ID 7e269b28-56bb-47d7-91b9-11664fe15576 was found in every place it should be.",
+  "assertions": [
+    {
+      "description": "the database has the decision under that ID",
+      "passed": true,
+      "actual": "7e269b28-56bb-47d7-91b9-11664fe15576"
+    },
+    {
+      "description": "the database records the same payment hash",
+      "passed": true,
+      "actual": "CDC5885A88449F3843687D365A81AD1A1C247BC1DF721FF2C66A18C03B36ACB5"
+    },
+    {
+      "description": "the database records the same stamp",
+      "passed": true,
+      "actual": "8QhhshQT6tbNQHqzVAd9ACp5XN3rM637hcsMv7FP3i5b"
+    },
+    {
+      "description": "the stamp metadata page is served for that ID",
+      "passed": true,
+      "actual": 200
+    },
+    {
+      "description": "the metadata page shows the same payment hash",
+      "passed": true,
+      "actual": "CDC5885A88449F3843687D365A81AD1A1C247BC1DF721FF2C66A18C03B36ACB5"
+    },
+    {
+      "description": "the XRPL memo carries the same ID",
+      "passed": true,
+      "actual": [
+        "decision_id=7e269b28-56bb-47d7-91b9-11664fe15576"
+      ]
+    },
+    {
+      "description": "the Solana stamp carries the same ID",
+      "passed": true,
+      "actual": "7e269b28-56bb-47d7-91b9-11664fe15576"
+    },
+    {
+      "description": "the stamp metadata address contains the same ID",
+      "passed": true,
+      "actual": "http://localhost:3000/metadata/7e269b28-56bb-47d7-91b9-11664fe15576"
+    }
+  ],
+  "evidence": {
+    "savedDecision": {
+      "id": "7e269b28-56bb-47d7-91b9-11664fe15576",
+      "requestId": "882c4f67-b962-49a6-b74c-e9225e58efd7",
+      "placeId": "apollo-theater",
+      "xrplAddress": "rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe",
+      "solanaAddress": "2qTSwwAb41r5qxGRpWNVCdZmzFUheCpHRs4ccx2DKiJ1",
+      "amount": 0.01,
+      "status": "OK",
+      "reasons": [],
+      "grokProposal": "{\"amount\":0.01,\"recipient\":\"rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe\",\"reason\":\"Visit to Apollo Theater\"}",
+      "policyVersion": "1.0.0",
+      "xrplHash": "CDC5885A88449F3843687D365A81AD1A1C247BC1DF721FF2C66A18C03B36ACB5",
+      "xrplResult": null,
+      "solanaAsset": "8QhhshQT6tbNQHqzVAd9ACp5XN3rM637hcsMv7FP3i5b",
+      "solanaSignature": "4uFW4FkrtgjBNrCXBDaVYMhu2hHyLRdYA4YXB7aRrVfGcqKztXd8CZtdGPS8GGTLvMGDyrHtbhfKmSSsx5B42Umr",
+      "stampFailed": false,
+      "createdAt": "2026-09-27T03:51:19.998Z"
+    },
+    "metadataPage": {
+      "decisionId": "7e269b28-56bb-47d7-91b9-11664fe15576",
+      "place": "Apollo Theater",
+      "neighborhood": "Harlem",
+      "image": "https://placehold.co/600x600/png?text=apollo+theater",
+      "xrplPaymentHash": "CDC5885A88449F3843687D365A81AD1A1C247BC1DF721FF2C66A18C03B36ACB5"
+    },
+    "ledgerMemos": [
+      "decision_id=7e269b28-56bb-47d7-91b9-11664fe15576"
+    ],
+    "stampUri": "http://localhost:3000/metadata/7e269b28-56bb-47d7-91b9-11664fe15576"
+  },
+  "links": [
+    {
+      "label": "XRPL payment on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/CDC5885A88449F3843687D365A81AD1A1C247BC1DF721FF2C66A18C03B36ACB5"
+    },
+    {
+      "label": "Solana stamp (asset) on the devnet explorer",
+      "url": "https://explorer.solana.com/address/8QhhshQT6tbNQHqzVAd9ACp5XN3rM637hcsMv7FP3i5b?cluster=devnet"
+    }
+  ],
+  "durationMs": 163
+}

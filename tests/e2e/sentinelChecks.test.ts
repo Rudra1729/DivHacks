@@ -88,6 +88,34 @@ describe('e2e: Sentinel checks', () => {
     });
   });
 
+  describe('stamp already on Solana', () => {
+    it('blocks a wallet that already holds a stamp even when the server has a brand new database', async () => {
+      const user = makeUser(20);
+      const first = await submit(stack.app, user, place(0));
+      expect(first.body.status).toBe('OK');
+
+      // Same stamps on Solana, but a server that has lost its database.
+      const restarted = buildE2eStack({ solana: stack.solana });
+      const second = await submit(restarted.app, user, place(0));
+
+      expect(second.status).toBe(422);
+      expect(second.body.status).toBe('BLOCKED_SENTINEL');
+      expect(second.body.reasons).toEqual(['once per place: this Solana wallet already holds a stamp for this place']);
+      expect(await restarted.xrpl.getRlusdBalance(user.xrpl)).toBe(0);
+      expect(await stack.solana.getStamps(user.solana)).toHaveLength(1);
+    });
+
+    it('still lets the same wallet claim a different place on a brand new database', async () => {
+      const user = makeUser(21);
+      await submit(stack.app, user, place(0));
+
+      const restarted = buildE2eStack({ solana: stack.solana });
+      const second = await submit(restarted.app, user, place(1));
+
+      expect(second.body.status).toBe('OK');
+    });
+  });
+
   describe('location and freshness', () => {
     it('blocks a submission far from the place', async () => {
       const response = await submit(stack.app, makeUser(9), { ...place(0), latitude: 40.7, longitude: -74.0 });

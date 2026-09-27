@@ -1,0 +1,62 @@
+{
+  "id": "C12",
+  "title": "Malformed requests are refused before anything happens",
+  "proves": "A bad XRPL address, a missing photo, and an unknown place are each rejected with a clear error and no side effects.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "All three malformed requests were refused with 400.",
+  "assertions": [
+    {
+      "description": "a malformed XRPL address gets 400",
+      "passed": true,
+      "actual": 400
+    },
+    {
+      "description": "the error says the address is malformed",
+      "passed": true,
+      "actual": {
+        "errors": [
+          "XRPL address is malformed"
+        ]
+      }
+    },
+    {
+      "description": "a missing photo gets 400",
+      "passed": true,
+      "actual": 400
+    },
+    {
+      "description": "the error says the photo is required",
+      "passed": true,
+      "actual": {
+        "errors": [
+          "photo is required"
+        ]
+      }
+    },
+    {
+      "description": "an unknown place gets 400",
+      "passed": true,
+      "actual": 400
+    }
+  ],
+  "evidence": {
+    "badAddress": {
+      "errors": [
+        "XRPL address is malformed"
+      ]
+    },
+    "noPhoto": {
+      "errors": [
+        "photo is required"
+      ]
+    },
+    "unknownPlace": {
+      "errors": [
+        "place is not on the allowlist: not-a-real-place"
+      ]
+    }
+  },
+  "links": [],
+  "durationMs": 23
+}

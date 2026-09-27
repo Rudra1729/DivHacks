@@ -1,0 +1,12 @@
+{
+  "id": "C24",
+  "title": "Every decision has a step-by-step audit history",
+  "proves": "Each step of a paid submission (Sentinel, claim, agent, policy, payment, stamp) is recorded and can be read back for any decision.",
+  "cost": "none",
+  "status": "skipped",
+  "summary": "Skipped: this build has no audit trail yet (it is added by the audit trail pull request)",
+  "assertions": [],
+  "evidence": {},
+  "links": [],
+  "durationMs": 5
+}

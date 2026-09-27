@@ -1,0 +1,82 @@
+{
+  "id": "C15",
+  "title": "Repeating a request never pays twice",
+  "proves": "Sending the exact same request twice returns the same decision and pays once, so a retry or a double-tap cannot double-pay.",
+  "cost": "0.01 RLUSD + devnet mint fee",
+  "status": "pass",
+  "summary": "Both requests returned decision 4670fc7d-34bb-4a79-b270-7af7c53e820c; one payment.",
+  "assertions": [
+    {
+      "description": "the first request paid",
+      "passed": true,
+      "actual": "OK"
+    },
+    {
+      "description": "the second request returned the same decision ID",
+      "passed": true,
+      "actual": "4670fc7d-34bb-4a79-b270-7af7c53e820c"
+    },
+    {
+      "description": "the second request returned the same payment hash",
+      "passed": true,
+      "actual": "282A2487360B5122F426A27B0F7F25D2987FFD5265AD22792D547F2B850BB8F9"
+    },
+    {
+      "description": "the visitor received the reward exactly once",
+      "passed": true,
+      "actual": {
+        "gained": 0.010000000000000009,
+        "reward": 0.01
+      }
+    }
+  ],
+  "evidence": {
+    "first": {
+      "decisionId": "4670fc7d-34bb-4a79-b270-7af7c53e820c",
+      "stampFailed": false,
+      "status": "OK",
+      "reasons": [],
+      "proposal": {
+        "amount": 0.01,
+        "recipient": "rpU5YrQxWdm7So1tLC9vxyVMqhgVVCbTbY",
+        "reason": "Visit to Marcus Garvey Park"
+      },
+      "policyVersion": "1.0.0",
+      "xrplTxHash": "282A2487360B5122F426A27B0F7F25D2987FFD5265AD22792D547F2B850BB8F9",
+      "solanaAssetAddress": "J56V4ARVXiVdDh2UgFaMHUXh3YF8tPprJgyVcmcoAQbp",
+      "solanaSignature": "tPFzz8KQizpmhtxn1ztpxVa5km2DrS9VH23FNCgpRcfBGuEZyo79BfLrY1ZSpcnfn1AAZYFMi8i3QFNsJRvzUWv"
+    },
+    "second": {
+      "decisionId": "4670fc7d-34bb-4a79-b270-7af7c53e820c",
+      "status": "OK",
+      "reasons": [],
+      "proposal": {
+        "amount": 0.01,
+        "recipient": "rpU5YrQxWdm7So1tLC9vxyVMqhgVVCbTbY",
+        "reason": "Visit to Marcus Garvey Park"
+      },
+      "policyVersion": "1.0.0",
+      "xrplTxHash": "282A2487360B5122F426A27B0F7F25D2987FFD5265AD22792D547F2B850BB8F9",
+      "solanaAssetAddress": "J56V4ARVXiVdDh2UgFaMHUXh3YF8tPprJgyVcmcoAQbp",
+      "solanaSignature": "tPFzz8KQizpmhtxn1ztpxVa5km2DrS9VH23FNCgpRcfBGuEZyo79BfLrY1ZSpcnfn1AAZYFMi8i3QFNsJRvzUWv",
+      "stampFailed": false
+    },
+    "balanceBefore": 0.09,
+    "balanceAfter": 0.1
+  },
+  "links": [
+    {
+      "label": "XRPL payment on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/282A2487360B5122F426A27B0F7F25D2987FFD5265AD22792D547F2B850BB8F9"
+    },
+    {
+      "label": "Solana stamp (asset) on the devnet explorer",
+      "url": "https://explorer.solana.com/address/J56V4ARVXiVdDh2UgFaMHUXh3YF8tPprJgyVcmcoAQbp?cluster=devnet"
+    },
+    {
+      "label": "Solana mint transaction on the devnet explorer",
+      "url": "https://explorer.solana.com/tx/tPFzz8KQizpmhtxn1ztpxVa5km2DrS9VH23FNCgpRcfBGuEZyo79BfLrY1ZSpcnfn1AAZYFMi8i3QFNsJRvzUWv?cluster=devnet"
+    }
+  ],
+  "durationMs": 9886
+}

@@ -1,0 +1,61 @@
+{
+  "id": "C16",
+  "title": "The daily cap uses real ledger totals",
+  "proves": "A wallet that has already been paid 10 RLUSD today (counted from the XRPL ledger, not just our database) is blocked from receiving more.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "Blocked: daily cap: already paid 10 today, asked for 0.01, max is 10 per day",
+  "assertions": [
+    {
+      "description": "the ledger says this wallet was already paid at least the cap today",
+      "passed": true,
+      "actual": 10
+    },
+    {
+      "description": "server answered 422",
+      "passed": true,
+      "actual": 422
+    },
+    {
+      "description": "status is BLOCKED_POLICY",
+      "passed": true,
+      "actual": "BLOCKED_POLICY"
+    },
+    {
+      "description": "the reason is the daily cap",
+      "passed": true,
+      "actual": [
+        "daily cap: already paid 10 today, asked for 0.01, max is 10 per day"
+      ]
+    },
+    {
+      "description": "no payment was made",
+      "passed": true,
+      "actual": 0
+    }
+  ],
+  "evidence": {
+    "paidTodayPerLedger": 10,
+    "response": {
+      "decisionId": "eb3203e6-e28c-49a3-995a-81d093a53f07",
+      "stampFailed": false,
+      "status": "BLOCKED_POLICY",
+      "reasons": [
+        "daily cap: already paid 10 today, asked for 0.01, max is 10 per day"
+      ],
+      "proposal": {
+        "amount": 0.01,
+        "recipient": "rGZdWjw2yFWB6kV7ddiYDspU31GRHKMnnX",
+        "reason": "Visit to Hamilton Grange National Memorial"
+      },
+      "policyVersion": "1.0.0"
+    }
+  },
+  "links": [
+    {
+      "label": "Demo user 1 account (payments this UTC day)",
+      "url": "https://testnet.xrpl.org/accounts/rGZdWjw2yFWB6kV7ddiYDspU31GRHKMnnX"
+    }
+  ],
+  "durationMs": 4450
+}

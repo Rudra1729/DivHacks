@@ -1,0 +1,34 @@
+{
+  "id": "C03",
+  "title": "A stamp cannot be transferred to anyone else",
+  "proves": "Stamps are soulbound: even the stamp owner signing a transfer to another wallet is refused by Solana, and the stamp stays with its owner.",
+  "cost": "devnet fee",
+  "status": "pass",
+  "summary": "Transfer refused by the network: Invalid Authority",
+  "assertions": [
+    {
+      "description": "the owner signed a transfer to the attacker wallet and Solana refused it",
+      "passed": true,
+      "actual": "Invalid Authority"
+    },
+    {
+      "description": "the stamp still belongs to the visitor afterward",
+      "passed": true,
+      "actual": "BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4"
+    }
+  ],
+  "evidence": {
+    "attempt": "owner-signed transfer of the stamp to the attacker wallet",
+    "rejected": true,
+    "error": "Invalid Authority",
+    "ownerAfter": "BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4",
+    "ownerBefore": "BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4"
+  },
+  "links": [
+    {
+      "label": "Stamp on the devnet explorer",
+      "url": "https://explorer.solana.com/address/HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn?cluster=devnet"
+    }
+  ],
+  "durationMs": 114
+}

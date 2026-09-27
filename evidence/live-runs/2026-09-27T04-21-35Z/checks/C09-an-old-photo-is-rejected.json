@@ -1,0 +1,34 @@
+{
+  "id": "C09",
+  "title": "An old photo is rejected",
+  "proves": "The freshness check blocks a photo taken an hour ago.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "Blocked: freshness: photo is 60 minutes old, max is 15 minutes",
+  "assertions": [
+    {
+      "description": "server answered 422",
+      "passed": true,
+      "actual": 422
+    },
+    {
+      "description": "the reason is freshness",
+      "passed": true,
+      "actual": [
+        "freshness: photo is 60 minutes old, max is 15 minutes"
+      ]
+    }
+  ],
+  "evidence": {
+    "response": {
+      "decisionId": "e49ddf76-6416-4eae-8fe0-58f0ab4403c2",
+      "stampFailed": false,
+      "status": "BLOCKED_SENTINEL",
+      "reasons": [
+        "freshness: photo is 60 minutes old, max is 15 minutes"
+      ]
+    }
+  },
+  "links": [],
+  "durationMs": 44
+}
