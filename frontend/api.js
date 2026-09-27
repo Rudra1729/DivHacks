@@ -112,6 +112,7 @@ Which server it talks to:
     verifyLoginCode: (email, code) => request('/auth/verify', { method: 'POST', json: { email, code } }),
     getMyStamps: (token) => request('/me/nft', { token }),
     getMyBalance: (token) => request('/me/rlusd-balance', { token }),
+    getMyTransactions: (token) => request('/me/transactions', { token }),
     submitVisit: (form) => request('/submissions', { method: 'POST', body: form }),
     getDecision: (decisionId) => request(`/decisions/${encodeURIComponent(decisionId)}`),
     setAttackMode: (enabled) => request('/test/attack', { method: enabled ? 'POST' : 'DELETE' }),

@@ -389,17 +389,6 @@ async function verifyLoginCode(email, code) {
   return result.body;
 }
 
-/** Calls a GET /me/* route with the logged-in user's bearer token. */
-async function fetchWithAuth(path) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { Authorization: `Bearer ${currentAuth.token}` }
-  });
-  if (!response.ok) {
-    throw new Error(`request to ${path} failed with ${response.status}`);
-  }
-  return response.json();
-}
-
 function openWalletModal() {
   document.getElementById('walletModalEmail').innerText = currentAuth.user.email;
   document.getElementById('walletBalanceAddress').innerText = currentAuth.user.xrplAddress;
@@ -417,36 +406,52 @@ data: both endpoints are authorized off the bearer token, not an address
 the client supplies. */
 async function loadWalletData() {
   const txList = document.getElementById('walletTxList');
-  try {
-    const [{ balance }, { transactions }] = await Promise.all([
-      fetchWithAuth('/me/rlusd-balance'),
-      fetchWithAuth('/me/transactions')
-    ]);
+  const note = (text, className) => {
+    const p = document.createElement('p');
+    p.className = className;
+    p.textContent = text;
+    txList.replaceChildren(p);
+  };
+  const [balanceResult, txResult] = await Promise.all([
+    WebPassApi.getMyBalance(currentAuth.token),
+    WebPassApi.getMyTransactions(currentAuth.token)
+  ]);
 
-    document.getElementById('walletBalanceValue').innerText = balance.toFixed(2);
-    document.getElementById('walletBalanceUpdated').innerText = 'just now';
+  const balance = balanceResult.ok ? balanceResult.body.balance : null;
+  document.getElementById('walletBalanceValue').innerText = typeof balance === 'number' ? balance.toFixed(2) : '--';
+  document.getElementById('walletBalanceUpdated').innerText = typeof balance === 'number' ? 'just now' : 'balance unavailable';
 
-    if (transactions.length === 0) {
-      txList.innerHTML = '<p class="upload-note">No transactions yet. Complete a mission to earn RLUSD!</p>';
-      return;
-    }
-
-    txList.innerHTML = transactions.map(tx => {
-      const date = new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const isPaid = tx.status === 'OK' || tx.status === 'STAMP_FAILED';
-      return `
-        <div class="wallet-tx-row">
-          <div class="wallet-tx-info">
-            <span class="wallet-tx-place">${tx.placeName || 'Unknown Place'}</span>
-            <span class="wallet-tx-date">${date} &bull; ${tx.status}</span>
-          </div>
-          <span class="wallet-tx-amount ${isPaid ? '' : 'pending'}">+${Number(tx.amount).toFixed(2)} RLUSD</span>
-        </div>
-      `;
-    }).join('');
-  } catch (error) {
-    txList.innerHTML = '<p class="upload-note error-line">Could not load wallet data. Is the backend running?</p>';
+  if (!txResult.ok) {
+    note(WebPassApi.errorMessage(txResult, 'Could not load transaction history.'), 'upload-note error-line');
+    return;
   }
+  const transactions = txResult.body.transactions || [];
+  if (transactions.length === 0) {
+    note('No transactions yet. Complete a mission to earn RLUSD!', 'upload-note');
+    return;
+  }
+
+  // Place names can come from Grok-generated missions, so rows are built without innerHTML.
+  txList.replaceChildren(...transactions.map(tx => {
+    const date = new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const paid = Boolean(tx.xrplHash);
+    const row = document.createElement('div');
+    row.className = 'wallet-tx-row';
+    const info = document.createElement('div');
+    info.className = 'wallet-tx-info';
+    const placeName = document.createElement('span');
+    placeName.className = 'wallet-tx-place';
+    placeName.textContent = tx.placeName || 'Unknown Place';
+    const meta = document.createElement('span');
+    meta.className = 'wallet-tx-date';
+    meta.textContent = `${date} • ${tx.status}`;
+    info.append(placeName, meta);
+    const amount = document.createElement('span');
+    amount.className = paid ? 'wallet-tx-amount' : 'wallet-tx-amount pending';
+    amount.textContent = paid ? `+${Number(tx.amount).toFixed(2)} RLUSD` : 'No payout';
+    row.append(info, amount);
+    return row;
+  }));
 }
 
 function setupAuthEventListeners() {
