@@ -60,4 +60,19 @@ describe('loadConfig', () => {
     process.env.LOCATION_CHECKS = 'maybe';
     expect(() => loadConfig()).toThrow(ConfigError);
   });
+
+  it('turns cultural rewards off by default', () => {
+    delete process.env.CULTURAL_REWARDS;
+    expect(loadConfig().culturalRewards).toBe(false);
+  });
+
+  it('reads CULTURAL_REWARDS=on', () => {
+    process.env.CULTURAL_REWARDS = 'on';
+    expect(loadConfig().culturalRewards).toBe(true);
+  });
+
+  it('rejects an unknown CULTURAL_REWARDS value', () => {
+    process.env.CULTURAL_REWARDS = 'yes';
+    expect(() => loadConfig()).toThrow(ConfigError);
+  });
 });

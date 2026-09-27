@@ -40,25 +40,32 @@ export interface AppConfig {
   /** Whether Sentinel runs the location plausibility checks (GPS trail,
       accuracy, typed coordinates, impossible travel, clusters). */
   locationChecks: boolean;
+  /** Whether cultural visits also pay RLUSD. Off means they earn only the
+      stamp, and only civic bounties pay. */
+  culturalRewards: boolean;
 }
 
-/** Read LOCATION_CHECKS, defaulting to on.
+/** Read an 'on'/'off' environment variable.
+
+Args:
+    name (string): The environment variable to read.
+    fallback (boolean): The value when the variable is unset or empty.
 
 Returns:
-    boolean: False only when LOCATION_CHECKS is 'off'.
+    boolean: True for 'on', false for 'off', otherwise the fallback.
 
 Raises:
-    ConfigError: If LOCATION_CHECKS is set to anything other than 'on' or 'off'.
+    ConfigError: If the variable is set to anything other than 'on' or 'off'.
 */
-function loadLocationChecks(): boolean {
-  const raw = (process.env.LOCATION_CHECKS ?? '').trim().toLowerCase();
-  if (raw === '' || raw === 'on') {
-    return true;
+function loadOnOff(name: string, fallback: boolean): boolean {
+  const raw = (process.env[name] ?? '').trim().toLowerCase();
+  if (raw === '') {
+    return fallback;
   }
-  if (raw === 'off') {
-    return false;
+  if (raw === 'on' || raw === 'off') {
+    return raw === 'on';
   }
-  throw new ConfigError(`LOCATION_CHECKS must be 'on' or 'off', got '${process.env.LOCATION_CHECKS}'`);
+  throw new ConfigError(`${name} must be 'on' or 'off', got '${process.env[name]}'`);
 }
 
 /** Read REWARD_SCALE, defaulting to 1 (full rewards).
@@ -88,7 +95,7 @@ Returns:
 
 Raises:
     ConfigError: If a treasury key is present in the environment, or
-        REWARD_SCALE or LOCATION_CHECKS is invalid.
+        REWARD_SCALE, LOCATION_CHECKS, or CULTURAL_REWARDS is invalid.
 */
 export function loadConfig(): AppConfig {
   assertNoTreasuryKey();
@@ -102,6 +109,7 @@ export function loadConfig(): AppConfig {
     grokModel: process.env.GROK_MODEL ?? 'grok-4',
     grokEndpoint: process.env.GROK_ENDPOINT ?? 'https://api.x.ai/v1/chat/completions',
     rewardScale: loadRewardScale(),
-    locationChecks: loadLocationChecks(),
+    locationChecks: loadOnOff('LOCATION_CHECKS', true),
+    culturalRewards: loadOnOff('CULTURAL_REWARDS', false),
   };
 }
