@@ -219,24 +219,6 @@ function rewardLabel(place) {
   return place.rewardRlusd > 0 ? `${place.rewardRlusd} RLUSD + stamp` : 'Stamp only';
 }
 
-// Explored places are remembered in this browser between page loads.
-const DISCOVERED_KEY = 'webpass.discovered';
-
-/** Restore which places were explored from localStorage. */
-function loadDiscovered() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(DISCOVERED_KEY) || '[]');
-    PLACES.forEach(place => { place.discovered = saved.includes(place.id); });
-  } catch (e) { /* storage unavailable: start with everything unexplored */ }
-}
-
-/** Remember which places are explored. */
-function saveDiscovered() {
-  try {
-    localStorage.setItem(DISCOVERED_KEY, JSON.stringify(PLACES.filter(p => p.discovered).map(p => p.id)));
-  } catch (e) { /* storage unavailable: ignore */ }
-}
-
 // APP STATE
 let selectedNodeId = 'apollo-theater';
 let attackModeActive = false;
@@ -313,6 +295,7 @@ async function refreshAccount() {
   if (!isLoggedIn()) {
     myStamps = [];
     myBalance = null;
+    markStampedPlaces();
     renderTradingCards();
     updateWalletUI();
     return;
@@ -340,12 +323,12 @@ async function refreshAccount() {
   updateWalletUI();
 }
 
-/** Light up every place the visitor holds a stamp for. */
+/** Light up exactly the places the logged-in visitor holds a stamp for, and none when logged out. */
 function markStampedPlaces() {
   const stamped = new Set(myStamps.map(stamp => stamp.placeId));
-  const newlyLit = PLACES.filter(place => stamped.has(place.id) && !place.discovered);
-  if (newlyLit.length === 0) return;
-  newlyLit.forEach(place => { place.discovered = true; });
+  const changed = PLACES.filter(place => place.discovered !== stamped.has(place.id));
+  if (changed.length === 0) return;
+  changed.forEach(place => { place.discovered = stamped.has(place.id); });
   renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
   selectNode(selectedNodeId, { pan: false });
 }
@@ -460,8 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAuthEventListeners();
   refreshAccount();
 
-  // Restore explored places, then set up the real NYC map (see map.js)
-  loadDiscovered();
+  // Set up the real NYC map (see map.js); places light up once the account's stamps load
   initRealMap();
   selectNode(selectedNodeId, { pan: false });
 
