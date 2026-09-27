@@ -155,7 +155,6 @@ let attackModeActive = false;
    EMAIL OTP AUTH & CUSTODIAL WALLET LOGIN
    ========================================================================== */
 
-const API_BASE_URL = 'http://localhost:3000';
 const AUTH_STORAGE_KEY = 'spideyverse.auth';
 
 let currentAuth = null; // { token, user: { id, email, xrplAddress, solanaAddress } }
@@ -237,28 +236,18 @@ function closeLoginModal() {
 }
 
 async function requestLoginCode(email) {
-  const response = await fetch(`${API_BASE_URL}/auth/request-code`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error((body.errors && body.errors[0]) || 'Could not send login code.');
+  const result = await WebPassApi.requestLoginCode(email);
+  if (!result.ok) {
+    throw new Error(WebPassApi.errorMessage(result, 'Could not send login code.'));
   }
 }
 
 async function verifyLoginCode(email, code) {
-  const response = await fetch(`${API_BASE_URL}/auth/verify`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, code })
-  });
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error((body.errors && body.errors[0]) || 'Incorrect code.');
+  const result = await WebPassApi.verifyLoginCode(email, code);
+  if (!result.ok) {
+    throw new Error(WebPassApi.errorMessage(result, 'Incorrect code.'));
   }
-  return body;
+  return result.body;
 }
 
 function setupAuthEventListeners() {
