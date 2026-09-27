@@ -15,6 +15,7 @@ import { Place, PLACES } from '../../src/data/places';
 import { explorerAccountUrl, explorerTxUrl as xrplTxUrl } from '../xrpl/common';
 import { explorerAddressUrl as solAddressUrl, explorerTxUrl as solTxUrl } from '../solana/common';
 import { Chains } from './lib/chains';
+import { phoneTrail } from './lib/gps';
 import { freshPhoto, getJson, post, submit, Submission } from './lib/http';
 import { LiveServer, startExpectingRefusal } from './lib/server';
 import { Assertions, CheckOutcome, Link } from './lib/types';
@@ -510,9 +511,12 @@ export const CHECKS: Check[] = [
       const user = ctx.users['user-3'];
       const photo = freshPhoto();
       const requestId = `live-idempotent-${ctx.runId}`;
+      // Apollo is 285 m from Studio Museum, where this user checked in during C14,
+      // so the impossible travel check has no reason to block it.
+      const trail = phoneTrail(APOLLO.latitude, APOLLO.longitude);
       const before = ctx.real ? await ctx.chains!.rlusd(user.xrpl) : null;
       const send = (): ReturnType<typeof submit> =>
-        submit(ctx.serverA.baseUrl, { ...at(MARCUS), xrplAddress: user.xrpl, solanaAddress: user.solana, requestId, photo });
+        submit(ctx.serverA.baseUrl, { ...at(APOLLO), xrplAddress: user.xrpl, solanaAddress: user.solana, requestId, photo, trail });
       const first = await send();
       const second = await send();
       a.that('the first request paid', first.body?.status === 'OK', first.body?.status);
