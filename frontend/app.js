@@ -108,7 +108,6 @@ const PLACES = [
     rewardRlusd: 0.01,
     type: 'civic',
     sponsor: 'Columbia Engineering',
-    fixedTier: 'Legendary',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?auto=format&fit=crop&w=600&q=80',
     desc: 'CIVIC MISSION: Check the Mudd entrance on 120th St. Are the doors, ramp and signs clear and working? Photograph it to report.'
@@ -142,7 +141,18 @@ let RARITY_LADDER = [
   { tier: 'Late Explorer', fromSerial: 1001, toSerial: null }
 ];
 let STAMP_SUPPLY = 1000;
-PLACES.forEach(place => { place.rarity = { found: 0, nextSerial: 1, nextTier: place.fixedTier || 'Legendary' }; });
+
+/** Civic bounties pay RLUSD for a task, so their stamps are receipts with no rarity tier. */
+function isBounty(place) {
+  return !!place && place.type === 'civic';
+}
+
+/** The tier the first finder at a place gets before GET /places answers. */
+function defaultNextTier(place) {
+  return isBounty(place) ? null : (place.fixedTier || 'Legendary');
+}
+
+PLACES.forEach(place => { place.rarity = { found: 0, nextSerial: 1, nextTier: defaultNextTier(place) }; });
 
 /** CSS class for a tier, e.g. "tier-late-explorer". */
 function tierClass(tier) {
@@ -175,6 +185,9 @@ function renderPlaceRarity(place) {
   const ladder = document.getElementById('nodeRarityLadder');
   const note = document.getElementById('nodeRarityNote');
   if (!label || !tierEl || !ladder || !note) return;
+  const box = label.closest('.node-rarity');
+  if (box) box.style.display = isBounty(place) ? 'none' : '';
+  if (isBounty(place)) return;
 
   const { found, nextSerial, nextTier } = place.rarity;
   const mine = myStampAt(place.id);
@@ -727,7 +740,7 @@ function renderMissions(filter) {
         <h4 class="mission-title">${place.name}</h4>
         <div class="mission-loc"><i data-lucide="map-pin"></i> ${place.neighborhood} • ${place.radius}m Geofence</div>
         ${sponsorName(place) ? `<div class="mission-sponsor"><i data-lucide="building-2"></i> Paid by <strong>${escapeHtml(sponsorName(place))}</strong></div>` : ''}
-        <div class="mission-rarity">${missionRarityHtml(place)}</div>
+        ${isBounty(place) ? '' : `<div class="mission-rarity">${missionRarityHtml(place)}</div>`}
         <p class="mission-desc">${place.desc}</p>
         <button class="comic-btn ${place.discovered ? 'hero-blue-btn' : 'hero-red-btn'} full-btn" onclick="openSubmissionModal('${place.id}')">
           <i data-lucide="${place.discovered ? 'check-circle-2' : 'zap'}"></i>
@@ -764,9 +777,11 @@ function escapeHtml(value) {
 /** Turn a stamp from GET /me/nft into what a trading card shows. */
 function stampCard(stamp) {
   const place = PLACES.find(p => p.id === stamp.placeId);
+  // Some bounty stamps carry a tier on chain, but a bounty never shows one.
+  const tier = isBounty(place) ? null : stamp.tier;
   return {
-    badge: stamp.tier ? `${stamp.tier.toUpperCase()} #${stamp.serial}` : 'SOULBOUND STAMP',
-    tierClass: stamp.tier ? tierClass(stamp.tier) : '',
+    badge: isBounty(place) ? 'BOUNTY COMPLETE' : tier ? `${tier.toUpperCase()} #${stamp.serial}` : 'SOULBOUND STAMP',
+    tierClass: tier ? tierClass(tier) : '',
     name: escapeHtml(stamp.name),
     place: escapeHtml(`${place ? place.name : stamp.placeId} • ${stamp.neighborhood}`),
     image: escapeHtml(place ? place.image : ''),
@@ -775,7 +790,7 @@ function stampCard(stamp) {
     tx: escapeHtml(stamp.xrplTxHash ? shortHash(stamp.xrplTxHash) : 'None, cultural visits earn the stamp only'),
     reward: stamp.rewardRlusd > 0 ? `EARNED +${stamp.rewardRlusd} RLUSD` : 'STAMP ONLY, NO RLUSD',
     rewardClass: stamp.rewardRlusd > 0 ? 'paid' : 'stamp-only',
-    rarity: escapeHtml(stamp.tier ? `${stamp.tier}, finder #${stamp.serial} of ${STAMP_SUPPLY}` : 'Unranked')
+    rarity: escapeHtml(isBounty(place) ? 'None, bounties are paid tasks' : tier ? `${tier}, finder #${stamp.serial} of ${STAMP_SUPPLY}` : 'Unranked')
   };
 }
 
@@ -1018,7 +1033,7 @@ function placeFromServer(serverPlace) {
     rewardRlusd: serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd,
     type: serverPlace.kind || 'civic',
     sponsor: serverPlace.sponsor ?? null,
-    rarity: serverPlace.rarity || { found: 0, nextSerial: 1, nextTier: serverPlace.fixedTier || 'Legendary' },
+    rarity: serverPlace.rarity || { found: 0, nextSerial: 1, nextTier: defaultNextTier({ type: serverPlace.kind || 'civic', fixedTier: serverPlace.fixedTier }) },
     fixedTier: serverPlace.fixedTier || null,
     discovered: false,
     image: serverPlace.imageUrl || 'https://placehold.co/600x600/png?text=' + encodeURIComponent(serverPlace.name),
