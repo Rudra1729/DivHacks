@@ -31,7 +31,7 @@ const submission = {
 // Fixes in a row with an unchanged timestamp before the status calls GPS stuck.
 const STUCK_GPS_REPEATS = 4;
 
-const GATE_BY_LAYER = { sentinel: 'gate2', photo: 'gate3', claim: 'gate2', agent: 'gate3', policy: 'gate4', xrpl: 'gate5', solana: 'gate5' };
+const GATE_BY_LAYER = { solvency: 'gate1', sentinel: 'gate2', photo: 'gate3', claim: 'gate2', agent: 'gate3', policy: 'gate4', review: 'gate4', xrpl: 'gate5', solana: 'gate5' };
 
 /** Distance between two points in meters (haversine).
 
@@ -369,6 +369,12 @@ function handleSubmissionResult(place, result) {
       ...reasons,
       `Take a clear photo of ${place.name} itself and try again.`,
     ]);
+  } else if (body.status === 'BLOCKED_SOLVENCY') {
+    setSpideyBotState('policy_blocked', `"The reward pool for ${place.name} is empty right now. Nothing was used up, try again later."`);
+    showSubmissionResult('warn', 'Reward pool empty, try again later', reasons);
+  } else if (body.status === 'BLOCKED_REVIEW') {
+    setSpideyBotState('policy_blocked', `"GUARDRAIL HELD! The payout reviewer refused this payout."`);
+    showSubmissionResult('blocked', 'GUARDRAIL HELD! Payout reviewer refused the payout', reasons);
   } else if (body.status === 'BLOCKED_POLICY') {
     setSpideyBotState('policy_blocked', `"GUARDRAIL HELD! ${reasons[0] || 'The policy engine refused the payout.'}"`);
     showSubmissionResult('blocked', 'GUARDRAIL HELD! Policy engine refused the payout', reasons);
