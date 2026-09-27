@@ -10,6 +10,7 @@ These are the rules for this repo. Follow them for every commit and PR.
 4. PR descriptions detailed enough to review without reading the diff.
 5. Google-style docstrings on all functions, classes, and modules.
 6. Agree on hand-off contracts in chat before coding against them.
+7. Wrap async route handlers in `asyncHandler`, and check database errors by message in tests.
 
 ## 1. No AI authorship on pushes
 
@@ -232,3 +233,16 @@ Rules agreed with the owner:
   resets in the evening local time.
 - Fake mode behaves the same way, including the 10 RLUSD agent allowance and
   ledger-style rejections.
+
+## 7. Two habits that prevent hard-to-find bugs
+
+- **Wrap every async route handler in `asyncHandler`** (`src/routes/asyncHandler.ts`).
+  Express 4 does not catch errors from async handlers. Without the wrapper, one
+  unexpected error, such as the XRPL or Solana connection dropping, ends the whole
+  server and the request never gets an answer. With it, that request gets a clean
+  500 and the server keeps running. Any route that reads a network or the
+  database needs it.
+- **Do not check database errors with `.rejects.toThrow()` in tests.** When test
+  files share a worker, the database library's errors are not always recognized as
+  `Error` objects, so the test passes or fails depending on test order. Catch the
+  error and check its `message` instead.
