@@ -82,10 +82,17 @@ describe('SqliteStorage audit events', () => {
   it('saves all steps or none if one fails', async () => {
     const bad = { layer: 'policy', passed: true, message: null as unknown as string };
 
-    await expect(
-      storage.recordAuditEvents('dec-1', [{ layer: 'sentinel', passed: true, message: 'ok' }, bad])
-    ).rejects.toThrow();
+    // Not .rejects.toThrow(): the database's native error can come from another test
+    // file's environment when files share a worker, and jest then does not
+    // recognize it as an Error. Checking the message works either way.
+    let failure: unknown;
+    try {
+      await storage.recordAuditEvents('dec-1', [{ layer: 'sentinel', passed: true, message: 'ok' }, bad]);
+    } catch (error) {
+      failure = error;
+    }
 
+    expect((failure as { message?: string } | undefined)?.message).toContain('NOT NULL');
     expect(listAuditEvents(db, 'dec-1')).toEqual([]);
   });
 });
