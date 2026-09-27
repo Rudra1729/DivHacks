@@ -14,6 +14,7 @@ import { getSolanaClient } from './client';
 import { SolanaConfig, loadSolanaConfig } from './config';
 import { mintQueue, withOneRetry } from './mintQueue';
 import { StampPlace, collectionForPlace, findPlace } from './places';
+import { tierForSerial } from './rarity';
 import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 
 const MAX_NAME_LENGTH = 32;
@@ -139,18 +140,33 @@ export function mintStampForPlace(input: MintStampInput, place: StampPlace): Pro
   });
 }
 
+/** Parse a serial attribute read from chain.
+
+Args:
+    value (string | undefined): The attribute value, if present.
+
+Returns:
+    number | null: The serial, or null if missing or not a positive whole number.
+*/
+function parseSerial(value: string | undefined): number | null {
+  const serial = Number(value);
+  return value && Number.isInteger(serial) && serial > 0 ? serial : null;
+}
+
 /** Convert an on-chain asset into a Stamp.
 
 Args:
     asset (AssetV1): Asset fetched from chain.
 
 Returns:
-    Stamp: The stamp fields, with empty strings for missing attributes.
+    Stamp: The stamp fields, with empty strings for missing attributes and
+        null serial and tier for stamps minted before rarity existed.
 */
 function toStamp(asset: AssetV1): Stamp {
   const attributes = new Map(
     (asset.attributes?.attributeList ?? []).map((attribute) => [attribute.key, attribute.value])
   );
+  const serial = parseSerial(attributes.get('serial'));
   return {
     assetAddress: asset.publicKey,
     owner: asset.owner,
@@ -161,6 +177,8 @@ function toStamp(asset: AssetV1): Stamp {
     neighborhood: attributes.get('neighborhood') ?? '',
     decisionId: attributes.get('decisionId') ?? '',
     xrplTxHash: attributes.get('xrplTxHash') ?? '',
+    serial,
+    tier: serial === null ? null : tierForSerial(serial),
   };
 }
 

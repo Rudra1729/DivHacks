@@ -4,6 +4,10 @@ These types are the hand-off contract agreed in CONTRIBUTING.md section 6.
 The orchestrator, Sentinel, and API use them through src/solana/index.ts.
 */
 
+import { StampTier } from './rarity';
+
+export type { StampTier } from './rarity';
+
 /** Everything the orchestrator passes in to mint one stamp.
 
 Attributes:
@@ -40,6 +44,10 @@ Attributes:
     neighborhood (string): Neighborhood of the place.
     decisionId (string): Decision that minted this stamp.
     xrplTxHash (string): RLUSD payment hash for the same decision.
+    serial (number | null): Position among stamps for this place, from 1.
+        Null for stamps minted before rarity existed.
+    tier (StampTier | null): Rarity tier picked by the serial. Null for
+        stamps minted before rarity existed.
 */
 export interface Stamp {
   assetAddress: string;
@@ -51,6 +59,8 @@ export interface Stamp {
   neighborhood: string;
   decisionId: string;
   xrplTxHash: string;
+  serial: number | null;
+  tier: StampTier | null;
 }
 
 /** The three operations every stamp implementation (real or fake) provides. */
