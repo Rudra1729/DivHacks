@@ -1,14 +1,14 @@
 # WebPass NYC live check report
 
-**24 passed, 0 failed, 1 skipped** out of 25 checks.
+**25 passed, 0 failed, 0 skipped** out of 25 checks.
 
 Run against: real networks. XRPL testnet (wss://s.altnet.rippletest.net); Solana devnet; real Grok API (xAI).
 
 | | |
 | --- | --- |
-| Run ID | 2026-09-27T04-02-42Z |
-| Started / finished (UTC) | 2026-09-27T04:02:42.366Z / 2026-09-27T04:04:22.581Z |
-| Code tested | arundathi/live-checks @ 6c05669 |
+| Run ID | 2026-09-27T04-21-35Z |
+| Started / finished (UTC) | 2026-09-27T04:21:35.630Z / 2026-09-27T04:23:06.974Z |
+| Code tested | arundathi/live-checks @ 6c252cc |
 | Node | v20.20.0 |
 | Reward scale | 0.01 (a 1 RLUSD place pays that much) |
 
@@ -39,7 +39,7 @@ Run against: real networks. XRPL testnet (wss://s.altnet.rippletest.net); Solana
 | C21 | The guardian is running its safety checks against the real ledger | PASS | none (dry run) |
 | C22 | A failed stamp never causes a second payment | PASS | 0.01 RLUSD |
 | C23 | The public API shows the places and the visitor stamps | PASS | none |
-| C24 | Every decision has a step-by-step audit history | SKIPPED | none |
+| C24 | Every decision has a step-by-step audit history | PASS | none |
 | C25 | The guardian refuses to run if it can see the agent key | PASS | none |
 
 ## Wallets used (public addresses)
@@ -50,22 +50,22 @@ Run against: real networks. XRPL testnet (wss://s.altnet.rippletest.net); Solana
 - demo user 2 (XRPL): `rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe`
 - demo user 3 (XRPL): `rpU5YrQxWdm7So1tLC9vxyVMqhgVVCbTbY`
 - attacker (XRPL): `rGL9VomrCiRPpz98WPWCukrdY3XMbZunqq`
-- visitor 1 (Solana, new this run): `8F5gan6LazFB7T7tnWBjEhVwc37wpKPUa4VG3hsG4mzH`
-- visitor 2 (Solana, new this run): `Ck9nmRDF1bZWi61itxJKDpnq1Gd6U6xQTetJ3hmVsJsd`
-- visitor 3 (Solana, new this run): `H3DRETUUyjg1KiPVZD7aa1ydY2LEhXxAftMwfvFqVTQf`
+- visitor 1 (Solana, new this run): `2Q2g5yocB2K9izwiyzM773J1Pii2mrQavfQYUfq66FLa`
+- visitor 2 (Solana, new this run): `BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4`
+- visitor 3 (Solana, new this run): `Dhtuk8kCEW3bhYDu2DHT33UJUhWf1M2XJHLpJw55GjGQ`
 - attacker (Solana): `9TbWRsjx968h6P3oCpa4MiLevV851MJBgAm2iFtMWTW7`
 
 ## Balances
 
 | Wallet | Before | After |
 | --- | --- | --- |
-| agent RLUSD | 9.91 | 9.87 |
+| agent RLUSD | 9.87 | 9.83 |
 | treasury RLUSD | 0 | 0 |
 | demo user 1 RLUSD | 0 | 0 |
-| demo user 2 RLUSD | 0.04 | 0.05 |
-| demo user 3 RLUSD | 0.05 | 0.08 |
+| demo user 2 RLUSD | 0.05 | 0.06 |
+| demo user 3 RLUSD | 0.08 | 0.11 |
 | attacker RLUSD | 0 | 0 |
-| issuer SOL (pays mint fees) | 4.9462 | 4.9252 |
+| issuer SOL (pays mint fees) | 4.9252 | 4.9127 |
 
 ## Checks
 
@@ -73,12 +73,12 @@ Run against: real networks. XRPL testnet (wss://s.altnet.rippletest.net); Solana
 
 **What it proves:** A valid visit produces a real payment on the XRPL ledger and a real stamp on Solana, decided by real Grok and approved by the policy engine.
 
-**Result:** Decision 18dc1f99-4db3-4221-9faa-27d66bc7b0a7 finished as OK, paying 0.01 RLUSD.
+**Result:** Decision e76c78c1-4264-49d8-b85a-6189d7df85f1 finished as OK, paying 0.01 RLUSD.
 
 - [x] server answered 202 Accepted (saw: `202`)
 - [x] decision status is OK (saw: `OK`)
-- [x] a payment transaction hash was returned (saw: `6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35`)
-- [x] a stamp asset address was returned (saw: `Ec3gsUZJUgJtmVJsD3dVQXRL8BTN6UueWHsWUG5EWRt3`)
+- [x] a payment transaction hash was returned (saw: `776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C`)
+- [x] a stamp asset address was returned (saw: `HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn`)
 - [x] the policy engine approved it and recorded its version (saw: `1.0.0`)
 - [x] the payout went to the visitor, not anyone else (saw: `rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe`)
 - [x] the payment is on the XRPL ledger and validated (saw: `true`)
@@ -87,39 +87,39 @@ Run against: real networks. XRPL testnet (wss://s.altnet.rippletest.net); Solana
 - [x] it was sent to the visitor (saw: `rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe`)
 - [x] the amount matches the decision (saw: `0.01`)
 - [x] it is RLUSD from the right issuer (saw: `rQhWct2fv4Vc4KRjRgMrxa8xPN9Zx9iLKV`)
-- [x] the ledger memo carries the decision ID (saw: `["decision_id=18dc1f99-4db3-4221-9faa-27d66bc7b0a7"]`)
-- [x] the stamp exists on Solana devnet, owned by the visitor (saw: `Ck9nmRDF1bZWi61itxJKDpnq1Gd6U6xQTetJ3hmVsJsd`)
-- [x] the stamp records the same XRPL payment hash (saw: `6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35`)
+- [x] the ledger memo carries the decision ID (saw: `["decision_id=e76c78c1-4264-49d8-b85a-6189d7df85f1"]`)
+- [x] the stamp exists on Solana devnet, owned by the visitor (saw: `BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4`)
+- [x] the stamp records the same XRPL payment hash (saw: `776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C`)
 - [x] the stamp is for Apollo Theater (saw: `apollo-theater`)
 
 **Evidence links:**
-- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35)
-- [Solana stamp (asset) on the devnet explorer](https://explorer.solana.com/address/Ec3gsUZJUgJtmVJsD3dVQXRL8BTN6UueWHsWUG5EWRt3?cluster=devnet)
-- [Solana mint transaction on the devnet explorer](https://explorer.solana.com/tx/2tTKbHsPJoF2MP8ojyheem4FA6Y5i4gef7jGQLjbnKJpZMxqRd23BBurxTmj8ev3SkA45PttUTrUsmv5Kg9zWkAK?cluster=devnet)
+- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C)
+- [Solana stamp (asset) on the devnet explorer](https://explorer.solana.com/address/HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn?cluster=devnet)
+- [Solana mint transaction on the devnet explorer](https://explorer.solana.com/tx/4UnVGSASo1c9AyYxhGwg6iDuiZwxrXKsdfFRzqUpg8EdDL3eatPPBjhp9it9VYsRxZtpej54igfijYLA9o5AJBVL?cluster=devnet)
 - [Visitor XRPL account](https://testnet.xrpl.org/accounts/rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe)
 
-_Raw evidence: `checks/C01-happy-path-pays-real-rlusd-and-mints-a-real-stamp.json`. Took 17.4s._
+_Raw evidence: `checks/C01-happy-path-pays-real-rlusd-and-mints-a-real-stamp.json`. Took 11.6s._
 
 ### C02. One decision ID links the database, the ledger, and the stamp: PASS
 
 **What it proves:** The same decision ID appears in the saved decision, the XRPL payment memo, the Solana stamp, and the stamp metadata page, so any record can be traced to the others.
 
-**Result:** Decision ID 18dc1f99-4db3-4221-9faa-27d66bc7b0a7 was found in every place it should be.
+**Result:** Decision ID e76c78c1-4264-49d8-b85a-6189d7df85f1 was found in every place it should be.
 
-- [x] the database has the decision under that ID (saw: `18dc1f99-4db3-4221-9faa-27d66bc7b0a7`)
-- [x] the database records the same payment hash (saw: `6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35`)
-- [x] the database records the same stamp (saw: `Ec3gsUZJUgJtmVJsD3dVQXRL8BTN6UueWHsWUG5EWRt3`)
+- [x] the database has the decision under that ID (saw: `e76c78c1-4264-49d8-b85a-6189d7df85f1`)
+- [x] the database records the same payment hash (saw: `776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C`)
+- [x] the database records the same stamp (saw: `HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn`)
 - [x] the stamp metadata page is served for that ID (saw: `200`)
-- [x] the metadata page shows the same payment hash (saw: `6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35`)
-- [x] the XRPL memo carries the same ID (saw: `["decision_id=18dc1f99-4db3-4221-9faa-27d66bc7b0a7"]`)
-- [x] the Solana stamp carries the same ID (saw: `18dc1f99-4db3-4221-9faa-27d66bc7b0a7`)
-- [x] the stamp metadata address contains the same ID (saw: `http://localhost:3000/metadata/18dc1f99-4db3-4221-9faa-27d66bc7b0a7`)
+- [x] the metadata page shows the same payment hash (saw: `776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C`)
+- [x] the XRPL memo carries the same ID (saw: `["decision_id=e76c78c1-4264-49d8-b85a-6189d7df85f1"]`)
+- [x] the Solana stamp carries the same ID (saw: `e76c78c1-4264-49d8-b85a-6189d7df85f1`)
+- [x] the stamp metadata address contains the same ID (saw: `http://localhost:3000/metadata/e76c78c1-4264-49d8-b85a-6189d7df85f1`)
 
 **Evidence links:**
-- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35)
-- [Solana stamp (asset) on the devnet explorer](https://explorer.solana.com/address/Ec3gsUZJUgJtmVJsD3dVQXRL8BTN6UueWHsWUG5EWRt3?cluster=devnet)
+- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C)
+- [Solana stamp (asset) on the devnet explorer](https://explorer.solana.com/address/HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn?cluster=devnet)
 
-_Raw evidence: `checks/C02-one-decision-id-links-the-database-the-ledger-and-.json`. Took 0.1s._
+_Raw evidence: `checks/C02-one-decision-id-links-the-database-the-ledger-and-.json`. Took 0.2s._
 
 ### C03. A stamp cannot be transferred to anyone else: PASS
 
@@ -128,10 +128,10 @@ _Raw evidence: `checks/C02-one-decision-id-links-the-database-the-ledger-and-.js
 **Result:** Transfer refused by the network: Invalid Authority
 
 - [x] the owner signed a transfer to the attacker wallet and Solana refused it (saw: `Invalid Authority`)
-- [x] the stamp still belongs to the visitor afterward (saw: `Ck9nmRDF1bZWi61itxJKDpnq1Gd6U6xQTetJ3hmVsJsd`)
+- [x] the stamp still belongs to the visitor afterward (saw: `BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4`)
 
 **Evidence links:**
-- [Stamp on the devnet explorer](https://explorer.solana.com/address/Ec3gsUZJUgJtmVJsD3dVQXRL8BTN6UueWHsWUG5EWRt3?cluster=devnet)
+- [Stamp on the devnet explorer](https://explorer.solana.com/address/HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn?cluster=devnet)
 
 _Raw evidence: `checks/C03-a-stamp-cannot-be-transferred-to-anyone-else.json`. Took 0.1s._
 
@@ -141,7 +141,7 @@ _Raw evidence: `checks/C03-a-stamp-cannot-be-transferred-to-anyone-else.json`. T
 
 **Result:** 0.01 RLUSD left the agent wallet and arrived at the visitor, no more, no less.
 
-- [x] the visitor gained exactly the decided amount (saw: `{"gained":0.010000000000000002,"decided":0.01}`)
+- [x] the visitor gained exactly the decided amount (saw: `{"gained":0.009999999999999995,"decided":0.01}`)
 - [x] the agent wallet lost exactly the same amount (saw: `{"lost":0.009999999999999787,"decided":0.01}`)
 - [x] the attacker wallet was not touched (saw: `{"before":0,"after":0}`)
 - [x] the amount is within the 5 RLUSD per-task cap (saw: `0.01`)
@@ -244,9 +244,9 @@ _Raw evidence: `checks/C11-malformed-requests-are-refused-before-anything-hap.js
 
 **Result:** Every balance is exactly what it was before the blocked attempts.
 
-- [x] agent balance is unchanged (saw: `{"before":9.9,"after":9.9}`)
-- [x] user-2 balance is unchanged (saw: `{"before":0.05,"after":0.05}`)
-- [x] user-3 balance is unchanged (saw: `{"before":0.05,"after":0.05}`)
+- [x] agent balance is unchanged (saw: `{"before":9.86,"after":9.86}`)
+- [x] user-2 balance is unchanged (saw: `{"before":0.06,"after":0.06}`)
+- [x] user-3 balance is unchanged (saw: `{"before":0.08,"after":0.08}`)
 - [x] attacker balance is unchanged (saw: `{"before":0,"after":0}`)
 
 _Raw evidence: `checks/C12-blocked-submissions-move-no-money.json`. Took 0.3s._
@@ -275,29 +275,29 @@ _Raw evidence: `checks/C13-one-reward-per-place-survives-losing-the-database.jso
 - [x] if anything was paid, the ledger shows it went to the visitor (saw: `rpU5YrQxWdm7So1tLC9vxyVMqhgVVCbTbY`)
 
 **Evidence links:**
-- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/6026966C62E0075284B08D524CB3EE7516428B7BCF37636FCBE6D46874DE9972)
-- [Solana stamp (asset) on the devnet explorer](https://explorer.solana.com/address/B2HwjEMxsmSwZEEpj5tPp3zJNY52cbgPTBCzLrDH37ET?cluster=devnet)
-- [Solana mint transaction on the devnet explorer](https://explorer.solana.com/tx/2SLqbnr6smQLeZbbbLQAWqEo9so3xConbYexkXHeNvBhojMts81QymSQce63M6iYzaH9rKAqAzUBQCjH7RcUPUvx?cluster=devnet)
+- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/B9A400C1DE88D23A4056776263643C4B995D42E4B2293F88093143048542E6A6)
+- [Solana stamp (asset) on the devnet explorer](https://explorer.solana.com/address/CP2YbV2kod62euMnTWD8ynWReiym9jMs8t9oF3TwT2ke?cluster=devnet)
+- [Solana mint transaction on the devnet explorer](https://explorer.solana.com/tx/4GbFPB8uJfC5VdddP6cPWKZdRC5HzNpDhHZ5t9ZRuhWSRTjazc9v7Q8PPSWaQvd3gL4BrqsPzFdAmEGMbv7TMXmS?cluster=devnet)
 
-_Raw evidence: `checks/C14-prompt-injection-through-the-caption-does-not-redi.json`. Took 13.1s._
+_Raw evidence: `checks/C14-prompt-injection-through-the-caption-does-not-redi.json`. Took 11.0s._
 
 ### C15. Repeating a request never pays twice: PASS
 
 **What it proves:** Sending the exact same request twice returns the same decision and pays once, so a retry or a double-tap cannot double-pay.
 
-**Result:** Both requests returned decision e485a68e-8530-4c6b-8dba-0a9bea3cc44b; one payment.
+**Result:** Both requests returned decision 4670fc7d-34bb-4a79-b270-7af7c53e820c; one payment.
 
 - [x] the first request paid (saw: `OK`)
-- [x] the second request returned the same decision ID (saw: `e485a68e-8530-4c6b-8dba-0a9bea3cc44b`)
-- [x] the second request returned the same payment hash (saw: `7553C5E947D1FD384274D1B8F595725E07146986909C47ECB135FAEE1E617541`)
+- [x] the second request returned the same decision ID (saw: `4670fc7d-34bb-4a79-b270-7af7c53e820c`)
+- [x] the second request returned the same payment hash (saw: `282A2487360B5122F426A27B0F7F25D2987FFD5265AD22792D547F2B850BB8F9`)
 - [x] the visitor received the reward exactly once (saw: `{"gained":0.010000000000000009,"reward":0.01}`)
 
 **Evidence links:**
-- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/7553C5E947D1FD384274D1B8F595725E07146986909C47ECB135FAEE1E617541)
-- [Solana stamp (asset) on the devnet explorer](https://explorer.solana.com/address/6LpYLgCVnfEF6vR1ZZwCWeAHyH1jgb75HzzN8AvV2YmM?cluster=devnet)
-- [Solana mint transaction on the devnet explorer](https://explorer.solana.com/tx/2PBGpSjtC1BMX4n568XtTNNn9FF7w99XRLA9Tu54q1xx4KXVWhKXTFsAnKqVU6pAMZtruhMYxbc44QpxeA6XE2YP?cluster=devnet)
+- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/282A2487360B5122F426A27B0F7F25D2987FFD5265AD22792D547F2B850BB8F9)
+- [Solana stamp (asset) on the devnet explorer](https://explorer.solana.com/address/J56V4ARVXiVdDh2UgFaMHUXh3YF8tPprJgyVcmcoAQbp?cluster=devnet)
+- [Solana mint transaction on the devnet explorer](https://explorer.solana.com/tx/tPFzz8KQizpmhtxn1ztpxVa5km2DrS9VH23FNCgpRcfBGuEZyo79BfLrY1ZSpcnfn1AAZYFMi8i3QFNsJRvzUWv?cluster=devnet)
 
-_Raw evidence: `checks/C15-repeating-a-request-never-pays-twice.json`. Took 9.4s._
+_Raw evidence: `checks/C15-repeating-a-request-never-pays-twice.json`. Took 9.9s._
 
 ### C16. The daily cap uses real ledger totals: PASS
 
@@ -314,7 +314,7 @@ _Raw evidence: `checks/C15-repeating-a-request-never-pays-twice.json`. Took 9.4s
 **Evidence links:**
 - [Demo user 1 account (payments this UTC day)](https://testnet.xrpl.org/accounts/rGZdWjw2yFWB6kV7ddiYDspU31GRHKMnnX)
 
-_Raw evidence: `checks/C16-the-daily-cap-uses-real-ledger-totals.json`. Took 4.8s._
+_Raw evidence: `checks/C16-the-daily-cap-uses-real-ledger-totals.json`. Took 4.5s._
 
 ### C17. The ledger itself refuses an overspend when the policy is bypassed: PASS
 
@@ -322,16 +322,16 @@ _Raw evidence: `checks/C16-the-daily-cap-uses-real-ledger-totals.json`. Took 4.8
 
 **Result:** Rejected by the ledger with tecPATH_PARTIAL.
 
-- [x] the payment was not accepted (saw: `{"ok":false,"reason":"ledger_rejected","resultCode":"tecPATH_PARTIAL","txHash":"9B8A2235FEE2EA89849140AFCC2058B34B1C72AA205721970AF47E4B301A5BE2","error":"ledger rejected the payment with tecPATH_P...`)
+- [x] the payment was not accepted (saw: `{"ok":false,"reason":"ledger_rejected","resultCode":"tecPATH_PARTIAL","txHash":"9953A2C79A33ECC870E08DCBB8CED54B375C56E18538E1A21E1780365E428E86","error":"ledger rejected the payment with tecPATH_P...`)
 - [x] the reason is the ledger rejecting it (saw: `ledger_rejected`)
 - [x] the ledger result is a "tec" rejection code (saw: `tecPATH_PARTIAL`)
 - [x] the attacker received nothing (saw: `0`)
-- [x] the agent wallet lost nothing (saw: `9.88`)
+- [x] the agent wallet lost nothing (saw: `9.84`)
 
 **Evidence links:**
-- [The rejected transaction on the testnet explorer](https://testnet.xrpl.org/transactions/9B8A2235FEE2EA89849140AFCC2058B34B1C72AA205721970AF47E4B301A5BE2)
+- [The rejected transaction on the testnet explorer](https://testnet.xrpl.org/transactions/9953A2C79A33ECC870E08DCBB8CED54B375C56E18538E1A21E1780365E428E86)
 
-_Raw evidence: `checks/C17-the-ledger-itself-refuses-an-overspend-when-the-po.json`. Took 6.3s._
+_Raw evidence: `checks/C17-the-ledger-itself-refuses-an-overspend-when-the-po.json`. Took 5.3s._
 
 ### C18. The agent wallet is capped by the ledger, not by our code: PASS
 
@@ -339,9 +339,9 @@ _Raw evidence: `checks/C17-the-ledger-itself-refuses-an-overspend-when-the-po.js
 
 **Result:** Agent trust line limit is 10 RLUSD, set on the ledger.
 
-- [x] the agent has an RLUSD trust line (saw: `{"limit":"10","balance":"9.88"}`)
+- [x] the agent has an RLUSD trust line (saw: `{"limit":"10","balance":"9.84"}`)
 - [x] its limit is 10 RLUSD (saw: `10`)
-- [x] it holds no more than its limit (saw: `9.88`)
+- [x] it holds no more than its limit (saw: `9.84`)
 - [x] an ordinary visitor wallet, by contrast, has a much higher limit (saw: `1000000`)
 
 **Evidence links:**
@@ -380,12 +380,12 @@ _Raw evidence: `checks/C20-test-only-attack-routes-do-not-exist-in-normal-mod.js
 
 **What it proves:** The separate guardian process, the only holder of the treasury key, reads the live agent wallet and decides whether to top it up, in a mode where it sends nothing.
 
-**Result:** [2026-09-27T04:03:58.510Z] agent holds 9.88 RLUSD, treasury holds 0 RLUSD, allowance 10 [2026-09-27T04:03:58.766Z] no top-up: treasury is empty, agent needs 0.12 RLUSD
+**Result:** [2026-09-27T04:22:43.883Z] agent holds 9.84 RLUSD, treasury holds 0 RLUSD, allowance 10 [2026-09-27T04:22:44.138Z] no top-up: treasury is empty, agent needs 0.16 RLUSD
 
 - [x] the guardian ran and exited cleanly (saw: `0`)
-- [x] it announced a dry run, so nothing was sent (saw: `["[2026-09-27T04:03:57.730Z] guardian for agent rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN, treasury rJ6CxF863PPN2fZV1KCQ1oCfLbaPiAdtBG","[2026-09-27T04:03:57.732Z] dry run: nothing will be sent","[2026-09...`)
-- [x] it read the agent wallet balance from the ledger (saw: `[2026-09-27T04:03:57.730Z] guardian for agent rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN, treasury rJ6CxF863PPN2fZV1KCQ1oCfLbaPiAdtBG
-[2026-09-27T04:03:57.732Z] dry run: nothing will be sent
+- [x] it announced a dry run, so nothing was sent (saw: `["[2026-09-27T04:22:43.151Z] guardian for agent rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN, treasury rJ6CxF863PPN2fZV1KCQ1oCfLbaPiAdtBG","[2026-09-27T04:22:43.154Z] dry run: nothing will be sent","[2026-09...`)
+- [x] it read the agent wallet balance from the ledger (saw: `[2026-09-27T04:22:43.151Z] guardian for agent rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN, treasury rJ6CxF863PPN2fZV1KCQ1oCfLbaPiAdtBG
+[2026-09-27T04:22:43.154Z] dry run: nothing will be sent
 [2026-09-27T04...`)
 
 **Evidence links:**
@@ -397,22 +397,22 @@ _Raw evidence: `checks/C21-the-guardian-is-running-its-safety-checks-against-.js
 
 **What it proves:** If the payment succeeds but minting the stamp fails, the money stays paid, the failed mint is queued for retry, and nobody is paid twice.
 
-**Result:** Paid, mint failed, retry queued. Decision fc852960-b856-4c3c-88db-c07e2080bd58.
+**Result:** Paid, mint failed, retry queued. Decision 28ea151c-6d3e-4298-84be-b3c213e7aa00.
 
 - [x] server answered 202 (saw: `202`)
 - [x] status is STAMP_FAILED (saw: `STAMP_FAILED`)
 - [x] the response says the stamp failed (saw: `true`)
-- [x] the payment went through and has a hash (saw: `CFD1906CB1343AFAC90659EBD9623CA01960F00D6B2A9F4D6027890F0AA2E9ED`)
-- [x] the failed mint is queued for retry in the database (saw: `{"decision_id":"fc852960-b856-4c3c-88db-c07e2080bd58","place_id":"hamilton-grange","solana_address":"H3DRETUUyjg1KiPVZD7aa1ydY2LEhXxAftMwfvFqVTQf","xrpl_tx_hash":"CFD1906CB1343AFAC90659EBD9623CA019...`)
-- [x] the queued retry remembers the payment hash (saw: `CFD1906CB1343AFAC90659EBD9623CA01960F00D6B2A9F4D6027890F0AA2E9ED`)
+- [x] the payment went through and has a hash (saw: `B294E381950E720187A4BE91032269A44F7E5077E23258A2D44E1D3A99A30784`)
+- [x] the failed mint is queued for retry in the database (saw: `{"decision_id":"28ea151c-6d3e-4298-84be-b3c213e7aa00","place_id":"hamilton-grange","solana_address":"Dhtuk8kCEW3bhYDu2DHT33UJUhWf1M2XJHLpJw55GjGQ","xrpl_tx_hash":"B294E381950E720187A4BE91032269A44F...`)
+- [x] the queued retry remembers the payment hash (saw: `B294E381950E720187A4BE91032269A44F7E5077E23258A2D44E1D3A99A30784`)
 - [x] the payment is real and validated on the ledger (saw: `tesSUCCESS`)
 - [x] the visitor received the reward once (saw: `{"gained":0.009999999999999995}`)
 - [x] no stamp was minted for this decision (saw: `2`)
 
 **Evidence links:**
-- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/CFD1906CB1343AFAC90659EBD9623CA01960F00D6B2A9F4D6027890F0AA2E9ED)
+- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/B294E381950E720187A4BE91032269A44F7E5077E23258A2D44E1D3A99A30784)
 
-_Raw evidence: `checks/C22-a-failed-stamp-never-causes-a-second-payment.json`. Took 17.8s._
+_Raw evidence: `checks/C22-a-failed-stamp-never-causes-a-second-payment.json`. Took 16.9s._
 
 ### C23. The public API shows the places and the visitor stamps: PASS
 
@@ -426,11 +426,24 @@ _Raw evidence: `checks/C22-a-failed-stamp-never-causes-a-second-payment.json`. T
 
 _Raw evidence: `checks/C23-the-public-api-shows-the-places-and-the-visitor-st.json`. Took 0.1s._
 
-### C24. Every decision has a step-by-step audit history: SKIPPED
+### C24. Every decision has a step-by-step audit history: PASS
 
 **What it proves:** Each step of a paid submission (Sentinel, claim, agent, policy, payment, stamp) is recorded and can be read back for any decision.
 
-**Result:** Skipped: this build has no audit trail yet (it is added by the audit trail pull request)
+**Result:** 6 steps recorded for decision e76c78c1-4264-49d8-b85a-6189d7df85f1.
+
+- [x] the history has an entry for each of the 6 steps (saw: `["sentinel","claim","agent","policy","xrpl","solana"]`)
+- [x] the sentinel step is recorded (saw: `["sentinel","claim","agent","policy","xrpl","solana"]`)
+- [x] the claim step is recorded (saw: `["sentinel","claim","agent","policy","xrpl","solana"]`)
+- [x] the agent step is recorded (saw: `["sentinel","claim","agent","policy","xrpl","solana"]`)
+- [x] the policy step is recorded (saw: `["sentinel","claim","agent","policy","xrpl","solana"]`)
+- [x] the xrpl step is recorded (saw: `["sentinel","claim","agent","policy","xrpl","solana"]`)
+- [x] the solana step is recorded (saw: `["sentinel","claim","agent","policy","xrpl","solana"]`)
+- [x] every step passed (saw: `[]`)
+
+**Evidence links:**
+- [XRPL payment on the testnet explorer](https://testnet.xrpl.org/transactions/776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C)
+- [Solana stamp (asset) on the devnet explorer](https://explorer.solana.com/address/HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn?cluster=devnet)
 
 _Raw evidence: `checks/C24-every-decision-has-a-step-by-step-audit-history.json`. Took 0.0s._
 
@@ -444,4 +457,4 @@ _Raw evidence: `checks/C24-every-decision-has-a-step-by-step-audit-history.json`
 - [x] the message says it must never hold the agent key (saw: `Refusing to start: AGENT_SEED found in guardian config. The guardian must never hold the agent key.
 `)
 
-_Raw evidence: `checks/C25-the-guardian-refuses-to-run-if-it-can-see-the-agen.json`. Took 3.2s._
+_Raw evidence: `checks/C25-the-guardian-refuses-to-run-if-it-can-see-the-agen.json`. Took 3.1s._

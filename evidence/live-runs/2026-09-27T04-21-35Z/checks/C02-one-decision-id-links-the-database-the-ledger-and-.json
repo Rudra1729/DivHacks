@@ -4,22 +4,22 @@
   "proves": "The same decision ID appears in the saved decision, the XRPL payment memo, the Solana stamp, and the stamp metadata page, so any record can be traced to the others.",
   "cost": "none (re-reads C01)",
   "status": "pass",
-  "summary": "Decision ID 18dc1f99-4db3-4221-9faa-27d66bc7b0a7 was found in every place it should be.",
+  "summary": "Decision ID e76c78c1-4264-49d8-b85a-6189d7df85f1 was found in every place it should be.",
   "assertions": [
     {
       "description": "the database has the decision under that ID",
       "passed": true,
-      "actual": "18dc1f99-4db3-4221-9faa-27d66bc7b0a7"
+      "actual": "e76c78c1-4264-49d8-b85a-6189d7df85f1"
     },
     {
       "description": "the database records the same payment hash",
       "passed": true,
-      "actual": "6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35"
+      "actual": "776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C"
     },
     {
       "description": "the database records the same stamp",
       "passed": true,
-      "actual": "Ec3gsUZJUgJtmVJsD3dVQXRL8BTN6UueWHsWUG5EWRt3"
+      "actual": "HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn"
     },
     {
       "description": "the stamp metadata page is served for that ID",
@@ -29,66 +29,66 @@
     {
       "description": "the metadata page shows the same payment hash",
       "passed": true,
-      "actual": "6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35"
+      "actual": "776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C"
     },
     {
       "description": "the XRPL memo carries the same ID",
       "passed": true,
       "actual": [
-        "decision_id=18dc1f99-4db3-4221-9faa-27d66bc7b0a7"
+        "decision_id=e76c78c1-4264-49d8-b85a-6189d7df85f1"
       ]
     },
     {
       "description": "the Solana stamp carries the same ID",
       "passed": true,
-      "actual": "18dc1f99-4db3-4221-9faa-27d66bc7b0a7"
+      "actual": "e76c78c1-4264-49d8-b85a-6189d7df85f1"
     },
     {
       "description": "the stamp metadata address contains the same ID",
       "passed": true,
-      "actual": "http://localhost:3000/metadata/18dc1f99-4db3-4221-9faa-27d66bc7b0a7"
+      "actual": "http://localhost:3000/metadata/e76c78c1-4264-49d8-b85a-6189d7df85f1"
     }
   ],
   "evidence": {
     "savedDecision": {
-      "id": "18dc1f99-4db3-4221-9faa-27d66bc7b0a7",
-      "requestId": "1d2e3255-b278-487b-8c5b-9c4a22c51bb8",
+      "id": "e76c78c1-4264-49d8-b85a-6189d7df85f1",
+      "requestId": "8b754bf3-ec9c-4fd9-8b5a-6ab5105df703",
       "placeId": "apollo-theater",
       "xrplAddress": "rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe",
-      "solanaAddress": "Ck9nmRDF1bZWi61itxJKDpnq1Gd6U6xQTetJ3hmVsJsd",
+      "solanaAddress": "BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4",
       "amount": 0.01,
       "status": "OK",
       "reasons": [],
-      "grokProposal": "{\"amount\":0.01,\"recipient\":\"rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe\",\"reason\":\"Positive visit to Apollo Theater\"}",
+      "grokProposal": "{\"amount\":0.01,\"recipient\":\"rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe\",\"reason\":\"Visit to Apollo Theater\"}",
       "policyVersion": "1.0.0",
-      "xrplHash": "6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35",
+      "xrplHash": "776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C",
       "xrplResult": null,
-      "solanaAsset": "Ec3gsUZJUgJtmVJsD3dVQXRL8BTN6UueWHsWUG5EWRt3",
-      "solanaSignature": "2tTKbHsPJoF2MP8ojyheem4FA6Y5i4gef7jGQLjbnKJpZMxqRd23BBurxTmj8ev3SkA45PttUTrUsmv5Kg9zWkAK",
+      "solanaAsset": "HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn",
+      "solanaSignature": "4UnVGSASo1c9AyYxhGwg6iDuiZwxrXKsdfFRzqUpg8EdDL3eatPPBjhp9it9VYsRxZtpej54igfijYLA9o5AJBVL",
       "stampFailed": false,
-      "createdAt": "2026-09-27T04:03:05.907Z"
+      "createdAt": "2026-09-27T04:21:54.270Z"
     },
     "metadataPage": {
-      "decisionId": "18dc1f99-4db3-4221-9faa-27d66bc7b0a7",
+      "decisionId": "e76c78c1-4264-49d8-b85a-6189d7df85f1",
       "place": "Apollo Theater",
       "neighborhood": "Harlem",
       "image": "https://placehold.co/600x600/png?text=apollo+theater",
-      "xrplPaymentHash": "6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35"
+      "xrplPaymentHash": "776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C"
     },
     "ledgerMemos": [
-      "decision_id=18dc1f99-4db3-4221-9faa-27d66bc7b0a7"
+      "decision_id=e76c78c1-4264-49d8-b85a-6189d7df85f1"
     ],
-    "stampUri": "http://localhost:3000/metadata/18dc1f99-4db3-4221-9faa-27d66bc7b0a7"
+    "stampUri": "http://localhost:3000/metadata/e76c78c1-4264-49d8-b85a-6189d7df85f1"
   },
   "links": [
     {
       "label": "XRPL payment on the testnet explorer",
-      "url": "https://testnet.xrpl.org/transactions/6E6FB9A856CA3D8FEE058791FF1D2129970F84C45DBEB42EAD252E86B736BC35"
+      "url": "https://testnet.xrpl.org/transactions/776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C"
     },
     {
       "label": "Solana stamp (asset) on the devnet explorer",
-      "url": "https://explorer.solana.com/address/Ec3gsUZJUgJtmVJsD3dVQXRL8BTN6UueWHsWUG5EWRt3?cluster=devnet"
+      "url": "https://explorer.solana.com/address/HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn?cluster=devnet"
     }
   ],
-  "durationMs": 147
+  "durationMs": 159
 }

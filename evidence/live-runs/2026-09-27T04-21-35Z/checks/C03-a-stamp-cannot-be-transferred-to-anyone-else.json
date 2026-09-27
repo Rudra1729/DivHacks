@@ -14,21 +14,21 @@
     {
       "description": "the stamp still belongs to the visitor afterward",
       "passed": true,
-      "actual": "Ck9nmRDF1bZWi61itxJKDpnq1Gd6U6xQTetJ3hmVsJsd"
+      "actual": "BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4"
     }
   ],
   "evidence": {
     "attempt": "owner-signed transfer of the stamp to the attacker wallet",
     "rejected": true,
     "error": "Invalid Authority",
-    "ownerAfter": "Ck9nmRDF1bZWi61itxJKDpnq1Gd6U6xQTetJ3hmVsJsd",
-    "ownerBefore": "Ck9nmRDF1bZWi61itxJKDpnq1Gd6U6xQTetJ3hmVsJsd"
+    "ownerAfter": "BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4",
+    "ownerBefore": "BHMyGCS9WZ8nDBftRJPeTmmvNj2ywPUdBe3gGcrHg9G4"
   },
   "links": [
     {
       "label": "Stamp on the devnet explorer",
-      "url": "https://explorer.solana.com/address/Ec3gsUZJUgJtmVJsD3dVQXRL8BTN6UueWHsWUG5EWRt3?cluster=devnet"
+      "url": "https://explorer.solana.com/address/HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn?cluster=devnet"
     }
   ],
-  "durationMs": 122
+  "durationMs": 114
 }

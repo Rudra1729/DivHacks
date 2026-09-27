@@ -22,11 +22,13 @@ keys before finishing, and deletes the run if it finds one.
 | Run | Result | What it shows |
 | --- | --- | --- |
 | `2026-09-27T03-50-59Z` | 20 passed, 3 failed, 1 skipped | The first run. It **found a real gap**: a wallet that already held a stamp for a place was paid again once the server started with an empty database (check C08 in this run's numbering). One more failure was the same gap showing up in the "blocked attempts move no money" check, because the wrongful payment happened in between. The third was a mistake in the runner: it passed the guardian a key the guardian is designed to refuse. Kept on purpose. |
-| `2026-09-27T04-02-42Z` | **24 passed, 0 failed, 1 skipped** | The final run, after the fix. Sentinel now asks Solana whether the wallet already holds a stamp, so the claim is blocked even with an empty database. |
+| `2026-09-27T04-21-35Z` | **25 passed, 0 failed, 0 skipped** | The final run, after the fix and with the audit trail merged. Sentinel now asks Solana whether the wallet already holds a stamp, so the claim is blocked even with an empty database. Every decision now has a step-by-step history (C24). |
 
-An in-between run is not kept: it failed because the runner reused wallets that
-already held stamps from the first run, which the new check correctly blocked.
-The runner now creates fresh Solana wallets each run so it can be repeated.
+Two in-between runs are not kept. One failed because the runner reused wallets
+that already held stamps from the first run, which the new check correctly
+blocked. The runner now creates fresh Solana wallets each run so it can be
+repeated. The other passed 24 checks and skipped the audit history, which had not
+been merged yet, and is superseded by the final run.
 
 The two runs number their checks differently, because the "empty database" check
 was moved so it is measured after the "blocked attempts move no money" check.
@@ -43,6 +45,7 @@ In the first run it is C08. In the final run it is C13.
 | Reused photos, repeat claims, and dodging with another wallet are all blocked | C05, C06, C07 | Blocked with clear reasons |
 | A repeat claim is blocked even if the server loses its database | C13 | Solana is the source of truth |
 | Wrong place, old photo, and bad input are refused, and all reasons are reported together | C08 to C11 | Clear reasons in each reply |
+| Every decision has a step-by-step history: Sentinel, claim, agent, policy, payment, stamp | C24 | The six recorded steps, including the real payment hash and stamp address |
 | Blocked attempts cost nothing | C12 | Every balance unchanged |
 | A prompt injection in the caption cannot redirect money to an attacker | C14 | Real Grok, attacker balance unchanged |
 | Repeating a request never pays twice | C15 | One payment for two requests |
@@ -57,14 +60,13 @@ In the first run it is C08. In the final run it is C13.
 
 ## Not covered live, and why
 
-- **C24, the step-by-step audit history** was skipped because that feature is in a pull request that was not merged when the final run happened. Re-run after it merges.
 - **Race conditions and landing exactly on the 10 RLUSD cap** cannot be reached with the small real rewards used here (0.01 RLUSD each). They are covered by the automated end-to-end tests (`npm run test:e2e`) against a fake ledger, where they pass.
 - **The bypass attack through the whole pipeline.** Real Grok refuses the injection, so the app-level bypass cannot be forced. C17 proves the important part directly: the ledger refuses the overspend.
 
 ## Things to know before showing this
 
 - **Test networks only.** XRPL testnet and Solana devnet. The RLUSD has no real value.
-- **Small rewards.** The runs use a reward scale of 0.01, so a 1 RLUSD place pays 0.01 RLUSD. Each run spends about 0.04 RLUSD (the final run took the agent wallet from 9.91 to 9.87), a negligible amount of XRP in transaction fees, and about 0.02 devnet SOL for mints (4.9462 to 4.9252 in the final run).
+- **Small rewards.** The runs use a reward scale of 0.01, so a 1 RLUSD place pays 0.01 RLUSD. Each run spends about 0.04 RLUSD (the final run took the agent wallet from 9.87 to 9.83), a negligible amount of XRP in transaction fees, and about 0.01 devnet SOL for mints (4.9252 to 4.9127 in the final run).
 - **Stamp metadata links point at localhost.** The stamp records a metadata address like `http://localhost:3000/metadata/<decision id>`. It works on the machine running the server, but an outside viewer cannot open it until the server is hosted at a public address (set `METADATA_BASE_URL`).
 - **Grok is real and not deterministic.** Amounts and wording can vary between runs.
 

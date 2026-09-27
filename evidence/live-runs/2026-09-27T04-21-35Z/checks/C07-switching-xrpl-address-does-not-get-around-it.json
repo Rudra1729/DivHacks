@@ -1,7 +1,7 @@
 {
-  "id": "C06",
-  "title": "One reward per place per person",
-  "proves": "The same wallets claiming the same place again, even with a new photo, are blocked.",
+  "id": "C07",
+  "title": "Switching XRPL address does not get around it",
+  "proves": "The once-per-place rule matches on either wallet: the same Solana wallet with a different XRPL address is still blocked.",
   "cost": "none",
   "status": "pass",
   "summary": "Blocked: once per place: a paid claim already exists for this place",
@@ -10,11 +10,6 @@
       "description": "server answered 422",
       "passed": true,
       "actual": 422
-    },
-    {
-      "description": "status is BLOCKED_SENTINEL",
-      "passed": true,
-      "actual": "BLOCKED_SENTINEL"
     },
     {
       "description": "the reason is once per place",
@@ -30,7 +25,7 @@
   ],
   "evidence": {
     "response": {
-      "decisionId": "f6fb3932-10b8-4412-b5db-6ad95b5e258a",
+      "decisionId": "8c24fe44-4d44-4e6b-a515-697acc7bc764",
       "stampFailed": false,
       "status": "BLOCKED_SENTINEL",
       "reasons": [
@@ -39,5 +34,5 @@
     }
   },
   "links": [],
-  "durationMs": 10
+  "durationMs": 8
 }

@@ -10,7 +10,7 @@
       "description": "the visitor gained exactly the decided amount",
       "passed": true,
       "actual": {
-        "gained": 0.010000000000000002,
+        "gained": 0.009999999999999995,
         "decided": 0.01
       }
     },
@@ -39,15 +39,15 @@
   "evidence": {
     "decidedAmount": 0.01,
     "balancesBefore": {
-      "agent": 9.91,
-      "user-2": 0.04,
-      "user-3": 0.05,
+      "agent": 9.87,
+      "user-2": 0.05,
+      "user-3": 0.08,
       "attacker": 0
     },
     "balancesAfter": {
-      "agent": 9.9,
-      "user-2": 0.05,
-      "user-3": 0.05,
+      "agent": 9.86,
+      "user-2": 0.06,
+      "user-3": 0.08,
       "attacker": 0
     }
   },
@@ -57,5 +57,5 @@
       "url": "https://testnet.xrpl.org/accounts/rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN"
     }
   ],
-  "durationMs": 14
+  "durationMs": 15
 }

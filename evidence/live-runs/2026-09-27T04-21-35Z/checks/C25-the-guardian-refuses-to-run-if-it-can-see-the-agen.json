@@ -23,5 +23,5 @@
     "message": "Refusing to start: AGENT_SEED found in guardian config. The guardian must never hold the agent key.\n"
   },
   "links": [],
-  "durationMs": 3191
+  "durationMs": 3125
 }

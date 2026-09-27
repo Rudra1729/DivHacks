@@ -11,7 +11,7 @@
       "passed": true,
       "actual": {
         "limit": "10",
-        "balance": "9.88"
+        "balance": "9.84"
       }
     },
     {
@@ -22,7 +22,7 @@
     {
       "description": "it holds no more than its limit",
       "passed": true,
-      "actual": "9.88"
+      "actual": "9.84"
     },
     {
       "description": "an ordinary visitor wallet, by contrast, has a much higher limit",
@@ -33,11 +33,11 @@
   "evidence": {
     "agentTrustLine": {
       "limit": "10",
-      "balance": "9.88"
+      "balance": "9.84"
     },
     "visitorTrustLine": {
       "limit": "1000000",
-      "balance": "0.05"
+      "balance": "0.06"
     }
   },
   "links": [
@@ -46,5 +46,5 @@
       "url": "https://testnet.xrpl.org/accounts/rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN"
     }
   ],
-  "durationMs": 198
+  "durationMs": 197
 }

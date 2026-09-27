@@ -28,5 +28,5 @@
     "message": "C:\\Users\\arund\\OneDrive\\Desktop\\UMass\\Projects\\spideyvault\\src\\config.ts:21\r\n    throw new ConfigError(\r\n          ^\r\n\r\n\r\nConfigError: Refusing to start: treasury key found in server config (TREASURY_SEED). The treasury key must live only in the guardian process.\r\n    at assertNoTreasuryKey (C:\\Users\\arund\\OneDrive\\Desktop\\UMass\\Projects\\spideyvault\\src\\config.ts:21:11)\r\n    at loadConfig (C:\\User"
   },
   "links": [],
-  "durationMs": 5589
+  "durationMs": 5587
 }

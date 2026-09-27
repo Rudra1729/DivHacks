@@ -13,7 +13,7 @@
         "ok": false,
         "reason": "ledger_rejected",
         "resultCode": "tecPATH_PARTIAL",
-        "txHash": "9B8A2235FEE2EA89849140AFCC2058B34B1C72AA205721970AF47E4B301A5BE2",
+        "txHash": "9953A2C79A33ECC870E08DCBB8CED54B375C56E18538E1A21E1780365E428E86",
         "error": "ledger rejected the payment with tecPATH_PARTIAL"
       }
     },
@@ -35,7 +35,7 @@
     {
       "description": "the agent wallet lost nothing",
       "passed": true,
-      "actual": 9.88
+      "actual": 9.84
     }
   ],
   "evidence": {
@@ -44,15 +44,15 @@
       "ok": false,
       "reason": "ledger_rejected",
       "resultCode": "tecPATH_PARTIAL",
-      "txHash": "9B8A2235FEE2EA89849140AFCC2058B34B1C72AA205721970AF47E4B301A5BE2",
+      "txHash": "9953A2C79A33ECC870E08DCBB8CED54B375C56E18538E1A21E1780365E428E86",
       "error": "ledger rejected the payment with tecPATH_PARTIAL"
     }
   },
   "links": [
     {
       "label": "The rejected transaction on the testnet explorer",
-      "url": "https://testnet.xrpl.org/transactions/9B8A2235FEE2EA89849140AFCC2058B34B1C72AA205721970AF47E4B301A5BE2"
+      "url": "https://testnet.xrpl.org/transactions/9953A2C79A33ECC870E08DCBB8CED54B375C56E18538E1A21E1780365E428E86"
     }
   ],
-  "durationMs": 6318
+  "durationMs": 5334
 }

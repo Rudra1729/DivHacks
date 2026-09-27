@@ -4,7 +4,7 @@
   "proves": "If the payment succeeds but minting the stamp fails, the money stays paid, the failed mint is queued for retry, and nobody is paid twice.",
   "cost": "0.01 RLUSD",
   "status": "pass",
-  "summary": "Paid, mint failed, retry queued. Decision fc852960-b856-4c3c-88db-c07e2080bd58.",
+  "summary": "Paid, mint failed, retry queued. Decision 28ea151c-6d3e-4298-84be-b3c213e7aa00.",
   "assertions": [
     {
       "description": "server answered 202",
@@ -24,26 +24,26 @@
     {
       "description": "the payment went through and has a hash",
       "passed": true,
-      "actual": "CFD1906CB1343AFAC90659EBD9623CA01960F00D6B2A9F4D6027890F0AA2E9ED"
+      "actual": "B294E381950E720187A4BE91032269A44F7E5077E23258A2D44E1D3A99A30784"
     },
     {
       "description": "the failed mint is queued for retry in the database",
       "passed": true,
       "actual": {
-        "decision_id": "fc852960-b856-4c3c-88db-c07e2080bd58",
+        "decision_id": "28ea151c-6d3e-4298-84be-b3c213e7aa00",
         "place_id": "hamilton-grange",
-        "solana_address": "H3DRETUUyjg1KiPVZD7aa1ydY2LEhXxAftMwfvFqVTQf",
-        "xrpl_tx_hash": "CFD1906CB1343AFAC90659EBD9623CA01960F00D6B2A9F4D6027890F0AA2E9ED",
+        "solana_address": "Dhtuk8kCEW3bhYDu2DHT33UJUhWf1M2XJHLpJw55GjGQ",
+        "xrpl_tx_hash": "B294E381950E720187A4BE91032269A44F7E5077E23258A2D44E1D3A99A30784",
         "attempts": 1,
         "last_error": "mint failed, queued for retry",
-        "created_at": "2026-09-27T04:04:15.714Z",
-        "updated_at": "2026-09-27T04:04:15.714Z"
+        "created_at": "2026-09-27T04:23:00.131Z",
+        "updated_at": "2026-09-27T04:23:00.131Z"
       }
     },
     {
       "description": "the queued retry remembers the payment hash",
       "passed": true,
-      "actual": "CFD1906CB1343AFAC90659EBD9623CA01960F00D6B2A9F4D6027890F0AA2E9ED"
+      "actual": "B294E381950E720187A4BE91032269A44F7E5077E23258A2D44E1D3A99A30784"
     },
     {
       "description": "the payment is real and validated on the ledger",
@@ -65,7 +65,7 @@
   ],
   "evidence": {
     "response": {
-      "decisionId": "fc852960-b856-4c3c-88db-c07e2080bd58",
+      "decisionId": "28ea151c-6d3e-4298-84be-b3c213e7aa00",
       "stampFailed": true,
       "status": "STAMP_FAILED",
       "reasons": [
@@ -74,20 +74,20 @@
       "proposal": {
         "amount": 0.01,
         "recipient": "rpU5YrQxWdm7So1tLC9vxyVMqhgVVCbTbY",
-        "reason": "Visit to Hamilton Grange National Memorial"
+        "reason": "Visit to Hamilton Grange"
       },
       "policyVersion": "1.0.0",
-      "xrplTxHash": "CFD1906CB1343AFAC90659EBD9623CA01960F00D6B2A9F4D6027890F0AA2E9ED"
+      "xrplTxHash": "B294E381950E720187A4BE91032269A44F7E5077E23258A2D44E1D3A99A30784"
     },
     "queuedRetry": {
-      "decision_id": "fc852960-b856-4c3c-88db-c07e2080bd58",
+      "decision_id": "28ea151c-6d3e-4298-84be-b3c213e7aa00",
       "place_id": "hamilton-grange",
-      "solana_address": "H3DRETUUyjg1KiPVZD7aa1ydY2LEhXxAftMwfvFqVTQf",
-      "xrpl_tx_hash": "CFD1906CB1343AFAC90659EBD9623CA01960F00D6B2A9F4D6027890F0AA2E9ED",
+      "solana_address": "Dhtuk8kCEW3bhYDu2DHT33UJUhWf1M2XJHLpJw55GjGQ",
+      "xrpl_tx_hash": "B294E381950E720187A4BE91032269A44F7E5077E23258A2D44E1D3A99A30784",
       "attempts": 1,
       "last_error": "mint failed, queued for retry",
-      "created_at": "2026-09-27T04:04:15.714Z",
-      "updated_at": "2026-09-27T04:04:15.714Z"
+      "created_at": "2026-09-27T04:23:00.131Z",
+      "updated_at": "2026-09-27T04:23:00.131Z"
     },
     "ledger": {
       "found": true,
@@ -99,15 +99,15 @@
       "currency": "524C555344000000000000000000000000000000",
       "issuer": "rQhWct2fv4Vc4KRjRgMrxa8xPN9Zx9iLKV",
       "memos": [
-        "decision_id=fc852960-b856-4c3c-88db-c07e2080bd58"
+        "decision_id=28ea151c-6d3e-4298-84be-b3c213e7aa00"
       ]
     }
   },
   "links": [
     {
       "label": "XRPL payment on the testnet explorer",
-      "url": "https://testnet.xrpl.org/transactions/CFD1906CB1343AFAC90659EBD9623CA01960F00D6B2A9F4D6027890F0AA2E9ED"
+      "url": "https://testnet.xrpl.org/transactions/B294E381950E720187A4BE91032269A44F7E5077E23258A2D44E1D3A99A30784"
     }
   ],
-  "durationMs": 17786
+  "durationMs": 16896
 }

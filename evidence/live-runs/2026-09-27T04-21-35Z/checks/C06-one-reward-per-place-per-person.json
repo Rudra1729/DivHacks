@@ -1,10 +1,10 @@
 {
-  "id": "C05",
-  "title": "The same photo cannot be used twice",
-  "proves": "Photo replay is blocked: reusing a photo, even at a different place, is stopped by Sentinel and pays nothing.",
+  "id": "C06",
+  "title": "One reward per place per person",
+  "proves": "The same wallets claiming the same place again, even with a new photo, are blocked.",
   "cost": "none",
   "status": "pass",
-  "summary": "Blocked: replay: this photo has already been submitted",
+  "summary": "Blocked: once per place: a paid claim already exists for this place",
   "assertions": [
     {
       "description": "server answered 422",
@@ -17,10 +17,10 @@
       "actual": "BLOCKED_SENTINEL"
     },
     {
-      "description": "the reason is a replay",
+      "description": "the reason is once per place",
       "passed": true,
       "actual": [
-        "replay: this photo has already been submitted"
+        "once per place: a paid claim already exists for this place"
       ]
     },
     {
@@ -30,14 +30,14 @@
   ],
   "evidence": {
     "response": {
-      "decisionId": "714e174b-74c0-4695-9d73-946cb9e987e4",
+      "decisionId": "b0041e36-37ab-4548-a714-063d2b7957df",
       "stampFailed": false,
       "status": "BLOCKED_SENTINEL",
       "reasons": [
-        "replay: this photo has already been submitted"
+        "once per place: a paid claim already exists for this place"
       ]
     }
   },
   "links": [],
-  "durationMs": 412
+  "durationMs": 10
 }
