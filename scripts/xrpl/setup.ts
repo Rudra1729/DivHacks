@@ -101,6 +101,7 @@ async function main(): Promise<void> {
   const config = loadXrplConfig({ ...process.env, XRPL_MODE: 'fake', XRPL_ASSET: 'RLUSD' });
   const client = await getClient(config);
   const saved = loadSavedWallets();
+  const created = new Set<WalletRole>(WALLET_ROLES.filter((role) => !saved[role]));
 
   console.log('Preparing XRPL testnet wallets...');
   for (const role of WALLET_ROLES) {
@@ -119,12 +120,22 @@ async function main(): Promise<void> {
     console.log(`            ${explorerAccountUrl(wallet.classicAddress)}`);
   }
 
+  const treasuryRlusd = await readAssetBalance(client, config, saved.treasury!.classicAddress);
   console.log('\nNext steps:');
-  console.log(`  1. Get test RLUSD at https://tryrlusd.com for the treasury: ${saved.treasury!.classicAddress}`);
-  console.log('  2. Add this line to .env (server, agent key only):');
-  console.log(`       AGENT_SEED=${saved.agent!.seed}`);
-  console.log('  3. Add this line to .env.guardian (guardian only, never .env):');
-  console.log(`       TREASURY_SEED=${saved.treasury!.seed}`);
+  if (treasuryRlusd === 0) {
+    console.log(`  - Get test RLUSD at https://tryrlusd.com for the treasury: ${saved.treasury!.classicAddress}`);
+  }
+  if (created.has('agent')) {
+    console.log('  - Add this line to .env (server, agent key only):');
+    console.log(`       AGENT_SEED=${saved.agent!.seed}`);
+  }
+  if (created.has('treasury')) {
+    console.log('  - Add this line to .env.guardian (guardian only, never .env):');
+    console.log(`       TREASURY_SEED=${saved.treasury!.seed}`);
+  }
+  if (created.size === 0 && treasuryRlusd > 0) {
+    console.log('  - Nothing to do. Seeds are only printed when a wallet is newly created.');
+  }
 
   await disconnectClient();
 }
