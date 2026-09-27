@@ -181,9 +181,24 @@
                   <span class="stat-val" id="nodeGeofence">150 Meters</span>
                 </div>
                 <div class="stat-item">
-                  <span class="stat-label">RLUSD Bounty</span>
-                  <span class="stat-val highlight-yellow" id="nodeReward">1.0 RLUSD</span>
+                  <span class="stat-label">Reward</span>
+                  <span class="stat-val highlight-yellow" id="nodeReward">Stamp only</span>
                 </div>
+              </div>
+
+              <div class="node-sponsor" id="nodeSponsor" style="display: none">
+                <i data-lucide="building-2"></i>
+                <span class="stat-label">Paid by</span>
+                <strong id="nodeSponsorName"></strong>
+              </div>
+
+              <div class="node-rarity">
+                <div class="node-rarity-head">
+                  <span class="stat-label" id="nodeRarityLabel">Next stamp here</span>
+                  <span class="tier-badge tier-legendary" id="nodeRarityTier">LEGENDARY #1</span>
+                </div>
+                <div class="rarity-ladder" id="nodeRarityLadder"></div>
+                <div class="node-rarity-note" id="nodeRarityNote">0 of 1000 stamps found. The first 10 finders get Legendary.</div>
               </div>
 
               <p class="node-desc" id="nodeDesc">
@@ -231,6 +246,8 @@
       <p class="section-subtitle">Earned cards are locked to your wallet forever. Hover to inspect 3D tilt sheen, or click to flip & inspect on-chain proof!</p>
     </div>
 
+    <div class="rarity-legend" id="rarityLegend" aria-label="Stamp rarity tiers"></div>
+
     <div class="cards-gallery" id="cardsGallery">
       <!-- Dynamic 3D trading cards populated by app.js -->
     </div>
@@ -263,7 +280,7 @@
         <div class="gate-step" id="gate3">
           <div class="gate-icon"><i data-lucide="bot"></i></div>
           <div class="gate-name">Gate 3: Grok AI</div>
-          <div class="gate-sub">Agent Payout Proposal</div>
+          <div class="gate-sub">Photo Check + Payout Proposal</div>
         </div>
         <div class="gate-connector"></div>
         <div class="gate-step" id="gate4">
@@ -432,38 +449,48 @@
           <!-- PHOTO PREVIEW AREA -->
           <div class="photo-upload-zone" id="photoDropZone">
             <div class="photo-preview-wrap" id="photoPreviewWrap">
-              <img id="photoPreviewImg" src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80" alt="Proof Photo">
-              <div class="photo-lens-frame">
-                <i data-lucide="aperture"></i>
-              </div>
+              <img id="photoPreviewImg" class="placeholder" src="" alt="Proof photo">
+              <video id="cameraPreview" autoplay muted playsinline style="display:none;"></video>
             </div>
             <div class="photo-upload-info">
-              <label for="photoFileInput" class="comic-btn hero-blue-btn small-btn">
-                <i data-lucide="camera"></i> Select Photo Proof
-              </label>
+              <div class="photo-buttons">
+                <button type="button" class="comic-btn hero-blue-btn small-btn" id="openCameraBtn">
+                  <i data-lucide="camera"></i> Open Camera
+                </button>
+                <button type="button" class="comic-btn hero-red-btn small-btn" id="snapPhotoBtn" style="display:none;">
+                  <i data-lucide="aperture"></i> Snap Photo
+                </button>
+                <label for="photoFileInput" class="comic-btn small-btn">
+                  <i data-lucide="image-plus"></i> Upload Instead
+                </label>
+              </div>
               <input type="file" id="photoFileInput" accept="image/*" style="display:none;">
-              <small class="upload-note">Sentinel verifies EXIF timestamp & duplicate hashes</small>
+              <small class="upload-note" id="photoStatusNote">Take a photo at the place. Sentinel rejects photos it has seen before.</small>
             </div>
           </div>
 
           <!-- GPS LOCATION CHECK -->
           <div class="form-group">
-            <label class="form-label"><i data-lucide="navigation"></i> Device GPS Location</label>
-            <div class="gps-status-box success" id="gpsStatusBox">
-              <i data-lucide="check-circle-2"></i>
-              <span>Coordinates Captured: <strong>40.8102° N, 73.9500° W</strong> (Within 42m of Target)</span>
+            <label class="form-label"><i data-lucide="navigation"></i> Device GPS Trail</label>
+            <div class="gps-status-box pending" id="gpsStatusBox">
+              <i data-lucide="radar"></i>
+              <span id="gpsStatusText">Waiting for GPS...</span>
             </div>
+            <label class="demo-location-toggle" id="demoLocationWrap" style="display:none;">
+              <input type="checkbox" id="demoLocationToggle">
+              Demo only: pretend my phone is standing at this place
+            </label>
           </div>
 
           <!-- WALLET ADDRESSES -->
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label"><i data-lucide="wallet"></i> XRPL Wallet Address (RLUSD)</label>
-              <input type="text" class="comic-input" id="xrplAddressInput" value="rP9x9K2bM...5Xz1" required>
+              <input type="text" class="comic-input" id="xrplAddressInput" placeholder="Log in to fill this in" required>
             </div>
             <div class="form-group">
               <label class="form-label"><i data-lucide="shield"></i> Solana Wallet Address (Stamp)</label>
-              <input type="text" class="comic-input" id="solanaAddressInput" value="7xKXtg...9M1L" required>
+              <input type="text" class="comic-input" id="solanaAddressInput" placeholder="Log in to fill this in" required>
             </div>
           </div>
 
@@ -476,9 +503,10 @@
           <!-- SUBMIT ACTION BUTTON -->
           <div class="form-actions">
             <button type="submit" class="comic-btn hero-red-btn full-btn big-btn" id="submitProofBtn">
-              <i data-lucide="zap"></i> THWIP! SUBMIT PROOF FOR VERIFICATION
+              <i data-lucide="zap"></i> <span id="submitProofText">THWIP! SUBMIT PROOF FOR VERIFICATION</span>
             </button>
           </div>
+          <div class="submission-result" id="submissionResult" style="display:none;"></div>
         </form>
       </div>
     </div>
@@ -504,6 +532,9 @@
   <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
   <script src="ztext.js"></script>
   <script src="map.js"></script>
+  <script src="locationCapture.js"></script>
+  <script src="api.js"></script>
+  <script src="submission.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

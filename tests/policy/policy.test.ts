@@ -1,4 +1,4 @@
-import { evaluatePolicy, POLICY_VERSION } from '../../src/policy/policy';
+import { evaluatePolicy, POLICY_VERSION, scaledCaps } from '../../src/policy/policy';
 import { PolicyContext } from '../../src/policy/types';
 
 const context: PolicyContext = {
@@ -113,5 +113,33 @@ describe('evaluatePolicy', () => {
 
   it('carries the policy version on failures too', () => {
     expect(evaluatePolicy(propose(50), context).policyVersion).toBe(POLICY_VERSION);
+  });
+
+  describe('scaled caps', () => {
+    it('shrinks both caps by the reward scale', () => {
+      expect(scaledCaps(1)).toEqual({ perTask: 5, perDay: 10 });
+      expect(scaledCaps(0.1)).toEqual({ perTask: 0.5, perDay: 1 });
+      expect(scaledCaps(0.01)).toEqual({ perTask: 0.05, perDay: 0.1 });
+    });
+
+    it('never goes below one cent', () => {
+      expect(scaledCaps(0.0001)).toEqual({ perTask: 0.01, perDay: 0.01 });
+    });
+
+    it('blocks a payout over the scaled per-task cap', () => {
+      const scaled = { ...context, capScale: 0.01 };
+      expect(evaluatePolicy(propose(0.05), scaled).ok).toBe(true);
+      expect(violationsOf(evaluatePolicy(propose(0.06), scaled))).toEqual([
+        'per-task cap: asked for 0.06, max is 0.05',
+      ]);
+    });
+
+    it('blocks a payout over the scaled daily cap', () => {
+      const scaled = { ...context, capScale: 0.01, dailyTotal: 0.08 };
+      expect(evaluatePolicy(propose(0.02), scaled).ok).toBe(true);
+      expect(violationsOf(evaluatePolicy(propose(0.03), scaled))).toEqual([
+        'daily cap: already paid 0.08 today, asked for 0.03, max is 0.1 per day',
+      ]);
+    });
   });
 });

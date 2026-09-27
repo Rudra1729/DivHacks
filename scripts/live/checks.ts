@@ -10,11 +10,13 @@ without paying twice.
 import { execSync } from 'child_process';
 import { Keypair } from '@metaplex-foundation/umi';
 import Database from 'better-sqlite3';
-import { getAgentAddress, sendPayment } from '../../src/xrpl';
+import { getAgentAddress } from '../../src/xrpl';
 import { Place, PLACES } from '../../src/data/places';
+import { scaledCaps } from '../../src/policy/policy';
 import { explorerAccountUrl, explorerTxUrl as xrplTxUrl } from '../xrpl/common';
 import { explorerAddressUrl as solAddressUrl, explorerTxUrl as solTxUrl } from '../solana/common';
 import { Chains } from './lib/chains';
+import { frozenTrail, phoneTrail } from './lib/gps';
 import { freshPhoto, getJson, post, submit, Submission } from './lib/http';
 import { LiveServer, startExpectingRefusal } from './lib/server';
 import { Assertions, CheckOutcome, Link } from './lib/types';
@@ -52,6 +54,7 @@ const APOLLO = PLACES[0];
 const STUDIO = PLACES[1];
 const MARCUS = PLACES[2];
 const HAMILTON = PLACES[3];
+const MALCOLM = PLACES[4];
 
 function at(place: Place): Pick<Submission, 'placeId' | 'latitude' | 'longitude'> {
   return { placeId: place.id, latitude: place.latitude, longitude: place.longitude };
@@ -245,7 +248,8 @@ export const CHECKS: Check[] = [
       a.that('the visitor gained exactly the decided amount', near(f['user-2'] - b['user-2'], amount), { gained: f['user-2'] - b['user-2'], decided: amount });
       a.that('the agent wallet lost exactly the same amount', near(b.agent - f.agent, amount), { lost: b.agent - f.agent, decided: amount });
       a.that('the attacker wallet was not touched', near(f.attacker, b.attacker), { before: b.attacker, after: f.attacker });
-      a.that('the amount is within the 5 RLUSD per-task cap', amount <= 5, amount);
+      const perTask = scaledCaps(ctx.rewardScale).perTask;
+      a.that(`the amount is within the ${perTask} RLUSD per-task cap`, amount <= perTask, amount);
       return {
         assertions: a.list,
         evidence: { decidedAmount: amount, balancesBefore: b, balancesAfter: f },
@@ -510,9 +514,12 @@ export const CHECKS: Check[] = [
       const user = ctx.users['user-3'];
       const photo = freshPhoto();
       const requestId = `live-idempotent-${ctx.runId}`;
+      // Apollo is 285 m from Studio Museum, where this user checked in during C14,
+      // so the impossible travel check has no reason to block it.
+      const trail = phoneTrail(APOLLO.latitude, APOLLO.longitude);
       const before = ctx.real ? await ctx.chains!.rlusd(user.xrpl) : null;
       const send = (): ReturnType<typeof submit> =>
-        submit(ctx.serverA.baseUrl, { ...at(MARCUS), xrplAddress: user.xrpl, solanaAddress: user.solana, requestId, photo });
+        submit(ctx.serverA.baseUrl, { ...at(APOLLO), xrplAddress: user.xrpl, solanaAddress: user.solana, requestId, photo, trail });
       const first = await send();
       const second = await send();
       a.that('the first request paid', first.body?.status === 'OK', first.body?.status);
@@ -538,7 +545,7 @@ export const CHECKS: Check[] = [
   {
     id: 'C16',
     title: 'The daily cap uses real ledger totals',
-    proves: 'A wallet that has already been paid 10 RLUSD today (counted from the XRPL ledger, not just our database) is blocked from receiving more.',
+    proves: 'A wallet that has already been paid the daily cap today (counted from the XRPL ledger, not just our database) is blocked from receiving more.',
     cost: 'none',
     async run(ctx) {
       if (!ctx.real) {
@@ -546,13 +553,14 @@ export const CHECKS: Check[] = [
       }
       const user = ctx.users['user-1'];
       const paidToday = await ctx.chains!.paidToday(user.xrpl);
-      if (paidToday + 0.01 <= 10) {
+      const perDay = scaledCaps(ctx.rewardScale).perDay;
+      if (paidToday + 0.01 <= perDay) {
         return skipped(`demo user 1 has only been paid ${paidToday} RLUSD so far today (UTC), so the cap is not reached. The day resets at 00:00 UTC.`);
       }
       const a = new Assertions();
       const balanceBefore = await ctx.chains!.rlusd(user.xrpl);
       const res = await submit(ctx.serverA.baseUrl, { ...at(HAMILTON), xrplAddress: user.xrpl, solanaAddress: user.solana });
-      a.that('the ledger says this wallet was already paid at least the cap today', paidToday >= 9.99, paidToday);
+      a.that('the ledger says this wallet was already paid at least the cap today', paidToday >= perDay - 0.01, paidToday);
       a.that('server answered 422', res.status === 422, res.status);
       a.that('status is BLOCKED_POLICY', res.body?.status === 'BLOCKED_POLICY', res.body?.status);
       a.that('the reason is the daily cap', (res.body?.reasons ?? []).some((r: string) => r.startsWith('daily cap:')), res.body?.reasons);
@@ -579,21 +587,48 @@ export const CHECKS: Check[] = [
       const chains = ctx.chains!;
       const agentBefore = await chains.rlusd(getAgentAddress());
       const attackerBefore = await chains.rlusd(ctx.attacker.xrpl);
-      const result = await sendPayment({ decisionId: `live-overspend-${ctx.runId}`, recipient: ctx.attacker.xrpl, amount: 50 });
-      a.that('the payment was not accepted', result.ok === false, result);
-      a.that('the reason is the ledger rejecting it', !result.ok && result.reason === 'ledger_rejected', !result.ok ? result.reason : 'ok');
-      a.that('the ledger result is a "tec" rejection code', !result.ok && (result.resultCode ?? '').startsWith('tec'), !result.ok ? result.resultCode : '');
-      a.that('the attacker received nothing', near(await chains.rlusd(ctx.attacker.xrpl), attackerBefore), attackerBefore);
-      a.that('the agent wallet lost nothing', near(await chains.rlusd(getAgentAddress()), agentBefore), agentBefore);
+      const server = ctx.makeServer('forced-overspend', { NODE_ENV: 'test' });
       const links: Link[] = [];
-      if (!result.ok && result.txHash) {
-        links.push({ label: 'The rejected transaction on the testnet explorer', url: xrplTxUrl(result.txHash) });
+      let evidence: Record<string, unknown> = {};
+      try {
+        await server.start();
+        const forced = { recipient: ctx.attacker.xrpl, amount: 50, reason: 'live forced overspend demo' };
+        const force = await post(server.baseUrl, '/test/attack/force-proposal', forced);
+        const stopped = await submit(server.baseUrl, {
+          ...at(MALCOLM),
+          xrplAddress: ctx.users['user-1'].xrpl,
+          solanaAddress: ctx.users['user-1'].solana,
+          caption: 'ordinary visit, but the test route forces the proposal',
+        });
+        const bypass = await post(server.baseUrl, '/test/attack');
+        const rejected = await submit(server.baseUrl, {
+          ...at(MALCOLM),
+          xrplAddress: ctx.users['user-1'].xrpl,
+          solanaAddress: ctx.users['user-1'].solana,
+          caption: 'ordinary visit, now with the policy bypass enabled',
+        });
+
+        a.that('the test-only route forced the 50 RLUSD proposal', force.status === 200 && force.body?.forcedProposal?.amount === 50, force.body);
+        a.that('without the bypass, the forced proposal is stopped by policy', stopped.status === 422 && stopped.body?.status === 'BLOCKED_POLICY', stopped.body);
+        a.that('the policy reported the 50 RLUSD per-task cap', (stopped.body?.reasons ?? []).some((r: string) => r.includes('per-task cap')), stopped.body?.reasons);
+        a.that('the bypass route enabled the app-level skip', bypass.status === 200, bypass.body);
+        a.that('with policy bypassed, the ledger rejects the forced payout', rejected.status === 402 && rejected.body?.status === 'REJECTED_BY_LEDGER', rejected.body);
+        a.that('the rejected decision kept the forced proposal', rejected.body?.proposal?.amount === 50 && rejected.body?.proposal?.recipient === ctx.attacker.xrpl, rejected.body?.proposal);
+        a.that('the ledger result is a "tec" rejection code', (rejected.body?.xrplResultCode ?? '').startsWith('tec'), rejected.body?.xrplResultCode);
+        a.that('the attacker received nothing', near(await chains.rlusd(ctx.attacker.xrpl), attackerBefore), attackerBefore);
+        a.that('the agent wallet lost no RLUSD', near(await chains.rlusd(getAgentAddress()), agentBefore), agentBefore);
+        if (rejected.body?.xrplTxHash) {
+          links.push({ label: 'The rejected transaction on the testnet explorer', url: xrplTxUrl(rejected.body.xrplTxHash) });
+        }
+        evidence = { forcedRoute: force.body, stoppedByPolicy: stopped.body, bypassRoute: bypass.body, rejectedByLedger: rejected.body };
+      } finally {
+        await server.stop();
       }
       return {
         assertions: a.list,
-        evidence: { attempt: '50 RLUSD from the agent wallet to the attacker wallet, sent straight to the payment layer', result },
+        evidence,
         links,
-        summary: result.ok ? 'The overspend went through, which should be impossible.' : `Rejected by the ledger with ${result.resultCode}.`,
+        summary: 'The forced 50 RLUSD proposal was stopped by policy first, then rejected by the ledger when the policy bypass was enabled.',
       };
     },
   },
@@ -657,8 +692,33 @@ export const CHECKS: Check[] = [
     async run(ctx) {
       const a = new Assertions();
       const enable = await post(ctx.serverA.baseUrl, '/test/attack');
+      const forceNormal = await post(ctx.serverA.baseUrl, '/test/attack/force-proposal', {
+        recipient: ctx.attacker.xrpl,
+        amount: 50,
+      });
       a.that('POST /test/attack returns 404', enable.status === 404, enable.status);
-      return { assertions: a.list, evidence: { response: enable.body, status: enable.status }, links: [], summary: 'The bypass route is not mounted outside test mode.' };
+      a.that('POST /test/attack/force-proposal returns 404', forceNormal.status === 404, forceNormal.status);
+      const testServer = ctx.makeServer('attack-routes-test-mode', { NODE_ENV: 'test' });
+      let forceTest: Awaited<ReturnType<typeof post>> | undefined;
+      try {
+        await testServer.start();
+        forceTest = await post(testServer.baseUrl, '/test/attack/force-proposal', {
+          recipient: ctx.attacker.xrpl,
+          amount: 50,
+        });
+        a.that('the forced proposal route is reachable only on a test-mode server', forceTest.status === 200, forceTest.status);
+      } finally {
+        await testServer.stop();
+      }
+      return {
+        assertions: a.list,
+        evidence: {
+          normalMode: { bypassStatus: enable.status, forceStatus: forceNormal.status },
+          testMode: { forceStatus: forceTest?.status, response: forceTest?.body },
+        },
+        links: [],
+        summary: 'The attack routes are absent in normal mode and the forced-proposal route exists only in test mode.',
+      };
     },
   },
 
@@ -755,7 +815,11 @@ export const CHECKS: Check[] = [
       const health = await getJson(ctx.serverA.baseUrl, '/health');
       const places = await getJson(ctx.serverA.baseUrl, '/places');
       a.that('health check is ok', health.body?.status === 'ok', health.body);
-      a.that('the places list has 6 places', places.body?.places?.length === 6, places.body?.places?.length);
+      a.that(
+        `the places list has ${PLACES.length} places`,
+        places.body?.places?.length === PLACES.length,
+        places.body?.places?.length
+      );
       const evidence: Record<string, unknown> = { health: health.body, places: (places.body?.places ?? []).map((p: Place) => ({ id: p.id, name: p.name, neighborhood: p.neighborhood })) };
       if (ctx.real && ctx.state.happy?.user) {
         const stamps = await getJson(ctx.serverA.baseUrl, `/users/${ctx.state.happy.user.solana}/stamps`);
@@ -777,20 +841,24 @@ export const CHECKS: Check[] = [
         return skipped('the happy path did not produce a decision');
       }
       const saved = await getJson(ctx.serverA.baseUrl, `/decisions/${id}`);
+      const places = await getJson(ctx.serverA.baseUrl, '/places');
       const history: any[] = saved.body?.history ?? [];
       if (history.length === 0) {
         return skipped('this build has no audit trail yet (it is added by the audit trail pull request)');
       }
       const a = new Assertions();
       const layers = history.map((h) => h.layer);
-      a.that('the history has an entry for each of the 6 steps', history.length >= 6, layers);
-      for (const layer of ['sentinel', 'claim', 'agent', 'policy', 'xrpl', 'solana']) {
+      a.that('the history has an entry for each step, including review', history.length >= 7, layers);
+      for (const layer of ['sentinel', 'claim', 'agent', 'policy', 'review', 'xrpl', 'solana']) {
         a.that(`the ${layer} step is recorded`, layers.includes(layer), layers);
       }
       a.that('every step passed', history.every((h) => h.passed), history.filter((h) => !h.passed));
+      const placeRows: any[] = places.body?.places ?? [];
+      a.that('GET /places reports payable for every place', placeRows.length > 0 && placeRows.every((p) => typeof p.payable === 'boolean'), placeRows);
+      a.that('GET /places includes the payable check status', typeof places.body?.payableCheck === 'string', places.body?.payableCheck);
       return {
         assertions: a.list,
-        evidence: { history },
+        evidence: { history, places: placeRows.map((p) => ({ id: p.id, payable: p.payable })), payableCheck: places.body?.payableCheck },
         links: paymentLinks(ctx.state.happy.body.xrplTxHash, ctx.state.happy.body.solanaAssetAddress),
         summary: `${history.length} steps recorded for decision ${id}.`,
       };
@@ -824,6 +892,36 @@ export const CHECKS: Check[] = [
         evidence: { testedWith: 'a dummy AGENT_SEED value, not a real key', exitCode, message: output.slice(0, 400) },
         links: [],
         summary: exitCode !== 0 ? 'The guardian refused to start with an agent key present, as designed.' : 'The guardian ran with an agent key present, which it must not.',
+      };
+    },
+  },
+
+  {
+    id: 'C26',
+    title: 'A faked GPS location is rejected',
+    proves:
+      'A browser location override that pins the phone exactly on the place is caught by the location plausibility checks: the readings never wobble and sit exactly on the map pin, which real GPS never does.',
+    cost: 'none',
+    async run(ctx) {
+      const a = new Assertions();
+      const place = PLACES[5];
+      const res = await submit(ctx.serverA.baseUrl, {
+        ...at(place),
+        xrplAddress: ctx.attacker.xrpl,
+        solanaAddress: ctx.attacker.solana,
+        trail: frozenTrail(place.latitude, place.longitude),
+      });
+      const reasons: string[] = res.body?.reasons ?? [];
+      a.that('server answered 422', res.status === 422, res.status);
+      a.that('status is BLOCKED_SENTINEL', res.body?.status === 'BLOCKED_SENTINEL', res.body?.status);
+      a.that('the frozen GPS trail was caught', reasons.some((r) => r.startsWith('location trail:')), reasons);
+      a.that('the exact map pin coordinates were caught', reasons.some((r) => r.startsWith('coordinates:')), reasons);
+      a.that('no payment was made', !res.body?.xrplTxHash, res.body?.xrplTxHash);
+      return {
+        assertions: a.list,
+        evidence: { attempt: `10 identical GPS readings on ${place.name}'s map pin, like Chrome's location override`, response: res.body },
+        links: [],
+        summary: `Blocked: ${reasons.join('; ')}`,
       };
     },
   },

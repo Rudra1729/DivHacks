@@ -1,0 +1,32 @@
+{
+  "id": "C13",
+  "title": "One reward per place survives losing the database",
+  "proves": "Stamp ownership on Solana is the source of truth: a wallet that already holds a stamp for a place is blocked even if the server starts with an empty database.",
+  "cost": "none if blocked, 0.01 RLUSD if it wrongly pays",
+  "status": "pass",
+  "summary": "Blocked even with an empty database: once per place: this Solana wallet already holds a stamp for this place",
+  "assertions": [
+    {
+      "description": "a brand new server (empty database) still blocks the claim",
+      "passed": true,
+      "actual": "BLOCKED_SENTINEL"
+    },
+    {
+      "description": "no second payment was made",
+      "passed": true
+    }
+  ],
+  "evidence": {
+    "response": {
+      "decisionId": "8452a6b8-d5f1-4995-8074-a1f13264e0f6",
+      "stampFailed": false,
+      "status": "BLOCKED_SENTINEL",
+      "reasons": [
+        "once per place: this Solana wallet already holds a stamp for this place"
+      ]
+    },
+    "note": "This wallet already holds an Apollo Theater stamp from C01."
+  },
+  "links": [],
+  "durationMs": 9393
+}

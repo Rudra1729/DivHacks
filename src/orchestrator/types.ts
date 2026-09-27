@@ -10,8 +10,11 @@ import { AgentProposal } from '../agent/types';
 /** How a submission ended. */
 export type DecisionStatus =
   | 'OK'
+  | 'BLOCKED_SOLVENCY'
   | 'BLOCKED_SENTINEL'
+  | 'BLOCKED_PHOTO'
   | 'BLOCKED_POLICY'
+  | 'BLOCKED_REVIEW'
   | 'REJECTED_BY_LEDGER'
   | 'PAYMENT_FAILED'
   | 'PAYMENT_UNCONFIRMED'
@@ -31,6 +34,21 @@ export interface Place {
   /** Solana collection address for this place's neighborhood. */
   collectionAddress: string;
   imageUrl: string;
+  /** Cultural visits earn only a stamp unless cultural rewards are on.
+      Civic bounties, and places with no kind, always pay RLUSD. */
+  kind?: 'cultural' | 'civic';
+  /** What a photo taken here shows, for the photo check. */
+  photoHint?: string;
+}
+
+/** One GPS reading taken by the phone while the camera was open. */
+export interface LocationSample {
+  latitude: number;
+  longitude: number;
+  /** Accuracy the phone reported for this reading, in meters. */
+  accuracy: number;
+  /** When the reading was taken, as epoch milliseconds. */
+  timestamp: number;
 }
 
 /** A user's mission submission, after the API layer has validated its shape. */
@@ -46,6 +64,9 @@ export interface SubmissionInput {
   xrplAddress: string;
   solanaAddress: string;
   caption?: string;
+  /** GPS readings sampled over about 20 seconds, oldest first. The last
+      reading should be the submitted latitude and longitude. */
+  locationTrail?: LocationSample[];
 }
 
 /** The final record of one submission. */

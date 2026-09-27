@@ -42,4 +42,54 @@ describe('loadConfig', () => {
     process.env.REWARD_SCALE = value;
     expect(() => loadConfig()).toThrow(ConfigError);
   });
+
+  it('turns location checks on by default', () => {
+    delete process.env.LOCATION_CHECKS;
+    expect(loadConfig().locationChecks).toBe(true);
+  });
+
+  it.each([
+    ['on', true],
+    ['OFF', false],
+  ])('reads LOCATION_CHECKS=%s', (value, expected) => {
+    process.env.LOCATION_CHECKS = value;
+    expect(loadConfig().locationChecks).toBe(expected);
+  });
+
+  it('rejects an unknown LOCATION_CHECKS value', () => {
+    process.env.LOCATION_CHECKS = 'maybe';
+    expect(() => loadConfig()).toThrow(ConfigError);
+  });
+
+  it('turns cultural rewards off by default', () => {
+    delete process.env.CULTURAL_REWARDS;
+    expect(loadConfig().culturalRewards).toBe(false);
+  });
+
+  it('reads CULTURAL_REWARDS=on', () => {
+    process.env.CULTURAL_REWARDS = 'on';
+    expect(loadConfig().culturalRewards).toBe(true);
+  });
+
+  it('rejects an unknown CULTURAL_REWARDS value', () => {
+    process.env.CULTURAL_REWARDS = 'yes';
+    expect(() => loadConfig()).toThrow(ConfigError);
+  });
+
+  it('turns the photo check on with a 0.6 minimum confidence by default', () => {
+    delete process.env.PHOTO_CHECK;
+    delete process.env.PHOTO_MIN_CONFIDENCE;
+    expect(loadConfig()).toMatchObject({ photoCheck: true, photoMinConfidence: 0.6 });
+  });
+
+  it('reads PHOTO_CHECK and PHOTO_MIN_CONFIDENCE', () => {
+    process.env.PHOTO_CHECK = 'off';
+    process.env.PHOTO_MIN_CONFIDENCE = '0.8';
+    expect(loadConfig()).toMatchObject({ photoCheck: false, photoMinConfidence: 0.8 });
+  });
+
+  it.each(['-0.1', '1.1', 'abc'])('rejects photo minimum confidence %s', (value) => {
+    process.env.PHOTO_MIN_CONFIDENCE = value;
+    expect(() => loadConfig()).toThrow(ConfigError);
+  });
 });

@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import Database from 'better-sqlite3';
 import { openDatabase } from '../../src/db';
-import { createDecision, getDecision, getDecisionsByXrplAddress, updateDecision, upsertDecision } from '../../src/db/decisions';
+import { createDecision, getDecision, getDecisionsByXrplAddress, getMintedStamps, updateDecision, upsertDecision } from '../../src/db/decisions';
 
 describe('decisions table', () => {
   let db: Database.Database;
@@ -35,6 +35,22 @@ describe('decisions table', () => {
 
     updateDecision(db, 'dec-3', { stampSerial: 7, stampTier: 'Legendary' });
     expect(getDecision(db, 'dec-3')).toMatchObject({ stampSerial: 7, stampTier: 'Legendary' });
+  });
+
+  it('lists only decisions that recorded a minted stamp, oldest first', () => {
+    createDecision(db, 'dec-a', 'apollo-theater', 'OK');
+    updateDecision(db, 'dec-a', {
+      solanaAddress: 'wallet-1', solanaAsset: 'fake-asset-1', xrplHash: 'HASH', stampSerial: 1, stampTier: 'Legendary',
+    });
+    createDecision(db, 'dec-b', 'apollo-theater', 'STAMP_FAILED');
+    updateDecision(db, 'dec-b', { solanaAddress: 'wallet-2' });
+    createDecision(db, 'dec-c', 'mudd-building', 'OK');
+    updateDecision(db, 'dec-c', { solanaAddress: 'wallet-1', solanaAsset: 'fake-asset-2', stampSerial: 1, stampTier: 'Legendary' });
+
+    expect(getMintedStamps(db)).toEqual([
+      { decisionId: 'dec-a', placeId: 'apollo-theater', owner: 'wallet-1', assetAddress: 'fake-asset-1', xrplTxHash: 'HASH', serial: 1, tier: 'Legendary' },
+      { decisionId: 'dec-c', placeId: 'mudd-building', owner: 'wallet-1', assetAddress: 'fake-asset-2', xrplTxHash: '', serial: 1, tier: 'Legendary' },
+    ]);
   });
 
   it('returns undefined for a missing decision', () => {

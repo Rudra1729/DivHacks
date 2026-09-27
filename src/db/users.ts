@@ -67,6 +67,20 @@ export function getUserById(db: Database.Database, id: string): User | undefined
   return row ? fromRow(row) : undefined;
 }
 
+/** Find a user by their custodial XRPL address.
+
+Args:
+    db (Database.Database): Open database handle.
+    xrplAddress (string): The user's XRPL classic address.
+
+Returns:
+    User | undefined: The user, or undefined if no user holds this address.
+*/
+export function getUserByXrplAddress(db: Database.Database, xrplAddress: string): User | undefined {
+  const row = db.prepare('SELECT * FROM users WHERE xrpl_address = ?').get(xrplAddress) as UserRow | undefined;
+  return row ? fromRow(row) : undefined;
+}
+
 /** Create a user with freshly provisioned wallet addresses and encrypted secrets.
 
 Args:

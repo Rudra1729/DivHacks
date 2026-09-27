@@ -1,0 +1,61 @@
+{
+  "id": "C04",
+  "title": "The money that moved matches the decision exactly",
+  "proves": "The agent wallet lost exactly what the visitor received, and the amount equals what the agent proposed and the policy approved.",
+  "cost": "none (re-reads C01)",
+  "status": "pass",
+  "summary": "0.01 RLUSD left the agent wallet and arrived at the visitor, no more, no less.",
+  "assertions": [
+    {
+      "description": "the visitor gained exactly the decided amount",
+      "passed": true,
+      "actual": {
+        "gained": 0.010000000000000009,
+        "decided": 0.01
+      }
+    },
+    {
+      "description": "the agent wallet lost exactly the same amount",
+      "passed": true,
+      "actual": {
+        "lost": 0.009999999999999787,
+        "decided": 0.01
+      }
+    },
+    {
+      "description": "the attacker wallet was not touched",
+      "passed": true,
+      "actual": {
+        "before": 0,
+        "after": 0
+      }
+    },
+    {
+      "description": "the amount is within the 5 RLUSD per-task cap",
+      "passed": true,
+      "actual": 0.01
+    }
+  ],
+  "evidence": {
+    "decidedAmount": 0.01,
+    "balancesBefore": {
+      "agent": 9.83,
+      "user-2": 0.06,
+      "user-3": 0.11,
+      "attacker": 0
+    },
+    "balancesAfter": {
+      "agent": 9.82,
+      "user-2": 0.07,
+      "user-3": 0.11,
+      "attacker": 0
+    }
+  },
+  "links": [
+    {
+      "label": "Agent wallet",
+      "url": "https://testnet.xrpl.org/accounts/rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN"
+    }
+  ],
+  "durationMs": 20
+}

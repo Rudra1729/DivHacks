@@ -222,6 +222,38 @@ export function getHighestStampSerial(db: Database.Database, placeId: string): n
   return row.highest;
 }
 
+/** A stamp that a decision recorded as minted. */
+export interface MintedStampRecord {
+  decisionId: string;
+  placeId: string;
+  owner: string;
+  assetAddress: string;
+  xrplTxHash: string;
+  serial: number | null;
+  tier: string | null;
+}
+
+/** Every stamp recorded as minted, oldest first.
+
+Args:
+    db (Database.Database): Open database handle.
+
+Returns:
+    MintedStampRecord[]: One record per decision with a Solana asset address.
+*/
+export function getMintedStamps(db: Database.Database): MintedStampRecord[] {
+  return db
+    .prepare(
+      `SELECT id AS decisionId, place_id AS placeId, solana_address AS owner,
+              solana_asset AS assetAddress, COALESCE(xrpl_hash, '') AS xrplTxHash,
+              stamp_serial AS serial, stamp_tier AS tier
+       FROM decisions
+       WHERE solana_asset IS NOT NULL AND solana_asset != '' AND place_id IS NOT NULL
+       ORDER BY created_at, rowid`
+    )
+    .all() as MintedStampRecord[];
+}
+
 /** Sum of RLUSD paid to an address on the current UTC calendar day.
 
 Counts decisions that paid or may still pay: OK, STAMP_FAILED (a failed mint

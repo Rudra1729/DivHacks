@@ -1,6 +1,8 @@
 /**HTTP helpers for talking to the live server, and a valid photo to send.*/
 
 import { randomBytes } from 'crypto';
+import { LocationSample } from '../../../src/orchestrator/types';
+import { phoneTrail } from './gps';
 
 export interface ApiResponse {
   status: number;
@@ -24,6 +26,7 @@ export function freshPhoto(): Buffer {
 
 export interface Submission {
   placeId: string;
+  /** Where the visitor stands near. The phone's GPS trail is built around it. */
   latitude: number;
   longitude: number;
   timestamp?: string;
@@ -32,9 +35,13 @@ export interface Submission {
   caption?: string;
   requestId?: string;
   photo?: Buffer | null;
+  /** GPS readings to send. Missing means a real phone's trail near the point. */
+  trail?: LocationSample[];
 }
 
-/** Send a mission submission the way the app would.
+/** Send a mission submission the way the app would, with the GPS trail the
+phone collected while the camera was open. The submitted location is the
+trail's last reading.
 
 Args:
     baseUrl (string): The server's address.
@@ -44,10 +51,13 @@ Returns:
     Promise<ApiResponse>: HTTP status and parsed JSON body.
 */
 export async function submit(baseUrl: string, submission: Submission): Promise<ApiResponse> {
+  const trail = submission.trail ?? phoneTrail(submission.latitude, submission.longitude);
+  const last = trail[trail.length - 1];
   const form = new FormData();
   form.append('placeId', submission.placeId);
-  form.append('latitude', String(submission.latitude));
-  form.append('longitude', String(submission.longitude));
+  form.append('latitude', String(last.latitude));
+  form.append('longitude', String(last.longitude));
+  form.append('locationTrail', JSON.stringify(trail));
   form.append('timestamp', submission.timestamp ?? new Date().toISOString());
   form.append('xrplAddress', submission.xrplAddress);
   form.append('solanaAddress', submission.solanaAddress);
@@ -79,16 +89,21 @@ export async function getJson(baseUrl: string, path: string): Promise<ApiRespons
   return { status: response.status, body: await response.json().catch(() => null) };
 }
 
-/** POST with no body, for the test-only routes.
+/** POST JSON, for the test-only routes.
 
 Args:
     baseUrl (string): The server's address.
     path (string): Path such as /test/attack.
+    body (unknown): Optional JSON body.
 
 Returns:
     Promise<ApiResponse>: HTTP status and parsed JSON body.
 */
-export async function post(baseUrl: string, path: string): Promise<ApiResponse> {
-  const response = await fetch(`${baseUrl}${path}`, { method: 'POST' });
+export async function post(baseUrl: string, path: string, body?: unknown): Promise<ApiResponse> {
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: 'POST',
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
   return { status: response.status, body: await response.json().catch(() => null) };
 }

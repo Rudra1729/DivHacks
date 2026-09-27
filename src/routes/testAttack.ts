@@ -7,7 +7,13 @@ createTestAttackRouter, so Express returns its normal 404 for the path.
 */
 
 import { Router } from 'express';
-import { enablePolicyBypass, disablePolicyBypass } from '../testMode/attackFlag';
+import {
+  disableForcedProposal,
+  disablePolicyBypass,
+  enableForcedProposal,
+  enablePolicyBypass,
+  getForcedProposal,
+} from '../testMode/attackFlag';
 
 /** Build the /test/attack router. Only call this when config.isTestMode is true.
 
@@ -19,12 +25,31 @@ export function createTestAttackRouter(): Router {
 
   router.post('/test/attack', (_req, res) => {
     enablePolicyBypass();
-    res.status(200).json({ policyBypassEnabled: true });
+    res.status(200).json({ policyBypassEnabled: true, forcedProposal: getForcedProposal() });
   });
 
   router.delete('/test/attack', (_req, res) => {
     disablePolicyBypass();
-    res.status(200).json({ policyBypassEnabled: false });
+    disableForcedProposal();
+    res.status(200).json({ policyBypassEnabled: false, forcedProposal: undefined });
+  });
+
+  router.post('/test/attack/force-proposal', (req, res) => {
+    const recipient = typeof req.body?.recipient === 'string' ? req.body.recipient : '';
+    const amount = req.body?.amount === undefined ? 50 : Number(req.body.amount);
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason : 'test forced proposal';
+    if (!recipient || !Number.isFinite(amount) || amount <= 0) {
+      res.status(400).json({ errors: ['recipient and a positive amount are required'] });
+      return;
+    }
+    const proposal = { amount, recipient, reason };
+    enableForcedProposal(proposal);
+    res.status(200).json({ forcedProposal: proposal });
+  });
+
+  router.delete('/test/attack/force-proposal', (_req, res) => {
+    disableForcedProposal();
+    res.status(200).json({ forcedProposal: undefined });
   });
 
   return router;
