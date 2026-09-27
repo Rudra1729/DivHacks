@@ -617,7 +617,7 @@ function renderMissions(filter) {
         <p class="mission-desc">${place.desc}</p>
         <button class="comic-btn ${place.discovered ? 'hero-blue-btn' : 'hero-red-btn'} full-btn" onclick="openSubmissionModal('${place.id}')">
           <i data-lucide="${place.discovered ? 'check-circle-2' : 'zap'}"></i>
-          ${place.discovered ? 'COMPLETED (THWIP AGAIN)' : 'START MISSION'}
+          ${place.discovered ? 'COMPLETED, STAMP COLLECTED' : 'START MISSION'}
         </button>
       </div>
     `;

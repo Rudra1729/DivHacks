@@ -25,6 +25,8 @@ const submission = {
   camera: null,
   demo: false,
   submitting: false,
+  /** True once this place was verified, so the same proof is not sent again. */
+  done: false,
   statusTimer: null,
 };
 
@@ -167,6 +169,12 @@ function updateSubmitButton() {
   let disabled = false;
   if (submission.submitting) {
     text = 'VERIFYING THROUGH ALL 5 GATES...';
+    disabled = true;
+  } else if (submission.done) {
+    text = 'MISSION COMPLETE, STAMP IS IN YOUR PASSPORT';
+    disabled = true;
+  } else if (typeof myStampAt === 'function' && myStampAt(submission.placeId)) {
+    text = 'ALREADY COMPLETED, ONE STAMP PER PLACE';
     disabled = true;
   } else if (!submission.photo) {
     text = 'TAKE OR UPLOAD A PHOTO FIRST';
@@ -332,6 +340,11 @@ function handleSubmissionResult(place, result) {
     return;
   }
 
+  if (['OK', 'STAMP_FAILED', 'PAYMENT_UNCONFIRMED'].includes(body.status)) {
+    submission.done = true;
+    updateSubmitButton();
+  }
+
   const reasons = body.reasons || [];
   const amount = body.proposal ? `${body.proposal.amount} RLUSD` : 'the reward';
   const stamp = body.stampTier ? `${body.stampTier} stamp #${body.stampSerial}` : 'soulbound stamp';
@@ -430,6 +443,7 @@ function prepareSubmission(placeId) {
   submission.placeId = placeId;
   submission.photo = null;
   submission.submitting = false;
+  submission.done = false;
   const place = missionPlace();
 
   const img = document.getElementById('photoPreviewImg');
