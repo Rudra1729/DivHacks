@@ -1,0 +1,30 @@
+[
+  {
+    "id": "wyckoff-house-museum",
+    "name": "Wyckoff House Museum",
+    "neighborhood": "East Flatbush",
+    "latitude": 40.6448,
+    "longitude": -73.9209,
+    "geofenceRadiusMeters": 150,
+    "baseRewardRlusd": 3,
+    "solanaCollectionAddress": null,
+    "imageUrl": "https://placehold.co/600x600/png?text=Wyckoff%20House%20Museum",
+    "description": "Step inside New York City's oldest house, a preserved Dutch colonial farmhouse surrounded by a small community garden.",
+    "generatedAt": "2026-09-27T06:56:02.574Z",
+    "reason": "Historic 17th-century farmhouse in a quiet residential area, known to locals but absent from major guidebooks or tourist routes."
+  },
+  {
+    "id": "louis-armstrong-house-museum",
+    "name": "Louis Armstrong House Museum",
+    "neighborhood": "Corona",
+    "latitude": 40.7514,
+    "longitude": -73.8617,
+    "geofenceRadiusMeters": 150,
+    "baseRewardRlusd": 3,
+    "solanaCollectionAddress": null,
+    "imageUrl": "https://placehold.co/600x600/png?text=Louis%20Armstrong%20House%20Museum",
+    "description": "Step inside the modest 1910s house where Louis Armstrong lived, composed, and gardened for nearly three decades.",
+    "generatedAt": "2026-09-27T06:56:37.720Z",
+    "reason": "This preserved jazz legend home sits in a quiet residential Queens block and receives almost no mainstream tourist coverage."
+  }
+]
