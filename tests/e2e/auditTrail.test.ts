@@ -35,16 +35,18 @@ describe('e2e: audit trail', () => {
     const history = await historyOf(stack, response.body.decisionId);
 
     expect(shape(history)).toEqual([
+      ['solvency', true],
       ['sentinel', true],
       ['claim', true],
       ['agent', true],
       ['policy', true],
+      ['review', true],
       ['xrpl', true],
       ['solana', true],
     ]);
     // Same transaction and stamp as the decision, so the trail links to both chains.
-    expect(history[4].message).toContain(response.body.xrplTxHash);
-    expect(history[5].message).toContain(response.body.solanaAssetAddress);
+    expect(history[6].message).toContain(response.body.xrplTxHash);
+    expect(history[7].message).toContain(response.body.solanaAssetAddress);
     history.forEach((entry) => expect(Date.parse(entry.createdAt)).not.toBeNaN());
   });
 
@@ -75,14 +77,17 @@ describe('e2e: audit trail', () => {
     const history = await historyOf(stack, response.body.decisionId);
 
     expect(shape(history)).toEqual([
+      ['solvency', true],
       ['sentinel', true],
       ['claim', true],
       ['agent', true],
       ['policy', true],
+      ['review', true],
       ['xrpl', false],
     ]);
-    expect(history[3].message).toBe('skipped: test mode bypass');
-    expect(history[4].message).toContain('tecPATH_PARTIAL');
+    expect(history[4].message).toBe('skipped: test mode bypass');
+    expect(history[5].message).toBe('skipped: test mode bypass');
+    expect(history[6].message).toContain('tecPATH_PARTIAL');
   });
 
   it('shows a Sentinel block with one entry per failed check', async () => {
@@ -91,9 +96,12 @@ describe('e2e: audit trail', () => {
 
     const history = await historyOf(stack, response.body.decisionId);
 
-    expect(history).toHaveLength(response.body.reasons.length);
-    expect(history.every((e) => e.layer === 'sentinel' && !e.passed)).toBe(true);
-    expect(history.map((e) => e.message)).toEqual(response.body.reasons);
+    // The solvency step passed first, then one failing entry per Sentinel check.
+    expect(history[0]).toMatchObject({ layer: 'solvency', passed: true });
+    const blocks = history.slice(1);
+    expect(blocks).toHaveLength(response.body.reasons.length);
+    expect(blocks.every((e) => e.layer === 'sentinel' && !e.passed)).toBe(true);
+    expect(blocks.map((e) => e.message)).toEqual(response.body.reasons);
   });
 
   it('shows a failed stamp after a successful payment', async () => {
@@ -130,10 +138,12 @@ describe('e2e: audit trail', () => {
 
     const steps = heard.filter((e) => e.type.startsWith('audit.') && e.decisionId === response.body.decisionId);
     expect(steps.map((e) => e.type)).toEqual([
+      'audit.solvency',
       'audit.sentinel',
       'audit.claim',
       'audit.agent',
       'audit.policy',
+      'audit.review',
       'audit.xrpl',
       'audit.solana',
     ]);

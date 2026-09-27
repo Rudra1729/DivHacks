@@ -1,0 +1,121 @@
+{
+  "id": "C02",
+  "title": "One decision ID links the database, the ledger, and the stamp",
+  "proves": "The same decision ID appears in the saved decision, the XRPL payment memo, the Solana stamp, and the stamp metadata page, so any record can be traced to the others.",
+  "cost": "none (re-reads C01)",
+  "status": "pass",
+  "summary": "Decision ID 545f5aad-7645-4594-b488-dcb564da05a1 was found in every place it should be.",
+  "assertions": [
+    {
+      "description": "the database has the decision under that ID",
+      "passed": true,
+      "actual": "545f5aad-7645-4594-b488-dcb564da05a1"
+    },
+    {
+      "description": "the database records the same payment hash",
+      "passed": true,
+      "actual": "E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D"
+    },
+    {
+      "description": "the database records the same stamp",
+      "passed": true,
+      "actual": "FKoS2q2F2kNgLif64gTiDan7fzrhzepPyn4oz9J1QdRZ"
+    },
+    {
+      "description": "the stamp metadata page is served for that ID",
+      "passed": true,
+      "actual": 200
+    },
+    {
+      "description": "the metadata page shows the same payment hash",
+      "passed": true,
+      "actual": "E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D"
+    },
+    {
+      "description": "the XRPL memo carries the same ID",
+      "passed": true,
+      "actual": [
+        "decision_id=545f5aad-7645-4594-b488-dcb564da05a1"
+      ]
+    },
+    {
+      "description": "the Solana stamp carries the same ID",
+      "passed": true,
+      "actual": "545f5aad-7645-4594-b488-dcb564da05a1"
+    },
+    {
+      "description": "the stamp metadata address contains the same ID",
+      "passed": true,
+      "actual": "http://localhost:3000/metadata/545f5aad-7645-4594-b488-dcb564da05a1"
+    }
+  ],
+  "evidence": {
+    "savedDecision": {
+      "id": "545f5aad-7645-4594-b488-dcb564da05a1",
+      "requestId": "824859f2-035b-4f4a-9dd9-10a19153b71d",
+      "placeId": "apollo-theater",
+      "xrplAddress": "rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe",
+      "solanaAddress": "ASFbDSycDNFXdWQz3zBKH7CMrdPWRtophuvu926Qr87p",
+      "amount": 0.01,
+      "status": "OK",
+      "reasons": [],
+      "grokProposal": "{\"amount\":0.01,\"recipient\":\"rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe\",\"reason\":\"Visit to Apollo Theater\"}",
+      "policyVersion": "1.0.0",
+      "xrplHash": "E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D",
+      "xrplResult": null,
+      "solanaAsset": "FKoS2q2F2kNgLif64gTiDan7fzrhzepPyn4oz9J1QdRZ",
+      "solanaSignature": "2HeCSuhhW5MzPFSAUXtZmNT6ncBGxwNaoPRMDmu7zt5SqDRZJyEgeiUN1ra3aFy6S4jtHp81h8mtRGsTAZVUmxWd",
+      "stampSerial": 10,
+      "stampTier": "Legendary",
+      "stampFailed": false,
+      "createdAt": "2026-09-27T06:35:11.134Z"
+    },
+    "metadataPage": {
+      "name": "Apollo Theater #10",
+      "decisionId": "545f5aad-7645-4594-b488-dcb564da05a1",
+      "place": "Apollo Theater",
+      "neighborhood": "Harlem",
+      "image": "https://placehold.co/600x600/png?text=apollo+theater",
+      "xrplPaymentHash": "E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D",
+      "serial": 10,
+      "tier": "Legendary",
+      "supply": 1000,
+      "stampsFoundAtPlace": 10,
+      "remainingAtPlace": 990,
+      "foundOut": false,
+      "attributes": [
+        {
+          "trait_type": "Place",
+          "value": "Apollo Theater"
+        },
+        {
+          "trait_type": "Neighborhood",
+          "value": "Harlem"
+        },
+        {
+          "trait_type": "Tier",
+          "value": "Legendary"
+        },
+        {
+          "trait_type": "Serial",
+          "value": "10 of 1000"
+        }
+      ]
+    },
+    "ledgerMemos": [
+      "decision_id=545f5aad-7645-4594-b488-dcb564da05a1"
+    ],
+    "stampUri": "http://localhost:3000/metadata/545f5aad-7645-4594-b488-dcb564da05a1"
+  },
+  "links": [
+    {
+      "label": "XRPL payment on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/E11CB960961CB758128876B4A23157B90E206052EFAB194274D4AEA677011D8D"
+    },
+    {
+      "label": "Solana stamp (asset) on the devnet explorer",
+      "url": "https://explorer.solana.com/address/FKoS2q2F2kNgLif64gTiDan7fzrhzepPyn4oz9J1QdRZ?cluster=devnet"
+    }
+  ],
+  "durationMs": 149
+}

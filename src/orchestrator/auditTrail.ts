@@ -9,11 +9,13 @@ import { AuditEntry } from '../storage/types';
 /** Which part of the pipeline produced an entry. */
 export type AuditLayer =
   | 'orchestrator'
+  | 'solvency'
   | 'sentinel'
   | 'photo'
   | 'claim'
   | 'agent'
   | 'policy'
+  | 'review'
   | 'xrpl'
   | 'solana';
 

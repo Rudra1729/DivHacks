@@ -229,6 +229,7 @@ async function main(): Promise<void> {
     finishedAt: new Date().toISOString(),
     gitCommit: git('rev-parse --short HEAD'),
     gitBranch: git('rev-parse --abbrev-ref HEAD'),
+    gitDirty: git('status --porcelain') !== '',
     nodeVersion: process.version,
     mode: fake ? 'fake modes (dry run)' : 'real networks',
     rewardScale,

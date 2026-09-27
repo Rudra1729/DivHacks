@@ -19,6 +19,7 @@ import { RealSentinel } from './sentinel/realSentinel';
 import { SqliteStorage } from './storage/sqliteStorage';
 import { GrokAgent } from './agent/grok';
 import { GrokPhotoChecker } from './agent/photoCheck';
+import { GrokReviewer } from './agent/reviewer';
 import { xrplService } from './xrpl';
 import { WalletActivator, withWalletActivation } from './xrpl/activation';
 import { solanaStamps } from './solana';
@@ -50,6 +51,11 @@ const orchestrator = new Orchestrator({
     model: config.grokModel,
     endpoint: config.grokEndpoint,
     rewardScale: config.rewardScale,
+  }),
+  reviewer: new GrokReviewer({
+    apiKey: config.grokApiKey,
+    model: config.grokModel,
+    endpoint: config.grokEndpoint,
   }),
   xrpl: withWalletActivation(xrplService, new WalletActivator(db)),
   solana: solanaStamps,
