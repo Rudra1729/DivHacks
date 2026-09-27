@@ -10,6 +10,7 @@ import { AuditEntry } from '../storage/types';
 export type AuditLayer =
   | 'orchestrator'
   | 'sentinel'
+  | 'photo'
   | 'claim'
   | 'agent'
   | 'policy'

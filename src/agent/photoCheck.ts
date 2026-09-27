@@ -49,7 +49,7 @@ export interface GrokPhotoCheckerOptions {
 
 const DEFAULT_MIN_CONFIDENCE = 0.6;
 const DEFAULT_TIMEOUT_MS = 30000;
-const MAX_REASON_LENGTH = 300;
+const MAX_REASON_LENGTH = 200;
 
 const SYSTEM_PROMPT =
   'You check photos for WebPass NYC, which rewards people for visiting places in New York City. ' +

@@ -11,6 +11,7 @@ import { AgentProposal } from '../agent/types';
 export type DecisionStatus =
   | 'OK'
   | 'BLOCKED_SENTINEL'
+  | 'BLOCKED_PHOTO'
   | 'BLOCKED_POLICY'
   | 'REJECTED_BY_LEDGER'
   | 'PAYMENT_FAILED'

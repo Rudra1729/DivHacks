@@ -1,4 +1,5 @@
 import { GrokAgent } from '../../src/agent/grok';
+import { PhotoChecker } from '../../src/agent/photoCheck';
 import { AgentProposal, PayoutAgent } from '../../src/agent/types';
 import { Orchestrator } from '../../src/orchestrator/orchestrator';
 import { Place, SubmissionInput } from '../../src/orchestrator/types';
@@ -46,6 +47,7 @@ function build(overrides: {
   rewardScale?: number;
   place?: Place;
   culturalRewards?: boolean;
+  photoChecker?: PhotoChecker;
 } = {}) {
   const xrpl = overrides.xrpl ?? new FakePaymentService();
   const solana = new FakeStampService();
@@ -53,6 +55,7 @@ function build(overrides: {
   const agent = overrides.agent ?? stubAgent(goodProposal);
   const orchestrator = new Orchestrator({
     sentinel: overrides.sentinel ?? new FakeSentinel(),
+    photoChecker: overrides.photoChecker,
     agent,
     xrpl,
     solana,
@@ -145,6 +148,64 @@ describe('Orchestrator', () => {
       expect(result.status).toBe('BLOCKED_SENTINEL');
       expect(result.reasons).toEqual(['unknown place: nowhere']);
       expect(agent.propose).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('photo check', () => {
+    function checker(passed: boolean, message = passed ? 'photo check: matched' : 'photo check: not the place'): PhotoChecker & { check: jest.Mock } {
+      return { check: jest.fn().mockResolvedValue({ passed, message }) };
+    }
+
+    it('blocks a mismatched photo before any claim, proposal, or payment', async () => {
+      const agent = stubAgent(goodProposal);
+      const { orchestrator, xrpl, solana, storage } = build({ agent, photoChecker: checker(false) });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result).toMatchObject({ status: 'BLOCKED_PHOTO', reasons: ['photo check: not the place'] });
+      expect(agent.propose).not.toHaveBeenCalled();
+      expect(storage.getClaims()).toHaveLength(0);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(0);
+      expect(await solana.getStamps('solUser')).toHaveLength(0);
+      expect(storage.getAuditEvents(result.decisionId).at(-1)).toMatchObject({ layer: 'photo', passed: false });
+    });
+
+    it('passes a matching photo on to payment and records it', async () => {
+      const photoChecker = checker(true);
+      const { orchestrator, storage } = build({ photoChecker });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('OK');
+      expect(photoChecker.check).toHaveBeenCalledWith({ place, photo: submission.photo });
+      expect(storage.getAuditEvents(result.decisionId).map((e) => e.layer)).toEqual(
+        expect.arrayContaining(['sentinel', 'photo', 'claim', 'agent'])
+      );
+    });
+
+    it('checks the photo for stamp-only cultural visits too', async () => {
+      const cultural = { ...place, kind: 'cultural' as const };
+      const { orchestrator, solana } = build({ place: cultural, photoChecker: checker(false) });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('BLOCKED_PHOTO');
+      expect(await solana.getStamps('solUser')).toHaveLength(0);
+    });
+
+    it('treats a checker that throws as blocked', async () => {
+      const photoChecker = { check: jest.fn().mockRejectedValue(new Error('boom')) };
+      const { orchestrator } = build({ photoChecker });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('BLOCKED_PHOTO');
+      expect(result.reasons[0]).toContain('boom');
+    });
+
+    it('does not run the check when Sentinel already blocked the visit', async () => {
+      const photoChecker = checker(true);
+      const { orchestrator } = build({ photoChecker, sentinel: new FakeSentinel(['location: too far']) });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('BLOCKED_SENTINEL');
+      expect(photoChecker.check).not.toHaveBeenCalled();
     });
   });
 

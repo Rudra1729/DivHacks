@@ -1,7 +1,8 @@
 /**Submission orchestrator.
 
 Runs one submission through the pipeline in a fixed order: duplicate check,
-Sentinel, pending claim, agent, policy, XRPL payment, Solana stamp, save.
+Sentinel, photo check, pending claim, agent, policy, XRPL payment, Solana
+stamp, save. The photo check runs only when a checker is configured.
 Money moves only after every earlier gate passes, and a payment is never
 repeated because a stamp mint failed: the mint is queued for retry instead.
 
@@ -12,6 +13,7 @@ ID again re-checks the ledger and carries on.
 */
 
 import { randomUUID } from 'crypto';
+import { PhotoChecker, PhotoCheckResult } from '../agent/photoCheck';
 import { AgentProposal, PayoutAgent } from '../agent/types';
 import { evaluatePolicy } from '../policy/policy';
 import { Sentinel } from '../sentinel/types';
@@ -19,12 +21,14 @@ import { MintStampInput, MintStampResult, StampService } from '../solana/types';
 import { StorageLayer } from '../storage/types';
 import { SendPaymentResult, XrplService } from '../xrpl/types';
 import { AuditTrail } from './auditTrail';
-import { DecisionResult, SubmissionInput } from './types';
+import { DecisionResult, Place, SubmissionInput } from './types';
 
 const BYPASS_NOTE = 'policy skipped: test mode bypass';
 
 export interface OrchestratorDeps {
   sentinel: Sentinel;
+  /** Checks that the photo shows the place. Unset skips the check. */
+  photoChecker?: PhotoChecker;
   agent: PayoutAgent;
   xrpl: XrplService;
   solana: StampService;
@@ -103,6 +107,17 @@ export class Orchestrator {
       }, trail);
     }
     trail.add('sentinel', true, 'location, freshness, replay, and once-per-place checks passed');
+
+    if (this.deps.photoChecker) {
+      const photoCheck = await this.checkPhoto(this.deps.photoChecker, input, place);
+      trail.add('photo', photoCheck.passed, photoCheck.message);
+      if (!photoCheck.passed) {
+        return this.save(input, decisionId, {
+          status: 'BLOCKED_PHOTO',
+          reasons: [photoCheck.message],
+        }, trail);
+      }
+    }
 
     await storage.markClaimPending({
       decisionId,
@@ -280,6 +295,25 @@ export class Orchestrator {
       stampSerial: mint.serial,
       stampTier: mint.tier,
     }, trail);
+  }
+
+  /** Run the photo check, treating a throw as a blocked result.
+
+  Args:
+      checker (PhotoChecker): The configured photo checker.
+      input (SubmissionInput): The submission, for its photo.
+      place (Place): The place being claimed.
+
+  Returns:
+      PhotoCheckResult: The checker's result, or a blocked one if it threw.
+  */
+  private async checkPhoto(checker: PhotoChecker, input: SubmissionInput, place: Place): Promise<PhotoCheckResult> {
+    try {
+      return await checker.check({ place, photo: input.photo });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { passed: false, message: `photo check: could not check the photo (${message}), take a new photo and try again` };
+    }
   }
 
   /** Send the payment, re-checking a few times while it is unconfirmed.

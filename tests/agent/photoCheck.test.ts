@@ -71,7 +71,7 @@ describe('parseVerdict', () => {
 
   it('shortens a very long reason', () => {
     const verdict = parseVerdict(JSON.stringify({ match: true, confidence: 0.9, reason: 'x'.repeat(1000) }));
-    expect(verdict?.reason.length).toBe(300);
+    expect(verdict?.reason.length).toBe(200);
   });
 });
 
