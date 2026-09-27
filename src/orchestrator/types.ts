@@ -26,9 +26,8 @@ export interface Place {
   radiusMeters: number;
   /** Reward in RLUSD used when the agent fails to give a usable proposal. */
   baseReward: number;
-  /** Solana collection address. Null until set up, then the Solana module
-      falls back to the collection for the place's neighborhood. */
-  solanaCollectionAddress?: string | null;
+  /** Solana collection address for this place's neighborhood. */
+  collectionAddress: string;
   imageUrl: string;
 }
 

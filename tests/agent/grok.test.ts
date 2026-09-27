@@ -10,7 +10,7 @@ const input: AgentInput = {
     longitude: -73.95,
     radiusMeters: 150,
     baseReward: 2,
-    solanaCollectionAddress: 'collection1',
+    collectionAddress: 'collection1',
     imageUrl: 'https://example.com/apollo.png',
   },
   xrplAddress: 'rUser',
