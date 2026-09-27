@@ -65,8 +65,17 @@ describe('GET /places', () => {
     );
     expect(byId['mudd-building'].fixedTier).toBe('Epic');
     expect(byId['mudd-building'].rarity.nextTier).toBe('Epic');
-    expect(byId['mudd-entrance'].fixedTier).toBe('Legendary');
-    expect(byId['mudd-entrance'].rarity.nextTier).toBe('Legendary');
+  });
+
+  it('reports no tier for civic bounties', async () => {
+    const { app } = buildTestApp();
+    const response = await request(app).get('/places');
+    const civic = response.body.places.filter((p: { kind: string }) => p.kind === 'civic');
+    expect(civic.map((p: { id: string }) => p.id)).toEqual(expect.arrayContaining(['mudd-entrance', 'butler-library']));
+    for (const place of civic) {
+      expect(place.rarity.nextTier).toBeNull();
+      expect(place.fixedTier).toBeUndefined();
+    }
   });
 
   it('says the next stamp at an unvisited place is Legendary #1', async () => {

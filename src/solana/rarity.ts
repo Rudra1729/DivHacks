@@ -40,19 +40,25 @@ export function tierForSerial(serial: number): StampTier {
 
 /** Pick the tier for a stamp at a place, honoring a place's fixed tier.
 
+Civic bounties have no tier: they pay RLUSD for a task, so their stamp is a
+receipt, not a collectible.
+
 Args:
-    place ({ fixedTier?: StampTier }): The place. A place with a fixed tier
-        gives that tier to every stamp, whatever its serial.
+    place ({ kind?: string; fixedTier?: StampTier }): The place. A civic
+        place gets no tier. A place with a fixed tier gives that tier to
+        every stamp, whatever its serial.
     serial (number): The stamp's position among stamps for its place, from 1.
 
 Returns:
-    StampTier: The place's fixed tier, or the tier for the serial.
+    StampTier | null: Null for a civic place, otherwise the place's fixed
+        tier or the tier for the serial.
 
 Raises:
     RangeError: If serial is not a positive whole number.
 */
-export function tierForPlace(place: { fixedTier?: StampTier }, serial: number): StampTier {
+export function tierForPlace(place: { kind?: string; fixedTier?: StampTier }, serial: number): StampTier | null {
   const bySerial = tierForSerial(serial);
+  if (place.kind === 'civic') return null;
   return place.fixedTier ?? bySerial;
 }
 

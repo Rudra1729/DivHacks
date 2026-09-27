@@ -23,7 +23,7 @@ import { getSolanaClient } from './client';
 import { SolanaConfig, loadSolanaConfig } from './config';
 import { mintQueue, withOneRetry } from './mintQueue';
 import { StampPlace, collectionForPlace, findPlace } from './places';
-import { STAMP_SUPPLY_PER_PLACE, isStampTier, tierForPlace, tierForSerial } from './rarity';
+import { STAMP_SUPPLY_PER_PLACE, isStampTier, tierForPlace } from './rarity';
 import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 
 const MAX_NAME_LENGTH = 32;
@@ -195,7 +195,7 @@ export function mintStampForPlace(input: MintStampInput, place: StampPlace): Pro
                 { key: 'decisionId', value: input.decisionId },
                 { key: 'xrplTxHash', value: input.xrplTxHash },
                 { key: 'serial', value: String(serial) },
-                { key: 'tier', value: tier },
+                ...(tier ? [{ key: 'tier', value: tier }] : []),
                 { key: 'supply', value: String(STAMP_SUPPLY_PER_PLACE) },
               ],
             },
@@ -233,8 +233,9 @@ Args:
     asset (AssetV1): Asset fetched from chain.
 
 Returns:
-    Stamp: The stamp fields, with empty strings for missing attributes and
-        null serial and tier for stamps minted before rarity existed.
+    Stamp: The stamp fields, with empty strings for missing attributes, a
+        null tier for civic bounty stamps, and null serial and tier for
+        stamps minted before rarity existed.
 */
 function toStamp(asset: AssetV1): Stamp {
   const attributes = new Map(
@@ -242,6 +243,7 @@ function toStamp(asset: AssetV1): Stamp {
   );
   const serial = parseSerial(attributes.get('serial'));
   const tierAttribute = attributes.get('tier');
+  const place = findPlace(attributes.get('placeId') ?? '');
   return {
     assetAddress: asset.publicKey,
     owner: asset.owner,
@@ -253,7 +255,7 @@ function toStamp(asset: AssetV1): Stamp {
     decisionId: attributes.get('decisionId') ?? '',
     xrplTxHash: attributes.get('xrplTxHash') ?? '',
     serial,
-    tier: isStampTier(tierAttribute) ? tierAttribute : serial === null ? null : tierForSerial(serial),
+    tier: isStampTier(tierAttribute) ? tierAttribute : serial === null ? null : tierForPlace(place ?? {}, serial),
   };
 }
 

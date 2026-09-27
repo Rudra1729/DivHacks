@@ -27,11 +27,11 @@ export interface MintStampInput {
 /** Result of a mint. Never thrown, always returned.
 
 On success it carries the new asset address, transaction signature, and the
-stamp's serial and rarity tier for its place. On failure (after one retry)
-it carries a plain-language error message.
+stamp's serial and rarity tier for its place (null for a civic bounty). On
+failure (after one retry) it carries a plain-language error message.
 */
 export type MintStampResult =
-  | { ok: true; assetAddress: string; signature: string; serial: number; tier: StampTier }
+  | { ok: true; assetAddress: string; signature: string; serial: number; tier: StampTier | null }
   | { ok: false; error: string };
 
 /** A passport stamp as read back from Solana.
@@ -49,7 +49,7 @@ Attributes:
     serial (number | null): Position among stamps for this place, from 1.
         Null for stamps minted before rarity existed.
     tier (StampTier | null): Rarity tier picked by the serial. Null for
-        stamps minted before rarity existed.
+        civic bounty stamps and stamps minted before rarity existed.
 */
 export interface Stamp {
   assetAddress: string;
