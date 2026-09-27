@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import Database from 'better-sqlite3';
 import { openDatabase } from '../../src/db';
-import { createDecision, getDecision, getMintedStamps, updateDecision } from '../../src/db/decisions';
+import { createDecision, getDecision, getDecisionsByXrplAddress, getMintedStamps, updateDecision, upsertDecision } from '../../src/db/decisions';
 
 describe('decisions table', () => {
   let db: Database.Database;
@@ -55,6 +55,28 @@ describe('decisions table', () => {
 
   it('returns undefined for a missing decision', () => {
     expect(getDecision(db, 'missing')).toBeUndefined();
+  });
+
+  describe('getDecisionsByXrplAddress', () => {
+    it('returns only decisions with an amount, newest first', async () => {
+      upsertDecision(db, { id: 'dec-a', requestId: 'dec-a', placeId: 'apollo-theater', xrplAddress: 'rWallet', status: 'BLOCKED' });
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      upsertDecision(db, { id: 'dec-b', requestId: 'dec-b', placeId: 'apollo-theater', xrplAddress: 'rWallet', amount: 1.5, status: 'OK' });
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      upsertDecision(db, { id: 'dec-c', requestId: 'dec-c', placeId: 'apollo-theater', xrplAddress: 'rWallet', amount: 2, status: 'OK' });
+
+      const transactions = getDecisionsByXrplAddress(db, 'rWallet');
+      expect(transactions.map((d) => d.id)).toEqual(['dec-c', 'dec-b']);
+    });
+
+    it('ignores decisions for a different wallet', () => {
+      upsertDecision(db, { id: 'dec-x', requestId: 'dec-x', placeId: 'apollo-theater', xrplAddress: 'rOther', amount: 1, status: 'OK' });
+      expect(getDecisionsByXrplAddress(db, 'rWallet')).toEqual([]);
+    });
+
+    it('returns an empty list for a wallet with no transactions', () => {
+      expect(getDecisionsByXrplAddress(db, 'rNobody')).toEqual([]);
+    });
   });
 });
 

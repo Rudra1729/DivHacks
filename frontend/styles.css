@@ -36,7 +36,7 @@ html {
   scroll-behavior: smooth;
 }
 
-body.spidey-theme {
+body.knowyork-theme {
   background-color: var(--paper-cream);
   color: var(--ink-black);
   font-family: var(--font-body);
@@ -45,40 +45,46 @@ body.spidey-theme {
   position: relative;
 }
 
-/* HALFTONE OVERLAY & SUNBURST RAYS */
+/* SUBTLE CITY BLUEPRINT / MAP LINEWORK OVERLAY
+   Faint grid + street-line pattern standing in for an architectural
+   blueprint, tying the background to "mapping the city" instead of a
+   generic dot texture. */
 .halftone-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-image: radial-gradient(var(--ink-black) 1px, transparent 1px);
-  background-size: 16px 16px;
-  opacity: 0.04;
+  background-image:
+    linear-gradient(rgba(0, 85, 165, 0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 85, 165, 0.10) 1px, transparent 1px),
+    linear-gradient(rgba(0, 85, 165, 0.16) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 85, 165, 0.16) 1px, transparent 1px);
+  background-size: 40px 40px, 40px 40px, 200px 200px, 200px 200px;
+  opacity: 0.55;
   pointer-events: none;
-  z-index: 1;
+  z-index: 50;
 }
 
-.sunburst-rays {
+/* Soft page-wide gradient wash, static, sits over everything (including
+   the crowd banner) the same way .halftone-overlay does. */
+.page-gradient-overlay {
   position: fixed;
-  top: -50vh;
-  left: -50vw;
-  width: 200vw;
-  height: 200vh;
-  background: repeating-conic-gradient(
-    from 0deg,
-    rgba(229, 36, 33, 0.05) 0deg 15deg,
-    transparent 15deg 30deg
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(
+    180deg,
+    rgba(229, 36, 33, 0.05) 0%,
+    rgba(255, 204, 0, 0.04) 45%,
+    rgba(0, 240, 255, 0.04) 100%
   );
-  animation: rotateRays 120s linear infinite;
   pointer-events: none;
-  z-index: 0;
+  z-index: 50;
+  mix-blend-mode: multiply;
 }
 
-@keyframes rotateRays {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
 
 /* NAVIGATION BAR */
 .navbar {
@@ -111,6 +117,26 @@ body.spidey-theme {
   animation: pulseLogo 3s ease-in-out infinite;
 }
 
+.ny-logo-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--hero-red);
+  border: 3px solid var(--ink-black);
+  box-shadow: 2px 2px 0px var(--ink-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulseLogo 3s ease-in-out infinite;
+}
+
+.ny-logo-mark {
+  font-family: var(--font-comic);
+  font-size: 1.1rem;
+  color: var(--paper-white);
+  letter-spacing: 1px;
+}
+
 @keyframes pulseLogo {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.08) rotate(3deg); }
@@ -122,11 +148,12 @@ body.spidey-theme {
 }
 
 .brand-title {
-  font-family: var(--font-comic);
+  font-family: 'Anton', sans-serif;
   font-size: 1.75rem;
   color: var(--hero-red);
   letter-spacing: 1.5px;
   line-height: 1;
+  text-transform: none;   /* K and Y uppercase = visually larger than lowercase */
   text-shadow: 2px 2px 0px #000;
 }
 
@@ -271,10 +298,21 @@ body.spidey-theme {
 /* HERO SECTION: MARVEL NEWSPAPER COLLAGE STYLE */
 .hero-section {
   position: relative;
-  padding: 3rem 1.5rem 4rem 1.5rem;
+  /* Full-width so crowd canvas can be a direct child without any breakout hack */
+  width: 100%;
+  padding: 0;
+  z-index: 5;
+}
+
+/* Inner wrapper that constrains title and CTA content to the readable max-width */
+.hero-content-inner {
   max-width: 1280px;
   margin: 0 auto;
-  z-index: 5;
+  padding: 1.75rem 1.5rem 0;
+}
+
+.hero-cta-inner {
+  padding: 0 1.5rem 3rem;
 }
 
 .collage-hero-wrapper {
@@ -289,7 +327,7 @@ body.spidey-theme {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1rem;
 }
 
 .title-tape-box {
@@ -326,6 +364,125 @@ body.spidey-theme {
   font-size: 2.2rem;
   letter-spacing: 2px;
   line-height: 1;
+}
+
+/* KNOWYORK HERO TITLE (interactive ztext + pointer tilt) */
+.knowyork-title-box {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transform: none;
+  padding: 0;
+}
+
+.knowyork-title {
+  font-family: 'Anton', var(--font-fun), var(--font-comic), sans-serif;
+  font-weight: 900;
+  font-size: 6.3rem;
+  letter-spacing: 4px;
+  line-height: 1;
+  color: var(--hero-red);
+  /* Allow mixed-case so K and Y are visually large, rest small */
+  text-transform: none;
+  -webkit-text-stroke: 3px var(--ink-black);
+  cursor: pointer;
+}
+
+.knowyork-title .z-layer {
+  color: var(--hero-red);
+  -webkit-text-stroke: 2px var(--ink-black);
+}
+
+.knowyork-title .z-layers > .z-layer:first-child {
+  color: var(--hero-red);
+}
+
+/* Back layers read darker so the extrusion reads as depth, not a flat duplicate */
+.knowyork-title .z-layer:not(:first-child) {
+  color: var(--hero-red-dark);
+  -webkit-text-stroke: 2px var(--ink-black);
+}
+
+.knowyork-tagline-box {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.1rem;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  transform: rotate(-1deg);
+  padding: 0;
+  margin-top: 14px;
+}
+
+.tagline-block {
+  font-family: var(--font-fun);
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+  color: var(--paper-white);
+  background: var(--web-blue);
+  border: 3px solid var(--ink-black);
+  padding: 0.35rem 1rem;
+  box-shadow: 3px 3px 0px var(--ink-black);
+  display: inline-block;
+}
+
+.tagline-block:nth-child(2n) {
+  transform: rotate(2deg);
+  background: var(--web-blue-dark);
+}
+
+.tagline-block:nth-child(2n+1) {
+  transform: rotate(-2deg);
+}
+
+.knowyork-subtagline {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-style: italic;
+  font-size: 1.9rem;
+  color: var(--ink-black);
+  text-align: center;
+  max-width: 46rem;
+  width: 100%;
+  margin: 3rem auto 0;
+  line-height: 1.5;
+}
+
+@media (max-width: 992px) {
+  .knowyork-title { font-size: 4.5rem; }
+  .tagline-block { font-size: 1.1rem; }
+  .knowyork-subtagline { font-size: 1.4rem; padding: 0 1rem; }
+}
+
+/* CROWD CANVAS HERO: full-bleed, direct child of .hero-section so
+   it naturally spans 100% width with zero alignment tricks needed. */
+.crowd-hero-stage {
+  position: relative;
+  width: 100%;
+  height: 40vh;
+  min-height: 280px;
+  max-height: 400px;
+  margin-top: 1.5rem;
+  overflow: hidden;
+  /* Seamless gradient — no borders or shadows */
+  background: linear-gradient(180deg, var(--paper-cream) 0%, var(--paper-cream) 55%, var(--paper-white) 100%);
+}
+
+/* Sunburst ray overlay — static conic gradient sits on top of the
+   walking crowd, blending with the characters via multiply mode for a
+   comic-book action-lines feel. No animation — fixed texture only. */
+.crowd-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+@media (max-width: 700px) {
+  .crowd-hero-stage { height: 32vh; min-height: 220px; margin-top: -0.5rem; }
 }
 
 /* PUSHPIN ACCENTS */
@@ -522,9 +679,16 @@ body.spidey-theme {
 
 .collage-cta-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 0.75rem;
   width: 100%;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .collage-cta-group { flex-direction: column; }
 }
 
 .circled-text {
@@ -630,12 +794,23 @@ body.spidey-theme {
   opacity: 1;
 }
 
+/* SPIDEY-BOT SECTION: full-width strip that centres the card */
+.spidey-bot-section {
+  background: var(--paper-cream);
+  padding: 2.5rem 1.5rem;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 5;
+}
+
 /* SPIDEY-BOT CARD & DIALOGUE BUBBLE */
 .spidey-bot-card {
   display: flex;
   align-items: center;
   gap: 2rem;
   max-width: 900px;
+  margin: 0 auto;          /* centres the card horizontally */
   background: var(--paper-white);
   border: var(--comic-border);
   border-radius: 16px;
@@ -1586,6 +1761,82 @@ input:checked + .slider:before { transform: translateX(24px); }
   .map-fullbleed .canvas-container { height: calc(100vh - 70px); }
   .node-overlay { top: auto; bottom: 12px; right: 12px; left: 12px; width: auto; max-height: 60%; }
   .map-legend { display: none; }
+}
+
+/* WALLET MODAL: BALANCE CARD & TRANSACTION HISTORY */
+.wallet-balance-card {
+  background: linear-gradient(135deg, var(--hero-red) 0%, #FF7A45 50%, var(--accent-yellow) 100%);
+  border: var(--comic-border);
+  border-radius: 14px;
+  padding: 1.2rem 1.4rem;
+  color: var(--paper-white);
+  box-shadow: var(--comic-shadow);
+  margin-bottom: 1.2rem;
+}
+
+.wallet-balance-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  opacity: 0.85;
+  margin-bottom: 0.6rem;
+}
+
+.wallet-balance-amount {
+  font-family: var(--font-comic);
+  font-size: 2.4rem;
+  line-height: 1;
+  margin-bottom: 0.6rem;
+}
+
+.wallet-balance-address {
+  font-size: 0.75rem;
+  font-family: monospace;
+  opacity: 0.9;
+  word-break: break-all;
+}
+
+.wallet-tx-header {
+  font-weight: 800;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.wallet-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.wallet-tx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.7rem;
+  border: 2px solid var(--ink-black);
+  border-radius: 10px;
+  background: var(--paper-cream);
+}
+
+.wallet-tx-info { display: flex; flex-direction: column; }
+.wallet-tx-place { font-weight: 700; font-size: 0.9rem; }
+.wallet-tx-date { font-size: 0.75rem; color: #666; }
+
+.wallet-tx-amount { font-weight: 800; font-size: 0.95rem; color: #1B5E20; white-space: nowrap; }
+.wallet-tx-amount.pending { color: var(--hero-red); }
+
+.wallet-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
 }
 
 /* LIVE SUBMISSION: camera, GPS trail status, and the server's answer */
