@@ -52,7 +52,7 @@ const DEFAULT_TIMEOUT_MS = 30000;
 const MAX_REASON_LENGTH = 200;
 
 const SYSTEM_PROMPT =
-  'You check photos for WebPass NYC, which rewards people for visiting places in New York City. ' +
+  'You check photos for KnowYork, which rewards people for visiting places in New York City. ' +
   'Decide whether the photo was plausibly taken at the named place: it should show the place itself, ' +
   'such as its building, entrance, signage, grounds, or interior, or the street right in front of it. ' +
   'A different building, a random object, a person with no visible sign of the place, a blank or dark ' +

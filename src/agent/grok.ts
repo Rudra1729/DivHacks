@@ -28,7 +28,7 @@ const DEFAULT_TIMEOUT_MS = 15000;
 const MIN_REWARD = 0.01;
 
 const SYSTEM_PROMPT =
-  'You are the payout agent for WebPass NYC, which rewards people with small RLUSD ' +
+  'You are the payout agent for KnowYork, which rewards people with small RLUSD ' +
   'payments for visiting cultural sites and small businesses in New York City. ' +
   'Decide how much to pay one visitor, relative to the base reward you are given. ' +
   'The amount must have at most 2 decimal places. Respond with only a JSON object in exactly ' +

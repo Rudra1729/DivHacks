@@ -47,7 +47,7 @@ export class SmtpEmailSender implements EmailSender {
     await transport.sendMail({
       from,
       to: email,
-      subject: 'Your WebPass NYC login code',
+      subject: 'Your KnowYork login code',
       text: `Your login code is ${code}. It expires in 10 minutes.`,
     });
   }

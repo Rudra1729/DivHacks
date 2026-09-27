@@ -1,6 +1,6 @@
 /**Grok mission scout.
 
-Asks Grok to propose new, overlooked New York City places for WebPass NYC to
+Asks Grok to propose new, overlooked New York City places for KnowYork to
 reward visits to. "Overlooked" is a rule we hand Grok, not something it
 discovers on its own: not a major tourist draw, and not a rephrasing of a
 place we already reward. Grok has no live view of the web by default, so
@@ -35,7 +35,7 @@ const MAX_REWARD_RLUSD = 5; // matches src/policy/rules.ts MAX_PER_TASK
 const MIN_REWARD_RLUSD = 0.5;
 
 const SYSTEM_PROMPT =
-  'You scout new missions for WebPass NYC, an app that pays small RLUSD rewards for visiting ' +
+  'You scout new missions for KnowYork, an app that pays small RLUSD rewards for visiting ' +
   'overlooked cultural sites, parks, and small businesses in New York City. "Overlooked" means: ' +
   'not a major tourist attraction, not already famous, the kind of place a local would know but a ' +
   'guidebook would not lead with. Every place must be a real, specific, publicly accessible location ' +

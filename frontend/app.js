@@ -232,7 +232,7 @@ function rewardLabel(place) {
 /** Who funds this place's RLUSD reward, or null for a stamp-only place. */
 function sponsorName(place) {
   if (!(place.rewardRlusd > 0)) return null;
-  return place.sponsor || 'WebPass NYC community pool';
+  return place.sponsor || 'KnowYork community pool';
 }
 
 // APP STATE
@@ -1022,7 +1022,7 @@ function placeFromServer(serverPlace) {
     fixedTier: serverPlace.fixedTier || null,
     discovered: false,
     image: serverPlace.imageUrl || 'https://placehold.co/600x600/png?text=' + encodeURIComponent(serverPlace.name),
-    desc: serverPlace.description || `A newly added WebPass NYC mission in ${serverPlace.neighborhood}.`
+    desc: serverPlace.description || `A newly added KnowYork mission in ${serverPlace.neighborhood}.`
   };
 }
 
@@ -1102,7 +1102,7 @@ async function connectLiveStream() {
     if (stream && stream.dataset.live !== 'true') {
       stream.dataset.live = 'true';
       stream.replaceChildren();
-      addLiveTickerItem('LIVE', 'highlight-cyan', 'Connected to WebPass. Every verification, block and payout shows up here.');
+      addLiveTickerItem('LIVE', 'highlight-cyan', 'Connected to KnowYork. Every verification, block and payout shows up here.');
     }
   };
 }

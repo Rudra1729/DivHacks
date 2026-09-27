@@ -63,7 +63,7 @@ Which server it talks to:
       const parsed = await response.json().catch(() => null);
       return { ok: response.ok, status: response.status, body: parsed };
     } catch (error) {
-      return { ok: false, status: 0, body: { errors: ['Cannot reach the WebPass server. Is it running?'] } };
+      return { ok: false, status: 0, body: { errors: ['Cannot reach the KnowYork server. Is it running?'] } };
     }
   }
 

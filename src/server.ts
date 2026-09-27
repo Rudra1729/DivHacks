@@ -69,5 +69,5 @@ const app = createApp(config, db, orchestrator);
 
 app.listen(config.port, () => {
   // eslint-disable-next-line no-console
-  console.log(`WebPass NYC backend listening on port ${config.port} (testMode=${config.isTestMode})`);
+  console.log(`KnowYork backend listening on port ${config.port} (testMode=${config.isTestMode})`);
 });
