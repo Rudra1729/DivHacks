@@ -327,7 +327,7 @@ function handleSubmissionResult(place, result) {
     triggerThwipUnlock(place.id);
     setSpideyBotState('approved', `"THWIP! ${place.name} verified. ${amount} paid and a ${stamp} added to your passport!"`);
     showSubmissionResult('ok', 'THWIP! Visit verified', [
-      `Paid ${amount} on XRPL (transaction ${shortHash(body.xrplTxHash)})`,
+      `${sponsorName(place) || 'WebPass NYC'} paid you ${amount} on XRPL (transaction ${shortHash(body.xrplTxHash)})`,
       ...explorerLink(body.xrplTxHash),
       `Minted a ${stamp} on Solana (${shortHash(body.solanaAssetAddress)})`,
       ...(body.proposal && body.proposal.reason ? [`Spidey-Bot: ${body.proposal.reason}`] : []),

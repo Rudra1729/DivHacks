@@ -1112,6 +1112,33 @@ body.spidey-theme {
   gap: 0.3rem;
 }
 
+.mission-sponsor,
+.node-sponsor {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #FFF4C2;
+  border: 2px solid var(--ink-black);
+  border-radius: 6px;
+  padding: 0.3rem 0.55rem;
+  margin-bottom: 0.75rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.mission-sponsor svg,
+.node-sponsor svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.node-sponsor .stat-label {
+  margin: 0;
+}
+
 .mission-desc {
   font-size: 0.95rem;
   color: #444;

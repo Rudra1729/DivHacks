@@ -39,6 +39,7 @@ const PLACES = [
     radius: 150,
     rewardRlusd: 0.01,
     type: 'civic',
+    sponsor: 'Marcus Garvey Park Alliance',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=600&q=80',
     desc: 'CIVIC MISSION: Inspect and verify wheelchair ramp accessibility at the park entrance.'
@@ -65,6 +66,7 @@ const PLACES = [
     radius: 150,
     rewardRlusd: 0.01,
     type: 'civic',
+    sponsor: 'Harlem Business Alliance',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1533900298318-6b8da08a523e?auto=format&fit=crop&w=600&q=80',
     desc: 'Support local artisan merchants and check community fridge stock levels.'
@@ -104,6 +106,7 @@ const PLACES = [
     radius: 200,
     rewardRlusd: 0.01,
     type: 'civic',
+    sponsor: 'Columbia Engineering',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?auto=format&fit=crop&w=600&q=80',
     desc: 'CIVIC MISSION: Check the Mudd entrance on 120th St. Are the doors, ramp and signs clear and working? Photograph it to report.'
@@ -217,6 +220,12 @@ function renderRarityLegend() {
 /** What a verified visit to this place earns, e.g. "0.01 RLUSD" or "Stamp only". */
 function rewardLabel(place) {
   return place.rewardRlusd > 0 ? `${place.rewardRlusd} RLUSD + stamp` : 'Stamp only';
+}
+
+/** Who funds this place's RLUSD reward, or null for a stamp-only place. */
+function sponsorName(place) {
+  if (!(place.rewardRlusd > 0)) return null;
+  return place.sponsor || 'WebPass NYC community pool';
 }
 
 // APP STATE
@@ -477,6 +486,12 @@ function selectNode(placeId, { pan = true } = {}) {
   document.getElementById('nodeNeighborhood').innerHTML = `<i data-lucide="map-pin"></i> ${place.neighborhood}`;
   document.getElementById('nodeGeofence').innerText = `${place.radius} Meters`;
   document.getElementById('nodeReward').innerText = rewardLabel(place);
+  const sponsorRow = document.getElementById('nodeSponsor');
+  if (sponsorRow) {
+    const sponsor = sponsorName(place);
+    sponsorRow.style.display = sponsor ? '' : 'none';
+    document.getElementById('nodeSponsorName').innerText = sponsor || '';
+  }
   renderPlaceRarity(place);
   document.getElementById('nodeDesc').innerText = place.desc;
   document.getElementById('nodeImage').src = place.image;
@@ -597,6 +612,7 @@ function renderMissions(filter) {
       <div class="mission-body">
         <h4 class="mission-title">${place.name}</h4>
         <div class="mission-loc"><i data-lucide="map-pin"></i> ${place.neighborhood} • ${place.radius}m Geofence</div>
+        ${sponsorName(place) ? `<div class="mission-sponsor"><i data-lucide="building-2"></i> Paid by <strong>${escapeHtml(sponsorName(place))}</strong></div>` : ''}
         <div class="mission-rarity">${missionRarityHtml(place)}</div>
         <p class="mission-desc">${place.desc}</p>
         <button class="comic-btn ${place.discovered ? 'hero-blue-btn' : 'hero-red-btn'} full-btn" onclick="openSubmissionModal('${place.id}')">
@@ -832,6 +848,7 @@ async function loadPlacesFromServer() {
     if (serverPlace.rarity) place.rarity = serverPlace.rarity;
     place.rewardRlusd = serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd;
     if (serverPlace.kind) place.type = serverPlace.kind;
+    if ('sponsor' in serverPlace) place.sponsor = serverPlace.sponsor;
     place.radius = serverPlace.geofenceRadiusMeters;
     if (typeof geofenceCircles !== 'undefined') geofenceCircles.get(place.id)?.setRadius(place.radius);
   });
