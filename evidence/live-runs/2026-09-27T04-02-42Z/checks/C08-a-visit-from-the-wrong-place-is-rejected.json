@@ -1,0 +1,39 @@
+{
+  "id": "C08",
+  "title": "A visit from the wrong place is rejected",
+  "proves": "The location check blocks a submission made about 2 km away from the place.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "Blocked: location: 2224m from Marcus Garvey Park, max is 150m",
+  "assertions": [
+    {
+      "description": "server answered 422",
+      "passed": true,
+      "actual": 422
+    },
+    {
+      "description": "status is BLOCKED_SENTINEL",
+      "passed": true,
+      "actual": "BLOCKED_SENTINEL"
+    },
+    {
+      "description": "the reason is location",
+      "passed": true,
+      "actual": [
+        "location: 2224m from Marcus Garvey Park, max is 150m"
+      ]
+    }
+  ],
+  "evidence": {
+    "response": {
+      "decisionId": "3bdfd6c1-2313-43d4-8d31-c0f11d761c16",
+      "stampFailed": false,
+      "status": "BLOCKED_SENTINEL",
+      "reasons": [
+        "location: 2224m from Marcus Garvey Park, max is 150m"
+      ]
+    }
+  },
+  "links": [],
+  "durationMs": 42
+}

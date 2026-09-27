@@ -1,0 +1,58 @@
+{
+  "id": "C12",
+  "title": "Blocked submissions move no money",
+  "proves": "After all the blocked attempts above, the agent, the visitors, and the attacker hold exactly what they held before, so a block never costs anything.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "Every balance is exactly what it was before the blocked attempts.",
+  "assertions": [
+    {
+      "description": "agent balance is unchanged",
+      "passed": true,
+      "actual": {
+        "before": 9.9,
+        "after": 9.9
+      }
+    },
+    {
+      "description": "user-2 balance is unchanged",
+      "passed": true,
+      "actual": {
+        "before": 0.05,
+        "after": 0.05
+      }
+    },
+    {
+      "description": "user-3 balance is unchanged",
+      "passed": true,
+      "actual": {
+        "before": 0.05,
+        "after": 0.05
+      }
+    },
+    {
+      "description": "attacker balance is unchanged",
+      "passed": true,
+      "actual": {
+        "before": 0,
+        "after": 0
+      }
+    }
+  ],
+  "evidence": {
+    "before": {
+      "agent": 9.9,
+      "user-2": 0.05,
+      "user-3": 0.05,
+      "attacker": 0
+    },
+    "after": {
+      "agent": 9.9,
+      "user-2": 0.05,
+      "user-3": 0.05,
+      "attacker": 0
+    }
+  },
+  "links": [],
+  "durationMs": 329
+}

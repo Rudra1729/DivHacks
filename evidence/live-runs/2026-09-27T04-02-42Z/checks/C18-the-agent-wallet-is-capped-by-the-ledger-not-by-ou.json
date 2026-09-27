@@ -1,0 +1,50 @@
+{
+  "id": "C18",
+  "title": "The agent wallet is capped by the ledger, not by our code",
+  "proves": "The agent wallet trusts RLUSD only up to a 10 RLUSD limit set on the ledger, so its allowance cannot be raised by a bug or an attacker.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "Agent trust line limit is 10 RLUSD, set on the ledger.",
+  "assertions": [
+    {
+      "description": "the agent has an RLUSD trust line",
+      "passed": true,
+      "actual": {
+        "limit": "10",
+        "balance": "9.88"
+      }
+    },
+    {
+      "description": "its limit is 10 RLUSD",
+      "passed": true,
+      "actual": "10"
+    },
+    {
+      "description": "it holds no more than its limit",
+      "passed": true,
+      "actual": "9.88"
+    },
+    {
+      "description": "an ordinary visitor wallet, by contrast, has a much higher limit",
+      "passed": true,
+      "actual": "1000000"
+    }
+  ],
+  "evidence": {
+    "agentTrustLine": {
+      "limit": "10",
+      "balance": "9.88"
+    },
+    "visitorTrustLine": {
+      "limit": "1000000",
+      "balance": "0.05"
+    }
+  },
+  "links": [
+    {
+      "label": "Agent wallet on the testnet explorer",
+      "url": "https://testnet.xrpl.org/accounts/rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN"
+    }
+  ],
+  "durationMs": 198
+}

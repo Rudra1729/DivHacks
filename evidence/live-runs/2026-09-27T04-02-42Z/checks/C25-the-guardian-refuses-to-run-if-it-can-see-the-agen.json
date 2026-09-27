@@ -1,0 +1,27 @@
+{
+  "id": "C25",
+  "title": "The guardian refuses to run if it can see the agent key",
+  "proves": "Key separation works in both directions: the server may never hold the treasury key (C19), and the guardian, which holds the treasury key, may never hold the agent key.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "The guardian refused to start with an agent key present, as designed.",
+  "assertions": [
+    {
+      "description": "the guardian exited with an error instead of running",
+      "passed": true,
+      "actual": 1
+    },
+    {
+      "description": "the message says it must never hold the agent key",
+      "passed": true,
+      "actual": "Refusing to start: AGENT_SEED found in guardian config. The guardian must never hold the agent key.\n"
+    }
+  ],
+  "evidence": {
+    "testedWith": "a dummy AGENT_SEED value, not a real key",
+    "exitCode": 1,
+    "message": "Refusing to start: AGENT_SEED found in guardian config. The guardian must never hold the agent key.\n"
+  },
+  "links": [],
+  "durationMs": 3191
+}

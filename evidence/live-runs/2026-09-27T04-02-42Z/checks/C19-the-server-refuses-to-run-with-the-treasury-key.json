@@ -1,0 +1,32 @@
+{
+  "id": "C19",
+  "title": "The server refuses to run with the treasury key",
+  "proves": "The treasury key can never sit on the API server: if it is found in the server environment, the server refuses to start.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "The server refused to start, as designed.",
+  "assertions": [
+    {
+      "description": "the server exited instead of starting",
+      "passed": true,
+      "actual": 1
+    },
+    {
+      "description": "it exited with an error code",
+      "passed": true,
+      "actual": 1
+    },
+    {
+      "description": "the message says it refuses to start with a treasury key",
+      "passed": true,
+      "actual": "C:\\Users\\arund\\OneDrive\\Desktop\\UMass\\Projects\\spideyvault\\src\\config.ts:21\r\n    throw new ConfigError(\r\n          ^\r\n\r\n\r\nConfigError: Refusing to start: treasury key found in server config (TREASURY_"
+    }
+  ],
+  "evidence": {
+    "testedWith": "a dummy TREASURY_SEED value, not a real key",
+    "exitCode": 1,
+    "message": "C:\\Users\\arund\\OneDrive\\Desktop\\UMass\\Projects\\spideyvault\\src\\config.ts:21\r\n    throw new ConfigError(\r\n          ^\r\n\r\n\r\nConfigError: Refusing to start: treasury key found in server config (TREASURY_SEED). The treasury key must live only in the guardian process.\r\n    at assertNoTreasuryKey (C:\\Users\\arund\\OneDrive\\Desktop\\UMass\\Projects\\spideyvault\\src\\config.ts:21:11)\r\n    at loadConfig (C:\\User"
+  },
+  "links": [],
+  "durationMs": 5589
+}
