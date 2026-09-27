@@ -69,6 +69,32 @@ describe('e2e: attacks', () => {
       expect(await stack.solana.getStamps(user.solana)).toEqual([]);
     });
 
+    it('can force the 50 RLUSD overspend demo without relying on the caption', async () => {
+      const user = makeUser(30);
+      await request(stack.app).post('/test/attack').expect(200);
+      await request(stack.app)
+        .post('/test/attack/force-proposal')
+        .send({ recipient: ATTACKER.xrpl, amount: 50, reason: 'forced demo overspend' })
+        .expect(200);
+
+      const response = await submit(stack.app, user, place(0), { caption: 'normal caption' });
+
+      expect(response.status).toBe(402);
+      expect(response.body.status).toBe('REJECTED_BY_LEDGER');
+      expect(response.body.proposal).toMatchObject({ amount: 50, recipient: ATTACKER.xrpl });
+      expect(await stack.xrpl.getRlusdBalance(ATTACKER.xrpl)).toBe(0);
+      expect(await stack.xrpl.getRlusdBalance(stack.xrpl.getAgentAddress())).toBe(10);
+    });
+
+    it('does not expose the forced proposal route outside test mode', async () => {
+      const production = buildE2eStack({ isTestMode: false });
+
+      await request(production.app)
+        .post('/test/attack/force-proposal')
+        .send({ recipient: ATTACKER.xrpl, amount: 50 })
+        .expect(404);
+    });
+
     it('lets a normal submission through when the bypass is on, since nothing is overspent', async () => {
       await request(stack.app).post('/test/attack').expect(200);
 
