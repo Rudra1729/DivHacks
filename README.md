@@ -32,7 +32,11 @@ npm run build   # compile TypeScript to dist/
 npm start        # run the compiled server
 npm test         # run the Jest test suite
 npm run lint     # lint src/
+npm run test:e2e # end-to-end tests only
+npm run grok:try # try the Grok agent against the real API (needs GROK_API_KEY in .env)
 ```
+
+The server reads settings from `.env` in the folder it runs from.
 
 ## Project layout
 

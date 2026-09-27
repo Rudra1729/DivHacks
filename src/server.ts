@@ -5,6 +5,7 @@ XRPL and Solana each pick their implementation from config: XRPL_MODE and
 SOLANA_MODE, both 'fake' by default, so the server runs with no keys.
 */
 
+import 'dotenv/config';
 import { createApp } from './app';
 import { loadConfig } from './config';
 import { openDatabase } from './db';
