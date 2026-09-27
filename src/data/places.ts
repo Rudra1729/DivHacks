@@ -8,9 +8,13 @@ is the single source of truth other modules should import from, so
 updating it updates the whole backend.
 */
 
+/** Cultural visits earn only a stamp. Civic bounties also pay RLUSD. */
+export type PlaceKind = 'cultural' | 'civic';
+
 export interface Place {
   id: string;
   name: string;
+  kind: PlaceKind;
   neighborhood: string;
   latitude: number;
   longitude: number;
@@ -24,6 +28,7 @@ export const PLACES: Place[] = [
   {
     id: 'apollo-theater',
     name: 'Apollo Theater',
+    kind: 'cultural',
     neighborhood: 'Harlem',
     latitude: 40.8102,
     longitude: -73.9500,
@@ -35,6 +40,7 @@ export const PLACES: Place[] = [
   {
     id: 'studio-museum-harlem',
     name: 'Studio Museum in Harlem',
+    kind: 'cultural',
     neighborhood: 'Harlem',
     latitude: 40.80835,
     longitude: -73.94766,
@@ -46,6 +52,7 @@ export const PLACES: Place[] = [
   {
     id: 'marcus-garvey-park',
     name: 'Marcus Garvey Park',
+    kind: 'civic',
     neighborhood: 'Harlem',
     latitude: 40.8043,
     longitude: -73.9439,
@@ -57,6 +64,7 @@ export const PLACES: Place[] = [
   {
     id: 'hamilton-grange',
     name: 'Hamilton Grange National Memorial',
+    kind: 'cultural',
     neighborhood: 'Harlem',
     latitude: 40.82138,
     longitude: -73.94726,
@@ -68,6 +76,7 @@ export const PLACES: Place[] = [
   {
     id: 'malcolm-shabazz-market',
     name: 'Malcolm Shabazz Harlem Market',
+    kind: 'civic',
     neighborhood: 'Harlem',
     latitude: 40.80147,
     longitude: -73.94886,
@@ -79,6 +88,7 @@ export const PLACES: Place[] = [
   {
     id: 'morningside-park',
     name: 'Morningside Park',
+    kind: 'cultural',
     neighborhood: 'Morningside Heights',
     latitude: 40.8065,
     longitude: -73.9585,
@@ -90,6 +100,7 @@ export const PLACES: Place[] = [
   {
     id: 'mudd-building',
     name: 'Seeley W. Mudd Building',
+    kind: 'cultural',
     neighborhood: 'Morningside Heights',
     latitude: 40.81005,
     longitude: -73.96030,
