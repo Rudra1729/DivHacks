@@ -805,7 +805,7 @@ body.spidey-theme {
   box-shadow: var(--comic-shadow-lg);
   position: relative;
   overflow: hidden;
-  height: 550px;
+  height: clamp(600px, calc(100vh - 120px), 760px);
 }
 
 #realMap {
@@ -1504,11 +1504,13 @@ input:checked + .slider:before { transform: translateX(24px); }
 /* Place card: floats over the right side of the map */
 .node-overlay {
   position: absolute;
-  top: 74px;
+  top: 68px;
+  bottom: 16px;
   right: 16px;
-  width: 340px;
+  width: 400px;
   max-width: calc(100% - 32px);
-  max-height: calc(100% - 92px);
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   z-index: 1100;
   opacity: 0;
@@ -1523,7 +1525,20 @@ input:checked + .slider:before { transform: translateX(24px); }
   transform: none;
   pointer-events: auto;
 }
-.node-overlay .panel-card { position: relative; padding: 1.2rem; }
+.node-overlay .panel-card {
+  position: relative;
+  padding: 1rem 1.3rem;
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+.node-overlay .panel-body { flex: 1 0 auto; display: flex; flex-direction: column; }
+.node-overlay .panel-header,
+.node-overlay .panel-body > * { margin-bottom: 0.7rem; }
+/* The photo takes whatever height is left, so the whole card fits the map. */
+.node-overlay .node-image-wrap { flex: 1 1 0; height: auto; min-height: 80px; max-height: 240px; }
+.node-overlay .node-desc { font-size: 0.9rem; line-height: 1.4; }
+.node-overlay .node-actions { margin-top: auto; }
 .node-close {
   position: absolute;
   top: 8px;
