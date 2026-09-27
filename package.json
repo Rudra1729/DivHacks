@@ -14,7 +14,8 @@
     "solana:mint-test": "tsx scripts/solana/mintTest.ts",
     "solana:transfer-test": "tsx scripts/solana/transferTest.ts",
     "xrpl:setup": "tsx scripts/xrpl/setup.ts",
-    "xrpl:pay-test": "tsx --env-file=.env scripts/xrpl/payTest.ts"
+    "xrpl:pay-test": "tsx --env-file=.env scripts/xrpl/payTest.ts",
+    "xrpl:recycle": "tsx scripts/xrpl/recycle.ts"
   },
   "dependencies": {
     "@metaplex-foundation/mpl-core": "^1.10.0",
