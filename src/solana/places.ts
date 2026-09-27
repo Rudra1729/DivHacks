@@ -15,15 +15,15 @@ Attributes:
     name (string): Display name, used as the stamp name.
     neighborhood (string): 'Harlem' or 'Morningside Heights'.
     imageUrl (string): Image link, served through the metadata page.
-    solanaCollection (string, optional): Collection address. If missing, the
-        collection is picked from config by neighborhood.
+    solanaCollectionAddress (string | null, optional): Collection address. If
+        missing, the collection is picked from config by neighborhood.
 */
 export interface StampPlace {
   id: string;
   name: string;
   neighborhood: string;
   imageUrl: string;
-  solanaCollection?: string;
+  solanaCollectionAddress?: string | null;
 }
 
 /** Find a place by ID in the shared places file.
@@ -57,8 +57,8 @@ Raises:
     Error: If the place is not in a known neighborhood and has no collection.
 */
 export function collectionForPlace(config: SolanaConfig, place: StampPlace): string {
-  if (place.solanaCollection) {
-    return place.solanaCollection;
+  if (place.solanaCollectionAddress) {
+    return place.solanaCollectionAddress;
   }
   const hood = place.neighborhood.toLowerCase();
   if (hood.includes('morningside')) {

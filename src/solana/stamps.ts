@@ -216,9 +216,10 @@ export class RealStampService implements StampService {
 
   Returns:
       Promise<boolean>: True if the wallet already has a stamp for the place.
+          False for a malformed address.
 
   Raises:
-      Error: If the address is invalid or the RPC fails twice.
+      Error: If the RPC fails twice.
   */
   async hasStampForPlace(solanaAddress: string, placeId: string): Promise<boolean> {
     const stamps = await this.getStamps(solanaAddress);
@@ -231,14 +232,20 @@ export class RealStampService implements StampService {
       solanaAddress (string): Wallet to read.
 
   Returns:
-      Promise<Stamp[]>: The wallet's stamps, empty if none.
+      Promise<Stamp[]>: The wallet's stamps, empty if none or if the
+          address is malformed.
 
   Raises:
-      Error: If the address is invalid or the RPC fails twice.
+      Error: If the RPC fails twice.
   */
   async getStamps(solanaAddress: string): Promise<Stamp[]> {
     const config = loadSolanaConfig();
-    const owner = parseAddress(solanaAddress, 'Solana address');
+    let owner: PublicKey;
+    try {
+      owner = parseAddress(solanaAddress, 'Solana address');
+    } catch {
+      return [];
+    }
     return withOneRetry(() => fetchStamps(config, getSolanaClient(), owner));
   }
 }
