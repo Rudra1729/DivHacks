@@ -84,39 +84,9 @@ const PLACES = [
   }
 ];
 
-// COLLECTIBLE SOULBOUND CARDS DATA
-const STAMPS_DATA = [
-  {
-    id: 'stamp-01',
-    name: 'Apollo Theater Discovery',
-    place: 'Apollo Theater • Harlem',
-    mint: '7xKX...9M1L',
-    tx: 'F829A...38B',
-    decisionId: 'dec_apollo_84920',
-    image: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80',
-    date: 'Sep 26, 2026'
-  },
-  {
-    id: 'stamp-02',
-    name: 'Marcus Garvey Civic Stamp',
-    place: 'Marcus Garvey Park',
-    mint: '4mQP...12ZK',
-    tx: '9A71B...99F',
-    decisionId: 'dec_garvey_19284',
-    image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=600&q=80',
-    date: 'Sep 26, 2026'
-  },
-  {
-    id: 'stamp-03',
-    name: 'Morningside Heights Explorer',
-    place: 'Morningside Park',
-    mint: '9zLL...88AA',
-    tx: '12BB4...77C',
-    decisionId: 'dec_morningside_33102',
-    image: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=600&q=80',
-    date: 'Sep 26, 2026'
-  }
-];
+// THE LOGGED-IN VISITOR'S ACCOUNT, read from the backend (stamps live on Solana, RLUSD on XRPL)
+let myStamps = [];
+let myBalance = null;
 
 // REAL COORDINATES (same values as src/data/places.ts, ids match the backend)
 const PLACE_COORDS = {
@@ -190,7 +160,7 @@ function updateWalletUI() {
   if (!btnText) return;
 
   if (isLoggedIn()) {
-    btnText.innerText = currentAuth.user.email;
+    btnText.innerText = myBalance === null ? currentAuth.user.email : `${currentAuth.user.email} • ${myBalance} RLUSD`;
     const xrplInput = document.getElementById('xrplAddressInput');
     const solanaInput = document.getElementById('solanaAddressInput');
     if (xrplInput) {
@@ -214,6 +184,48 @@ function updateWalletUI() {
       solanaInput.readOnly = false;
     }
   }
+}
+
+/** Reload the visitor's stamps and RLUSD balance, then repaint the navbar,
+the passport cards, and which places are lit on the map. Logs out if the
+session has expired. */
+async function refreshAccount() {
+  if (!isLoggedIn()) {
+    myStamps = [];
+    myBalance = null;
+    renderTradingCards();
+    updateWalletUI();
+    return;
+  }
+  const [stamps, balance] = await Promise.all([
+    WebPassApi.getMyStamps(currentAuth.token),
+    WebPassApi.getMyBalance(currentAuth.token)
+  ]);
+  if (stamps.status === 401 || balance.status === 401) {
+    clearAuth();
+    setSpideyBotState('ready', '"Your session expired. Log in again, Hero!"');
+    refreshAccount();
+    return;
+  }
+  if (stamps.ok) {
+    myStamps = stamps.body.stamps || [];
+    markStampedPlaces();
+  }
+  if (balance.ok) {
+    myBalance = balance.body.balance;
+  }
+  renderTradingCards();
+  updateWalletUI();
+}
+
+/** Light up every place the visitor holds a stamp for. */
+function markStampedPlaces() {
+  const stamped = new Set(myStamps.map(stamp => stamp.placeId));
+  const newlyLit = PLACES.filter(place => stamped.has(place.id) && !place.discovered);
+  if (newlyLit.length === 0) return;
+  newlyLit.forEach(place => { place.discovered = true; });
+  renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
+  selectNode(selectedNodeId, { pan: false });
 }
 
 function showLoginError(message) {
@@ -255,7 +267,7 @@ function setupAuthEventListeners() {
     if (isLoggedIn()) {
       if (confirm(`Logged in as ${currentAuth.user.email}. Log out?`)) {
         clearAuth();
-        updateWalletUI();
+        refreshAccount();
         setSpideyBotState('ready', '"Logged out. Come back anytime, Hero!"');
       }
       return;
@@ -296,6 +308,7 @@ function setupAuthEventListeners() {
       const { token, user } = await verifyLoginCode(pendingLoginEmail, code);
       saveAuth(token, user);
       updateWalletUI();
+      refreshAccount();
       closeLoginModal();
       setSpideyBotState('approved', `"Welcome back, Hero! Logged in as ${user.email}. Your Solana and RLUSD wallets are ready."`);
     } catch (error) {
@@ -323,6 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStoredAuth();
   updateWalletUI();
   setupAuthEventListeners();
+  refreshAccount();
 
   // Restore explored places, then set up the real NYC map (see map.js)
   loadDiscovered();
@@ -490,12 +504,42 @@ function renderMissions(filter) {
    3D TRADING CARDS GENERATOR
    ========================================================================== */
 
+/** Escape text for use inside innerHTML. */
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+/** Turn a stamp from GET /me/nft into what a trading card shows. */
+function stampCard(stamp) {
+  const place = PLACES.find(p => p.id === stamp.placeId);
+  return {
+    badge: stamp.tier ? `${stamp.tier.toUpperCase()} #${stamp.serial}` : 'SOULBOUND STAMP',
+    name: escapeHtml(stamp.name),
+    place: escapeHtml(`${place ? place.name : stamp.placeId} • ${stamp.neighborhood}`),
+    image: escapeHtml(place ? place.image : ''),
+    decisionId: escapeHtml(stamp.decisionId),
+    mint: escapeHtml(shortHash(stamp.assetAddress)),
+    tx: escapeHtml(shortHash(stamp.xrplTxHash)),
+    rarity: escapeHtml(stamp.tier ? `${stamp.tier}, found #${stamp.serial}` : 'Unranked')
+  };
+}
+
 function renderTradingCards() {
   const gallery = document.getElementById('cardsGallery');
   if (!gallery) return;
   gallery.innerHTML = '';
 
-  STAMPS_DATA.forEach(stamp => {
+  if (!isLoggedIn() || myStamps.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'cards-empty';
+    empty.textContent = isLoggedIn()
+      ? 'No stamps yet. Complete a mission to earn your first soulbound card!'
+      : 'Log in to see the soulbound cards in your passport.';
+    gallery.appendChild(empty);
+    return;
+  }
+
+  myStamps.map(stampCard).forEach(stamp => {
     const cardWrap = document.createElement('div');
     cardWrap.className = 'card-3d-wrapper';
     cardWrap.onclick = () => cardWrap.classList.toggle('flipped');
@@ -505,7 +549,7 @@ function renderTradingCards() {
         <!-- FRONT FACE -->
         <div class="card-face card-face-front">
           <div>
-            <span class="card-stamp-badge">SOULBOUND STAMP #01</span>
+            <span class="card-stamp-badge">${escapeHtml(stamp.badge)}</span>
             <div class="card-art-box">
               <img src="${stamp.image}" alt="${stamp.name}">
             </div>
@@ -526,7 +570,7 @@ function renderTradingCards() {
               <div class="audit-val">${stamp.decisionId}</div>
             </div>
             <div class="audit-field">
-              <div class="audit-label">Solana Mint Hash</div>
+              <div class="audit-label">Solana Stamp Address</div>
               <div class="audit-val">${stamp.mint}</div>
             </div>
             <div class="audit-field">
@@ -534,8 +578,8 @@ function renderTradingCards() {
               <div class="audit-val">${stamp.tx}</div>
             </div>
             <div class="audit-field">
-              <div class="audit-label">Mint Date</div>
-              <div class="audit-val">${stamp.date}</div>
+              <div class="audit-label">Rarity</div>
+              <div class="audit-val">${stamp.rarity}</div>
             </div>
           </div>
           <div style="font-size:0.75rem; color:var(--neon-cyan); text-align:center;">
