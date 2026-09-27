@@ -101,6 +101,31 @@ describe('SqliteStorage', () => {
     expect(await storage.getDailyTotal('rXRPL')).toBe(3);
   });
 
+  it('counts unconfirmed payments in getDailyTotal but not rejected or failed ones', async () => {
+    const outcomes: [string, DecisionResult['status']][] = [
+      ['dec-a', 'PAYMENT_UNCONFIRMED'],
+      ['dec-b', 'REJECTED_BY_LEDGER'],
+      ['dec-c', 'PAYMENT_FAILED'],
+    ];
+    for (const [i, [decisionId, status]] of outcomes.entries()) {
+      await storage.markClaimPending({
+        decisionId,
+        xrplAddress: 'rXRPL',
+        solanaAddress: 'sSolana',
+        placeId: 'apollo-theater',
+      });
+      await storage.saveDecision(`req-${i}`, {
+        decisionId,
+        status,
+        reasons: [],
+        proposal: { amount: 2, recipient: 'rXRPL', reason: 'test' },
+        stampFailed: false,
+      });
+    }
+
+    expect(await storage.getDailyTotal('rXRPL')).toBe(2);
+  });
+
   it('queues a stamp retry with the full mint input', async () => {
     await storage.queueStampRetry({
       decisionId: 'dec-1',
