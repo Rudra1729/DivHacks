@@ -82,6 +82,8 @@ async function main(): Promise<void> {
 
   const rewardScale = process.env.LIVE_REWARD_SCALE ?? '0.01';
   process.env.REWARD_SCALE = rewardScale;
+  // The checks prove payments at cultural places like Apollo, so those must pay.
+  process.env.CULTURAL_REWARDS = 'on';
   process.env.XRPL_MODE = fake ? 'fake' : 'real';
   process.env.SOLANA_MODE = fake ? 'fake' : 'real';
   delete process.env.SOLANA_FORCE_FAIL;

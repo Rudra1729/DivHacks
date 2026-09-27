@@ -12,6 +12,7 @@ import { Keypair } from '@metaplex-foundation/umi';
 import Database from 'better-sqlite3';
 import { getAgentAddress, sendPayment } from '../../src/xrpl';
 import { Place, PLACES } from '../../src/data/places';
+import { scaledCaps } from '../../src/policy/policy';
 import { explorerAccountUrl, explorerTxUrl as xrplTxUrl } from '../xrpl/common';
 import { explorerAddressUrl as solAddressUrl, explorerTxUrl as solTxUrl } from '../solana/common';
 import { Chains } from './lib/chains';
@@ -246,7 +247,8 @@ export const CHECKS: Check[] = [
       a.that('the visitor gained exactly the decided amount', near(f['user-2'] - b['user-2'], amount), { gained: f['user-2'] - b['user-2'], decided: amount });
       a.that('the agent wallet lost exactly the same amount', near(b.agent - f.agent, amount), { lost: b.agent - f.agent, decided: amount });
       a.that('the attacker wallet was not touched', near(f.attacker, b.attacker), { before: b.attacker, after: f.attacker });
-      a.that('the amount is within the 5 RLUSD per-task cap', amount <= 5, amount);
+      const perTask = scaledCaps(ctx.rewardScale).perTask;
+      a.that(`the amount is within the ${perTask} RLUSD per-task cap`, amount <= perTask, amount);
       return {
         assertions: a.list,
         evidence: { decidedAmount: amount, balancesBefore: b, balancesAfter: f },
@@ -542,7 +544,7 @@ export const CHECKS: Check[] = [
   {
     id: 'C16',
     title: 'The daily cap uses real ledger totals',
-    proves: 'A wallet that has already been paid 10 RLUSD today (counted from the XRPL ledger, not just our database) is blocked from receiving more.',
+    proves: 'A wallet that has already been paid the daily cap today (counted from the XRPL ledger, not just our database) is blocked from receiving more.',
     cost: 'none',
     async run(ctx) {
       if (!ctx.real) {
@@ -550,13 +552,14 @@ export const CHECKS: Check[] = [
       }
       const user = ctx.users['user-1'];
       const paidToday = await ctx.chains!.paidToday(user.xrpl);
-      if (paidToday + 0.01 <= 10) {
+      const perDay = scaledCaps(ctx.rewardScale).perDay;
+      if (paidToday + 0.01 <= perDay) {
         return skipped(`demo user 1 has only been paid ${paidToday} RLUSD so far today (UTC), so the cap is not reached. The day resets at 00:00 UTC.`);
       }
       const a = new Assertions();
       const balanceBefore = await ctx.chains!.rlusd(user.xrpl);
       const res = await submit(ctx.serverA.baseUrl, { ...at(HAMILTON), xrplAddress: user.xrpl, solanaAddress: user.solana });
-      a.that('the ledger says this wallet was already paid at least the cap today', paidToday >= 9.99, paidToday);
+      a.that('the ledger says this wallet was already paid at least the cap today', paidToday >= perDay - 0.01, paidToday);
       a.that('server answered 422', res.status === 422, res.status);
       a.that('status is BLOCKED_POLICY', res.body?.status === 'BLOCKED_POLICY', res.body?.status);
       a.that('the reason is the daily cap', (res.body?.reasons ?? []).some((r: string) => r.startsWith('daily cap:')), res.body?.reasons);
