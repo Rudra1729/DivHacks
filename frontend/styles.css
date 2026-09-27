@@ -889,8 +889,12 @@ body.knowyork-theme {
 .bubble-text {
   font-size: 1.05rem;
   font-weight: 600;
+  line-height: 1.4;
   color: #222;
   margin-bottom: 1rem;
+  /* Reserve room for the longest message (about 3 wrapped lines) so the
+     card doesn't grow or shrink as Spidey-Bot's text changes. */
+  min-height: calc(1.05rem * 1.4 * 3);
 }
 
 .bubble-actions {
