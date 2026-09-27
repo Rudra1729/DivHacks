@@ -353,6 +353,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Setup Event Listeners
   setupEventListeners();
 
+  // Live data from the backend
+  loadPlacesFromServer();
+  connectLiveStream();
+
 });
 
 /* ==========================================================================
@@ -672,6 +676,98 @@ function addSimLog(msg, type = 'info') {
   logBox.scrollTop = logBox.scrollHeight;
 }
 
+/* ==========================================================================
+   LIVE BACKEND DATA: places, the decision stream, and attack mode
+   ========================================================================== */
+
+// Final decision events from GET /events, with how the ticker labels them.
+const TICKER_LABELS = {
+  'decision.ok': ['THWIP!', 'highlight-yellow', 'A visit was verified: RLUSD paid and a soulbound stamp minted'],
+  'decision.stamp_failed': ['STAMP QUEUED', 'highlight-cyan', 'A visit was paid; its stamp will be minted on retry'],
+  'decision.payment_unconfirmed': ['CONFIRMING', 'highlight-cyan', 'A payment is waiting for the XRPL ledger'],
+  'decision.blocked_sentinel': ['SNAG!', 'highlight-red'],
+  'decision.blocked_policy': ['GUARDRAIL HELD!', 'highlight-red'],
+  'decision.rejected_by_ledger': ['LEDGER STOP!', 'highlight-red'],
+  'decision.payment_failed': ['LEDGER STOP!', 'highlight-red']
+};
+const MAX_TICKER_ITEMS = 20;
+
+/** Use the backend's rewards and geofences, so the page shows what the server enforces. */
+async function loadPlacesFromServer() {
+  const result = await WebPassApi.getPlaces();
+  if (!result.ok || !result.body) return;
+  result.body.places.forEach(serverPlace => {
+    const place = PLACES.find(p => p.id === serverPlace.id);
+    if (!place) return;
+    place.name = serverPlace.name;
+    place.reward = `${serverPlace.baseRewardRlusd} RLUSD`;
+    place.radius = serverPlace.geofenceRadiusMeters;
+    if (typeof geofenceCircles !== 'undefined') geofenceCircles.get(place.id)?.setRadius(place.radius);
+  });
+  renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
+  selectNode(selectedNodeId, { pan: false });
+}
+
+/** Add a labelled item to the front of the ticker, built without innerHTML. */
+function addLiveTickerItem(label, highlight, text) {
+  const stream = document.getElementById('tickerStream');
+  if (!stream) return;
+  const item = document.createElement('span');
+  item.className = 'ticker-item';
+  const strong = document.createElement('strong');
+  strong.className = highlight;
+  strong.textContent = label;
+  item.append(strong, ` ${text}`);
+  stream.prepend(item);
+  while (stream.children.length > MAX_TICKER_ITEMS) stream.lastElementChild.remove();
+}
+
+/** Replace the ticker's placeholder items with the backend's live decision stream. */
+async function connectLiveStream() {
+  const stream = document.getElementById('tickerStream');
+  const source = await WebPassApi.subscribeEvents(event => {
+    const label = TICKER_LABELS[event.type];
+    if (label) addLiveTickerItem(label[0], label[1], label[2] || event.message);
+  });
+  source.onopen = () => {
+    if (stream && stream.dataset.live !== 'true') {
+      stream.dataset.live = 'true';
+      stream.replaceChildren();
+      addLiveTickerItem('LIVE', 'highlight-cyan', 'Connected to WebPass. Every verification, block and payout shows up here.');
+    }
+  };
+}
+
+/** Turn the server's test-only policy bypass on or off, and report what happened.
+
+Args:
+    toggle (HTMLInputElement): The attack mode switch.
+*/
+async function setAttackMode(toggle) {
+  const enabled = toggle.checked;
+  const result = await WebPassApi.setAttackMode(enabled);
+  if (result.status === 404) {
+    toggle.checked = false;
+    attackModeActive = false;
+    addSimLog('[SYSTEM] /test/attack does not exist on this server (404): the policy bypass is only mounted in test mode (NODE_ENV=test).', 'warning');
+    setSpideyBotState('ready', '"No bypass switch on a normal server. That is the point!"');
+    return;
+  }
+  if (!result.ok) {
+    toggle.checked = !enabled;
+    addSimLog(`[SYSTEM] ${WebPassApi.errorMessage(result, 'Could not change attack mode.')}`, 'error');
+    return;
+  }
+  attackModeActive = Boolean(result.body && result.body.policyBypassEnabled);
+  if (attackModeActive) {
+    addSimLog('[SYSTEM] POST /test/attack: policy bypass enabled on the server. Submissions now skip the policy engine.', 'warning');
+    setSpideyBotState('sentinel_blocked', '"WARNING: Test attack mode enabled! Only the XRPL ledger limits stand between the agent and the treasury now."');
+  } else {
+    addSimLog('[SYSTEM] DELETE /test/attack: normal policy mode restored.', 'success');
+    setSpideyBotState('ready', '"Normal policy guardrails restored!"');
+  }
+}
+
 function addTickerItem(text) {
   const stream = document.getElementById('tickerStream');
   if (!stream) return;
@@ -729,16 +825,7 @@ function setupEventListeners() {
   document.getElementById('attackBypassBtn')?.addEventListener('click', () => runAttackSimulation('bypass'));
 
   // Test Attack Mode Toggle
-  document.getElementById('testAttackToggle')?.addEventListener('change', (e) => {
-    attackModeActive = e.target.checked;
-    if (attackModeActive) {
-      addSimLog('[SYSTEM] POST /test/attack triggered: Policy Bypass Enabled.', 'warning');
-      setSpideyBotState('sentinel_blocked', '"WARNING: Test attack mode enabled! Testing hardware & ledger guardrails!"');
-    } else {
-      addSimLog('[SYSTEM] DELETE /test/attack triggered: Normal Policy Mode Restored.', 'success');
-      setSpideyBotState('ready', '"Normal policy guardrails restored!"');
-    }
-  });
+  document.getElementById('testAttackToggle')?.addEventListener('change', (e) => setAttackMode(e.target));
 
   // Modal Controls (the mission form itself is wired in submission.js)
   document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
