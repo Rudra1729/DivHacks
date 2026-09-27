@@ -1,7 +1,9 @@
 /**The shared list of eligible places, per the PRD's "Places data" section.
 
-Coordinates and Solana collection addresses here are placeholders for the
-5:00 PM kickoff, where Arundathi finalizes the real 6 places. This module
+Coordinates were checked against OpenStreetMap and Wikidata (Malcolm Shabazz
+Harlem Market against OpenStreetMap only) but not yet on site. Image links are
+placeholders until real photos exist. Solana collection addresses stay null
+until collections are set up. This module
 is the single source of truth other modules should import from, so
 updating it updates the whole backend.
 */
@@ -28,18 +30,18 @@ export const PLACES: Place[] = [
     geofenceRadiusMeters: 150,
     baseRewardRlusd: 1,
     solanaCollectionAddress: null,
-    imageUrl: 'https://example.com/places/apollo-theater.jpg',
+    imageUrl: 'https://placehold.co/600x600/png?text=apollo+theater',
   },
   {
     id: 'studio-museum-harlem',
     name: 'Studio Museum in Harlem',
     neighborhood: 'Harlem',
-    latitude: 40.8058,
-    longitude: -73.9470,
+    latitude: 40.80835,
+    longitude: -73.94766,
     geofenceRadiusMeters: 150,
     baseRewardRlusd: 1,
     solanaCollectionAddress: null,
-    imageUrl: 'https://example.com/places/studio-museum-harlem.jpg',
+    imageUrl: 'https://placehold.co/600x600/png?text=studio+museum+harlem',
   },
   {
     id: 'marcus-garvey-park',
@@ -50,29 +52,29 @@ export const PLACES: Place[] = [
     geofenceRadiusMeters: 150,
     baseRewardRlusd: 1,
     solanaCollectionAddress: null,
-    imageUrl: 'https://example.com/places/marcus-garvey-park.jpg',
+    imageUrl: 'https://placehold.co/600x600/png?text=marcus+garvey+park',
   },
   {
     id: 'hamilton-grange',
     name: 'Hamilton Grange National Memorial',
     neighborhood: 'Harlem',
-    latitude: 40.8236,
-    longitude: -73.9490,
+    latitude: 40.82138,
+    longitude: -73.94726,
     geofenceRadiusMeters: 150,
     baseRewardRlusd: 1,
     solanaCollectionAddress: null,
-    imageUrl: 'https://example.com/places/hamilton-grange.jpg',
+    imageUrl: 'https://placehold.co/600x600/png?text=hamilton+grange',
   },
   {
     id: 'malcolm-shabazz-market',
     name: 'Malcolm Shabazz Harlem Market',
     neighborhood: 'Harlem',
-    latitude: 40.8072,
-    longitude: -73.9483,
+    latitude: 40.80147,
+    longitude: -73.94886,
     geofenceRadiusMeters: 150,
     baseRewardRlusd: 1,
     solanaCollectionAddress: null,
-    imageUrl: 'https://example.com/places/malcolm-shabazz-market.jpg',
+    imageUrl: 'https://placehold.co/600x600/png?text=malcolm+shabazz+market',
   },
   {
     id: 'morningside-park',
@@ -83,7 +85,7 @@ export const PLACES: Place[] = [
     geofenceRadiusMeters: 150,
     baseRewardRlusd: 1,
     solanaCollectionAddress: null,
-    imageUrl: 'https://example.com/places/morningside-park.jpg',
+    imageUrl: 'https://placehold.co/600x600/png?text=morningside+park',
   },
 ];
 
