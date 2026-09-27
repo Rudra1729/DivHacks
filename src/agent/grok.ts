@@ -18,15 +18,34 @@ export interface GrokAgentOptions {
   fetchFn?: typeof fetch;
   /** Called with Grok's reply text as received, before it is checked. For debugging. */
   onRawReply?: (text: string) => void;
+  /** Multiplier on the place's base reward, shown to Grok and used for the
+      fallback. Defaults to 1. Grok's own answer is never rescaled, so the
+      policy engine still sees exactly what Grok asked for. */
+  rewardScale?: number;
 }
 
 const DEFAULT_TIMEOUT_MS = 15000;
+const MIN_REWARD = 0.01;
 
 const SYSTEM_PROMPT =
   'You are the payout agent for WebPass NYC, which rewards people with small RLUSD ' +
   'payments for visiting cultural sites and small businesses in New York City. ' +
-  'Decide how much to pay one visitor. Respond with only a JSON object in exactly ' +
+  'Decide how much to pay one visitor, relative to the base reward you are given. ' +
+  'The amount must have at most 2 decimal places. Respond with only a JSON object in exactly ' +
   'this shape: {"amount": <number>, "recipient": "<XRPL address>", "reason": "<short reason>"}.';
+
+/** Scale a base reward, rounded to cents and never below one cent.
+
+Args:
+    baseReward (number): The place's base reward in RLUSD.
+    scale (number): The multiplier to apply.
+
+Returns:
+    number: The scaled reward, with at most 2 decimal places.
+*/
+export function scaleReward(baseReward: number, scale: number): number {
+  return Math.max(MIN_REWARD, Math.round(baseReward * scale * 100) / 100);
+}
 
 /** Parse Grok's reply text into a proposal.
 
@@ -77,7 +96,7 @@ export class GrokAgent implements PayoutAgent {
 
   Returns:
       AgentProposal: Grok's proposal exactly as given when it is well formed,
-          otherwise the base reward paid to the submitter's own wallet.
+          otherwise the scaled base reward paid to the submitter's own wallet.
   */
   async propose(input: AgentInput): Promise<AgentProposal> {
     if (!this.options.apiKey) {
@@ -103,7 +122,7 @@ export class GrokAgent implements PayoutAgent {
           temperature: 0,
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: buildUserPrompt(input) },
+            { role: 'user', content: buildUserPrompt(input, this.baseReward(input)) },
           ],
         }),
         signal: controller.signal,
@@ -129,19 +148,33 @@ export class GrokAgent implements PayoutAgent {
     }
   }
 
+  /** The place's base reward after applying the reward scale. */
+  private baseReward(input: AgentInput): number {
+    return scaleReward(input.place.baseReward, this.options.rewardScale ?? 1);
+  }
+
   private fallback(input: AgentInput, why: string): AgentProposal {
     return {
-      amount: input.place.baseReward,
+      amount: this.baseReward(input),
       recipient: input.xrplAddress,
       reason: `Base reward used: ${why}`,
     };
   }
 }
 
-function buildUserPrompt(input: AgentInput): string {
+/** Build the user message Grok sees for one visit.
+
+Args:
+    input (AgentInput): The place, the submitter's XRPL address, and caption.
+    baseReward (number): The base reward to show, already scaled.
+
+Returns:
+    string: The prompt text.
+*/
+function buildUserPrompt(input: AgentInput, baseReward: number): string {
   return [
     `Place: ${input.place.name} (${input.place.neighborhood})`,
-    `Base reward: ${input.place.baseReward} RLUSD`,
+    `Base reward: ${baseReward} RLUSD`,
     `Visitor XRPL address: ${input.xrplAddress}`,
     `Visitor caption: ${input.caption ?? '(none)'}`,
   ].join('\n');
