@@ -14,7 +14,7 @@ describe('GET /places', () => {
     const { app } = buildTestApp();
     const response = await request(app).get('/places');
     expect(response.status).toBe(200);
-    expect(response.body.places.length).toBe(7);
+    expect(response.body.places.length).toBe(8);
     expect(response.body.places[0]).toHaveProperty('id');
     expect(response.body.places[0]).toHaveProperty('neighborhood');
     expect(response.body.places[0]).toHaveProperty('kind');
@@ -25,6 +25,7 @@ describe('GET /places', () => {
     const byId = Object.fromEntries(places.map((p) => [p.id, p.rewardRlusd]));
     expect(byId['apollo-theater']).toBe(0);
     expect(byId['marcus-garvey-park']).toBe(0.01);
+    expect(byId['mudd-entrance']).toBe(0.01);
   });
 
   it('includes the rarity ladder and supply', async () => {

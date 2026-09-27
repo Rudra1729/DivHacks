@@ -5,7 +5,8 @@ import { collectionForPlace } from '../../src/solana/places';
 /**
  * Independent reference coordinates, from OpenStreetMap and Wikidata.
  * Malcolm Shabazz Harlem Market has an OpenStreetMap entry only. The Mudd
- * building reference is its street corner, 120th Street and Amsterdam Avenue.
+ * building reference is its street corner, 120th Street and Amsterdam Avenue,
+ * and its entrance bounty uses the same corner.
  */
 const REFERENCE: Record<string, [number, number]> = {
   'apollo-theater': [40.80993, -73.95011],
@@ -15,7 +16,11 @@ const REFERENCE: Record<string, [number, number]> = {
   'malcolm-shabazz-market': [40.80147, -73.94886],
   'morningside-park': [40.8062, -73.9586],
   'mudd-building': [40.810807, -73.959811],
+  'mudd-entrance': [40.810807, -73.959811],
 };
+
+/** The Mudd check-in and the Mudd entrance bounty are two missions at one building. */
+const SAME_BUILDING = new Set(['mudd-building|mudd-entrance']);
 
 function metersBetween(aLat: number, aLon: number, bLat: number, bLon: number): number {
   const dLat = (aLat - bLat) * 111_000;
@@ -24,8 +29,8 @@ function metersBetween(aLat: number, aLon: number, bLat: number, bLon: number): 
 }
 
 describe('PLACES', () => {
-  it('has the 6 places the PRD calls for, plus the Mudd building for on-site testing', () => {
-    expect(PLACES).toHaveLength(7);
+  it('has the 6 places the PRD calls for, plus the Mudd building and its entrance for on-site testing', () => {
+    expect(PLACES).toHaveLength(8);
   });
 
   it('gives every place a unique ID', () => {
@@ -90,6 +95,7 @@ describe('PLACES', () => {
       for (let j = i + 1; j < PLACES.length; j++) {
         const a = PLACES[i];
         const b = PLACES[j];
+        if (SAME_BUILDING.has(`${a.id}|${b.id}`)) continue;
         expect(metersBetween(a.latitude, a.longitude, b.latitude, b.longitude)).toBeGreaterThan(200);
       }
     }

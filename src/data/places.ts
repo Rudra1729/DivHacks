@@ -109,6 +109,18 @@ export const PLACES: Place[] = [
     solanaCollectionAddress: null,
     imageUrl: 'https://placehold.co/600x600/png?text=mudd+building',
   },
+  {
+    id: 'mudd-entrance',
+    name: 'Mudd Building Entrance',
+    kind: 'civic',
+    neighborhood: 'Morningside Heights',
+    latitude: 40.8106,
+    longitude: -73.9601,
+    geofenceRadiusMeters: 200,
+    baseRewardRlusd: 1,
+    solanaCollectionAddress: null,
+    imageUrl: 'https://placehold.co/600x600/png?text=mudd+entrance',
+  },
 ];
 
 /** Look up a place by ID.
