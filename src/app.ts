@@ -16,6 +16,9 @@ import { createDecisionsRouter } from './routes/decisions';
 import { usersRouter } from './routes/users';
 import { eventsRouter } from './routes/events';
 import { createTestAttackRouter } from './routes/testAttack';
+import { createAuthRouter } from './routes/auth';
+import { createWalletRouter } from './routes/wallet';
+import { xrplService } from './xrpl';
 
 /** Build the Express application.
 
@@ -42,6 +45,8 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
   app.use(createDecisionsRouter(db));
   app.use(usersRouter);
   app.use(eventsRouter);
+  app.use(createAuthRouter(db));
+  app.use(createWalletRouter(db, xrplService));
 
   if (config.isTestMode) {
     app.use(createTestAttackRouter());
