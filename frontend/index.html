@@ -17,6 +17,9 @@
   <!-- Three.js CDN for Interactive 3D Spider-Man -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   
+  <!-- Leaflet: open-source map library, no API key needed -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="spidey-theme">
@@ -241,57 +244,62 @@
   </section>
 
   <!-- SECTION 1: THE INTERACTIVE SPIDERWEB MAP -->
-  <section class="section-container" id="spiderweb">
+  <section class="section-container map-fullbleed" id="spiderweb">
     <div class="section-header">
       <span class="comic-tag red-tag"><i data-lucide="map-pin"></i> INTERACTIVE NYC MAP</span>
       <h2 class="section-title">THE NEIGHBORHOOD SPIDERWEB</h2>
-      <p class="section-subtitle">Click on unexplored gray nodes, review missions, and hit <strong>THWIP!</strong> to light up the city network!</p>
+      <p class="section-subtitle">Hover a pin to preview a mission, click it to keep the card open, and hit <strong>THWIP!</strong> to light up the city network!</p>
     </div>
 
     <div class="web-map-wrapper">
-      <!-- CANVAS SPIDERWEB GRAPH -->
+      <!-- REAL NYC MAP (Leaflet, free maps) -->
       <div class="canvas-container">
-        <canvas id="spiderwebCanvas" width="900" height="550"></canvas>
+        <div id="realMap" aria-label="Map of Harlem and Morningside Heights missions"></div>
+        <div class="map-legend">
+          <span><svg class="legend-pin" viewBox="0 0 34 46" width="14" height="19"><path class="pin-body" d="M17 1C8.2 1 1 8.1 1 16.9c0 11.9 16 28.1 16 28.1s16-16.2 16-28.1C33 8.1 25.8 1 17 1z"/><circle cx="17" cy="16.5" r="6.2" fill="#fff"/></svg> Mission</span>
+          <span><svg class="legend-pin explored" viewBox="0 0 34 46" width="14" height="19"><path class="pin-body" d="M17 1C8.2 1 1 8.1 1 16.9c0 11.9 16 28.1 16 28.1s16-16.2 16-28.1C33 8.1 25.8 1 17 1z"/><path d="M12.2 16.8l3.6 3.6 6.4-6.8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg> Explored</span>
+        </div>
         <div class="canvas-overlay-controls">
           <button class="comic-icon-btn" id="resetWebBtn" title="Reset Web Progress"><i data-lucide="rotate-ccw"></i> Reset Web</button>
           <button class="comic-icon-btn" id="unlockAllBtn" title="THWIP Unlock All"><i data-lucide="sparkles"></i> THWIP All!</button>
         </div>
-      </div>
 
-      <!-- NODE DETAIL SIDEBAR -->
-      <div class="node-detail-panel" id="nodeDetailPanel">
-        <div class="panel-card comic-box">
-          <div class="panel-header">
-            <span class="node-badge" id="nodeStatusBadge">UNEXPLORED</span>
-            <h3 class="node-title" id="nodeTitle">Apollo Theater</h3>
-            <span class="node-sub" id="nodeNeighborhood"><i data-lucide="map-pin"></i> Harlem Corridor</span>
-          </div>
-
-          <div class="panel-body">
-            <div class="node-image-wrap">
-              <img id="nodeImage" src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80" alt="Landmark Image">
-              <div class="node-thwip-badge" id="nodeThwipBadge">THWIP! UNLOCKED</div>
+          <!-- PLACE CARD: floats over the map, opens on pin hover or click -->
+        <div class="node-detail-panel node-overlay" id="nodeDetailPanel" aria-live="polite">
+          <div class="panel-card comic-box">
+            <button class="node-close" id="nodeCloseBtn" type="button" aria-label="Close place card">&times;</button>
+            <div class="panel-header">
+              <span class="node-badge" id="nodeStatusBadge">UNEXPLORED</span>
+              <h3 class="node-title" id="nodeTitle">Apollo Theater</h3>
+              <span class="node-sub" id="nodeNeighborhood"><i data-lucide="map-pin"></i> Harlem Corridor</span>
             </div>
 
-            <div class="node-stats">
-              <div class="stat-item">
-                <span class="stat-label">Geofence Radius</span>
-                <span class="stat-val" id="nodeGeofence">150 Meters</span>
+            <div class="panel-body">
+              <div class="node-image-wrap">
+                <img id="nodeImage" src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80" alt="Landmark Image">
+                <div class="node-thwip-badge" id="nodeThwipBadge">THWIP! UNLOCKED</div>
               </div>
-              <div class="stat-item">
-                <span class="stat-label">RLUSD Bounty</span>
-                <span class="stat-val highlight-yellow" id="nodeReward">1.0 RLUSD</span>
+
+              <div class="node-stats">
+                <div class="stat-item">
+                  <span class="stat-label">Geofence Radius</span>
+                  <span class="stat-val" id="nodeGeofence">150 Meters</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">RLUSD Bounty</span>
+                  <span class="stat-val highlight-yellow" id="nodeReward">1.0 RLUSD</span>
+                </div>
               </div>
-            </div>
 
-            <p class="node-desc" id="nodeDesc">
-              Visit 125th Street, locate the iconic historic Apollo Theater marquee, take a photo, and submit proof to light up Harlem!
-            </p>
+              <p class="node-desc" id="nodeDesc">
+                Visit 125th Street, locate the iconic historic Apollo Theater marquee, take a photo, and submit proof to light up Harlem!
+              </p>
 
-            <div class="node-actions">
-              <button class="comic-btn hero-red-btn full-btn" id="thwipUnlockBtn">
-                <i data-lucide="zap"></i> THWIP! UNLOCK NEIGHBORHOOD
-              </button>
+              <div class="node-actions">
+                <button class="comic-btn hero-red-btn full-btn" id="thwipUnlockBtn">
+                  <i data-lucide="zap"></i> THWIP! UNLOCK NEIGHBORHOOD
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -513,6 +521,10 @@
     </div>
   </footer>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js"></script>
+  <script src="map.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
