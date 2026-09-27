@@ -7,6 +7,7 @@ Express app directly with supertest, without binding a real port.
 import cors from 'cors';
 import express, { Express, NextFunction, Request, Response } from 'express';
 import multer from 'multer';
+import path from 'path';
 import Database from 'better-sqlite3';
 import { AppConfig } from './config';
 import { Orchestrator } from './orchestrator/orchestrator';
@@ -21,6 +22,9 @@ import { createAuthRouter } from './routes/auth';
 import { createWalletRouter } from './routes/wallet';
 import { finalErrorHandler } from './routes/errorHandler';
 import { xrplService } from './xrpl';
+
+/** The static web app, one level above both src/ and dist/. */
+const FRONTEND_DIR = path.resolve(__dirname, '..', 'frontend');
 
 /** Build the Express application.
 
@@ -56,6 +60,9 @@ export function createApp(config: AppConfig, db: Database.Database, orchestrator
   if (config.isTestMode) {
     app.use(createTestAttackRouter());
   }
+
+  // Serve the web app too, so one server runs everything at http://localhost:PORT/.
+  app.use(express.static(FRONTEND_DIR));
 
   app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
     if (err instanceof multer.MulterError) {
