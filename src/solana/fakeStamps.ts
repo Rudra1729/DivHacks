@@ -1,0 +1,91 @@
+/**In-memory stamp service with the same API as the real one.
+
+Used while SOLANA_MODE=fake so the orchestrator and Sentinel can integrate
+before devnet minting is ready. Stamps live only for the life of the process.
+*/
+
+import { loadSolanaConfig } from './config';
+import { findPlace } from './places';
+import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
+
+/** Fake stamp service that stores stamps in a Map keyed by owner.
+
+Attributes:
+    stampsByOwner (Map<string, Stamp[]>): Minted stamps per wallet.
+    mintCount (number): Number of successful fake mints, used for fake IDs.
+*/
+export class FakeStampService implements StampService {
+  private stampsByOwner = new Map<string, Stamp[]>();
+  private mintCount = 0;
+
+  /** Record a fake stamp for the user.
+
+  Honors SOLANA_FORCE_FAIL so the Solana-failure test also works in fake mode.
+
+  Args:
+      input (MintStampInput): Decision, place, wallet, and XRPL hash.
+
+  Returns:
+      Promise<MintStampResult>: A fake asset address and signature, or an error.
+  */
+  async mintStamp(input: MintStampInput): Promise<MintStampResult> {
+    const config = loadSolanaConfig();
+    if (config.forceFail) {
+      return { ok: false, error: 'forced mint failure (SOLANA_FORCE_FAIL=true)' };
+    }
+
+    this.mintCount += 1;
+    const assetAddress = `fake-asset-${this.mintCount}`;
+    const place = findPlace(config, input.placeId);
+    const stamp: Stamp = {
+      assetAddress,
+      owner: input.userSolanaAddress,
+      collection: 'fake-collection',
+      name: place?.name ?? input.placeId,
+      uri: `${config.metadataBaseUrl}/${input.decisionId}`,
+      placeId: input.placeId,
+      neighborhood: place?.neighborhood ?? 'unknown',
+      decisionId: input.decisionId,
+      xrplTxHash: input.xrplTxHash,
+    };
+
+    const owned = this.stampsByOwner.get(input.userSolanaAddress) ?? [];
+    this.stampsByOwner.set(input.userSolanaAddress, [...owned, stamp]);
+    return { ok: true, assetAddress, signature: `fake-signature-${this.mintCount}` };
+  }
+
+  /** Check whether a wallet holds a fake stamp for a place.
+
+  Args:
+      solanaAddress (string): Wallet to check.
+      placeId (string): Place to look for.
+
+  Returns:
+      Promise<boolean>: True if the wallet already has a stamp for the place.
+  */
+  async hasStampForPlace(solanaAddress: string, placeId: string): Promise<boolean> {
+    const stamps = await this.getStamps(solanaAddress);
+    return stamps.some((stamp) => stamp.placeId === placeId);
+  }
+
+  /** List the fake stamps held by a wallet.
+
+  Args:
+      solanaAddress (string): Wallet to read.
+
+  Returns:
+      Promise<Stamp[]>: Stamps in mint order, empty if none.
+  */
+  async getStamps(solanaAddress: string): Promise<Stamp[]> {
+    return [...(this.stampsByOwner.get(solanaAddress) ?? [])];
+  }
+
+  /** Forget every fake stamp. Used between tests. */
+  reset(): void {
+    this.stampsByOwner.clear();
+    this.mintCount = 0;
+  }
+}
+
+/** Shared fake service used when SOLANA_MODE=fake. */
+export const fakeStampService = new FakeStampService();
