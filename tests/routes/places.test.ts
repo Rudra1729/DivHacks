@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { buildTestApp } from '../testHelpers/buildTestApp';
 
-type PlaceBody = { id: string; kind: string; rewardRlusd: number };
+type PlaceBody = { id: string; kind: string; rewardRlusd: number; sponsor: string | null };
 
 async function placesWith(overrides: { rewardScale: number; culturalRewards: boolean }): Promise<PlaceBody[]> {
   const { app } = buildTestApp(overrides);
@@ -26,6 +26,13 @@ describe('GET /places', () => {
     expect(byId['apollo-theater']).toBe(0);
     expect(byId['marcus-garvey-park']).toBe(0.01);
     expect(byId['mudd-entrance']).toBe(0.01);
+  });
+
+  it('names the sponsor of each civic bounty', async () => {
+    const places = await placesWith({ rewardScale: 0.01, culturalRewards: false });
+    const byId = Object.fromEntries(places.map((p) => [p.id, p.sponsor]));
+    expect(byId['mudd-entrance']).toBe('Columbia Engineering');
+    expect(byId['apollo-theater']).toBeNull();
   });
 
   it('includes the rarity ladder and supply', async () => {

@@ -68,6 +68,23 @@ describe('PLACES', () => {
     }
   );
 
+  it('names a sponsor for every civic bounty and none for stamp-only places', () => {
+    for (const place of PLACES) {
+      if (place.kind === 'civic') {
+        expect(place.sponsor).toEqual(expect.any(String));
+        expect(place.sponsor!.length).toBeGreaterThan(0);
+      } else {
+        expect(place.sponsor).toBeNull();
+      }
+    }
+  });
+
+  it('gives every place a photo hint for the photo check', () => {
+    for (const place of PLACES) {
+      expect(place.photoHint.length).toBeGreaterThan(20);
+    }
+  });
+
   it('has a reference pin for every place', () => {
     expect(Object.keys(REFERENCE).sort()).toEqual(PLACES.map((p) => p.id).sort());
   });
