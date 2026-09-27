@@ -1,4 +1,5 @@
 import { AgentProposal, PayoutAgent } from '../../src/agent/types';
+import { FakeReviewer } from '../../src/agent/fakeReviewer';
 import { Orchestrator } from '../../src/orchestrator/orchestrator';
 import { Place, SubmissionInput } from '../../src/orchestrator/types';
 import { FakeSentinel } from '../../src/sentinel/fakeSentinel';
@@ -43,6 +44,7 @@ function build(options: { agent?: PayoutAgent; sentinel?: FakeSentinel; isTestMo
   const orchestrator = new Orchestrator({
     sentinel: options.sentinel ?? new FakeSentinel(),
     agent: options.agent ?? agentProposing(good),
+    reviewer: new FakeReviewer(),
     xrpl,
     solana,
     storage,
@@ -63,10 +65,12 @@ describe('Orchestrator audit trail', () => {
     const result = await orchestrator.runSubmission(submission);
 
     expect(shape(storage, result.decisionId)).toEqual([
+      ['solvency', true],
       ['sentinel', true],
       ['claim', true],
       ['agent', true],
       ['policy', true],
+      ['review', true],
       ['xrpl', true],
       ['solana', true],
     ]);
@@ -77,10 +81,11 @@ describe('Orchestrator audit trail', () => {
     const result = await orchestrator.runSubmission(submission);
     const messages = storage.getAuditEvents(result.decisionId).map((e) => e.message);
 
-    expect(messages[2]).toBe('proposed 2 RLUSD to rUser: nice visit');
-    expect(messages[3]).toContain('proposal allowed');
-    expect(messages[4]).toContain(`paid 2 RLUSD to rUser, transaction ${result.xrplTxHash}`);
-    expect(messages[5]).toBe(`stamp minted: ${result.solanaAssetAddress}`);
+    expect(messages[3]).toBe('proposed 2 RLUSD to rUser: nice visit');
+    expect(messages[4]).toContain('proposal allowed');
+    expect(messages[5]).toBe('reviewer approved 2 RLUSD: within the allowed range of the base reward');
+    expect(messages[6]).toContain(`paid 2 RLUSD to rUser, transaction ${result.xrplTxHash}`);
+    expect(messages[7]).toBe(`stamp minted: ${result.solanaAssetAddress}`);
   });
 
   it('records one failing entry per Sentinel failure and stops there', async () => {
@@ -90,6 +95,7 @@ describe('Orchestrator audit trail', () => {
     const result = await orchestrator.runSubmission(submission);
 
     expect(storage.getAuditEvents(result.decisionId)).toEqual([
+      { layer: 'solvency', passed: true, message: expect.any(String) },
       { layer: 'sentinel', passed: false, message: 'location: 900m away' },
       { layer: 'sentinel', passed: false, message: 'freshness: photo too old' },
     ]);
@@ -109,12 +115,13 @@ describe('Orchestrator audit trail', () => {
     const result = await orchestrator.runSubmission(submission);
 
     const events = storage.getAuditEvents(result.decisionId);
-    expect(events.slice(0, 3).map((e) => [e.layer, e.passed])).toEqual([
+    expect(events.slice(0, 4).map((e) => [e.layer, e.passed])).toEqual([
+      ['solvency', true],
       ['sentinel', true],
       ['claim', true],
       ['agent', true],
     ]);
-    const policy = events.slice(3);
+    const policy = events.slice(4);
     expect(policy.every((e) => e.layer === 'policy' && !e.passed)).toBe(true);
     expect(policy.map((e) => e.message)).toEqual(result.reasons);
     expect(policy.map((e) => e.message)).toContain('per-task cap: asked for 50, max is 5');
@@ -134,15 +141,18 @@ describe('Orchestrator audit trail', () => {
     const result = await orchestrator.runSubmission(submission, { bypassPolicy: true });
 
     expect(shape(storage, result.decisionId)).toEqual([
+      ['solvency', true],
       ['sentinel', true],
       ['claim', true],
       ['agent', true],
       ['policy', true],
+      ['review', true],
       ['xrpl', false],
     ]);
     const events = storage.getAuditEvents(result.decisionId);
-    expect(events[3].message).toBe('skipped: test mode bypass');
-    expect(events[4].message).toContain('ledger rejected payment: tecPATH_PARTIAL');
+    expect(events[4].message).toBe('skipped: test mode bypass');
+    expect(events[5].message).toBe('skipped: test mode bypass');
+    expect(events[6].message).toContain('ledger rejected payment: tecPATH_PARTIAL');
   });
 
   it('records a failed stamp after a successful payment', async () => {
@@ -195,10 +205,12 @@ describe('Orchestrator audit trail', () => {
 
       expect(resumed.decisionId).toBe(stuck.decisionId);
       expect(shape(storage, stuck.decisionId)).toEqual([
+        ['solvency', true],
         ['sentinel', true],
         ['claim', true],
         ['agent', true],
         ['policy', true],
+        ['review', true],
         ['xrpl', false],
         ['orchestrator', true],
         ['xrpl', true],

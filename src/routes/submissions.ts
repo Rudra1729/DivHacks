@@ -17,7 +17,7 @@ import { parseLocationTrail } from '../validation/locationTrail';
 import { Orchestrator } from '../orchestrator/orchestrator';
 import { DecisionStatus } from '../orchestrator/types';
 import { withLock } from '../claims/lock';
-import { isPolicyBypassEnabled } from '../testMode/attackFlag';
+import { getForcedProposal, isPolicyBypassEnabled } from '../testMode/attackFlag';
 import { publishEvent } from '../events/bus';
 import { asyncHandler } from './asyncHandler';
 
@@ -27,13 +27,17 @@ Typed over every DecisionStatus so adding a new status without deciding its
 HTTP status is a compile error. PAYMENT_UNCONFIRMED is 202 because the payment
 may still land: the client should resend the same request ID to re-check it.
 PAYMENT_FAILED is 502 because nothing was paid and the payment service failed.
+BLOCKED_SOLVENCY is 503 because the agent wallet cannot back the reward right
+now, which is temporary: nothing was used up, so the visitor can try again.
 */
 export const HTTP_STATUS_BY_DECISION: Record<DecisionStatus, number> = {
   OK: 202,
   STAMP_FAILED: 202,
   PAYMENT_UNCONFIRMED: 202,
+  BLOCKED_SOLVENCY: 503,
   BLOCKED_SENTINEL: 422,
   BLOCKED_POLICY: 422,
+  BLOCKED_REVIEW: 422,
   REJECTED_BY_LEDGER: 402,
   PAYMENT_FAILED: 502,
 };
@@ -85,7 +89,7 @@ export function createSubmissionsRouter(config: AppConfig, orchestrator: Orchest
           caption: typeof req.body.caption === 'string' ? req.body.caption : undefined,
           locationTrail: locationTrail.ok ? locationTrail.trail : undefined,
         },
-        { bypassPolicy: isPolicyBypassEnabled() }
+        { bypassPolicy: isPolicyBypassEnabled(), forceProposal: getForcedProposal() }
       )
     );
 
