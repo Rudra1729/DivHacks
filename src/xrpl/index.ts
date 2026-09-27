@@ -13,6 +13,7 @@ Example:
 
 import { loadXrplConfig } from './config';
 import { fakePaymentService } from './fakePayments';
+import { realPaymentService } from './payments';
 import { PaymentService, SendPaymentInput, SendPaymentResult } from './types';
 
 export type { PaymentFailureReason, SendPaymentInput, SendPaymentResult } from './types';
@@ -26,10 +27,7 @@ Raises:
     XrplConfigError: If the XRPL config is invalid.
 */
 function activeService(): PaymentService {
-  if (loadXrplConfig().mode === 'real') {
-    throw new Error('XRPL_MODE=real is not implemented yet');
-  }
-  return fakePaymentService;
+  return loadXrplConfig().mode === 'real' ? realPaymentService : fakePaymentService;
 }
 
 /** Pay a reward in RLUSD from the agent wallet.
