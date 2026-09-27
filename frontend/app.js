@@ -123,12 +123,179 @@ let selectedNodeId = 'apollo-theater';
 let activeWebAnimations = [];
 let attackModeActive = false;
 
+/* ==========================================================================
+   EMAIL OTP AUTH & CUSTODIAL WALLET LOGIN
+   ========================================================================== */
+
+const API_BASE_URL = 'http://localhost:3000';
+const AUTH_STORAGE_KEY = 'spideyverse.auth';
+
+let currentAuth = null; // { token, user: { id, email, xrplAddress, solanaAddress } }
+let pendingLoginEmail = null;
+
+function loadStoredAuth() {
+  try {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    currentAuth = raw ? JSON.parse(raw) : null;
+  } catch {
+    currentAuth = null;
+  }
+}
+
+function saveAuth(token, user) {
+  currentAuth = { token, user };
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(currentAuth));
+}
+
+function clearAuth() {
+  currentAuth = null;
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+}
+
+function isLoggedIn() {
+  return Boolean(currentAuth && currentAuth.token);
+}
+
+/** Reflects login state on the navbar button and pre-fills the submission
+form's wallet fields with the logged-in user's real, custodial addresses. */
+function updateWalletUI() {
+  const btnText = document.getElementById('walletBtnText');
+  if (!btnText) return;
+
+  if (isLoggedIn()) {
+    btnText.innerText = currentAuth.user.email;
+    const xrplInput = document.getElementById('xrplAddressInput');
+    const solanaInput = document.getElementById('solanaAddressInput');
+    if (xrplInput) {
+      xrplInput.value = currentAuth.user.xrplAddress;
+      xrplInput.readOnly = true;
+    }
+    if (solanaInput) {
+      solanaInput.value = currentAuth.user.solanaAddress;
+      solanaInput.readOnly = true;
+    }
+  } else {
+    btnText.innerText = 'CONNECT WALLET';
+  }
+}
+
+function showLoginError(message) {
+  const errorText = document.getElementById('loginErrorText');
+  if (!errorText) return;
+  errorText.innerText = message;
+  errorText.style.display = message ? 'block' : 'none';
+}
+
+function openLoginModal() {
+  showLoginError('');
+  document.getElementById('loginEmailForm').style.display = 'block';
+  document.getElementById('loginCodeForm').style.display = 'none';
+  document.getElementById('loginEmailInput').value = '';
+  document.getElementById('loginModal')?.classList.add('open');
+}
+
+function closeLoginModal() {
+  document.getElementById('loginModal')?.classList.remove('open');
+}
+
+async function requestLoginCode(email) {
+  const response = await fetch(`${API_BASE_URL}/auth/request-code`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error((body.errors && body.errors[0]) || 'Could not send login code.');
+  }
+}
+
+async function verifyLoginCode(email, code) {
+  const response = await fetch(`${API_BASE_URL}/auth/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code })
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error((body.errors && body.errors[0]) || 'Incorrect code.');
+  }
+  return body;
+}
+
+function setupAuthEventListeners() {
+  document.getElementById('connectWalletBtn')?.addEventListener('click', () => {
+    if (isLoggedIn()) {
+      if (confirm(`Logged in as ${currentAuth.user.email}. Log out?`)) {
+        clearAuth();
+        updateWalletUI();
+        setSpideyBotState('ready', '"Logged out. Come back anytime, Hero!"');
+      }
+      return;
+    }
+    openLoginModal();
+  });
+
+  document.getElementById('closeLoginModalBtn')?.addEventListener('click', closeLoginModal);
+
+  document.getElementById('loginEmailForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmailInput').value.trim();
+    const sendBtn = document.getElementById('sendCodeBtn');
+    showLoginError('');
+    sendBtn.disabled = true;
+    try {
+      await requestLoginCode(email);
+      pendingLoginEmail = email;
+      document.getElementById('loginCodeEmailLabel').innerText = email;
+      document.getElementById('loginEmailForm').style.display = 'none';
+      document.getElementById('loginCodeForm').style.display = 'block';
+      document.getElementById('loginCodeInput').value = '';
+      document.getElementById('loginCodeInput').focus();
+    } catch (error) {
+      showLoginError(error.message);
+    } finally {
+      sendBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('loginCodeForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = document.getElementById('loginCodeInput').value.trim();
+    const verifyBtn = document.getElementById('verifyCodeBtn');
+    showLoginError('');
+    verifyBtn.disabled = true;
+    try {
+      const { token, user } = await verifyLoginCode(pendingLoginEmail, code);
+      saveAuth(token, user);
+      updateWalletUI();
+      closeLoginModal();
+      setSpideyBotState('approved', `"Welcome back, Hero! Logged in as ${user.email}. Your Solana and RLUSD wallets are ready."`);
+    } catch (error) {
+      showLoginError(error.message);
+    } finally {
+      verifyBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('loginBackLink')?.addEventListener('click', () => {
+    showLoginError('');
+    document.getElementById('loginCodeForm').style.display = 'none';
+    document.getElementById('loginEmailForm').style.display = 'block';
+  });
+}
+
 // DOM READY INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize Lucide Icons
   if (window.lucide) {
     lucide.createIcons();
   }
+
+  // Restore login session, if any, and reflect it in the navbar
+  loadStoredAuth();
+  updateWalletUI();
+  setupAuthEventListeners();
 
   // Setup Canvas & Spiderweb
   initSpiderwebCanvas();
@@ -665,6 +832,12 @@ function setupEventListeners() {
 }
 
 function openSubmissionModal(placeId) {
+  if (!isLoggedIn()) {
+    setSpideyBotState('sentinel_blocked', '"Hold up, Hero! Log in with your email first so I know which wallets to reward."');
+    openLoginModal();
+    return;
+  }
+
   selectedNodeId = placeId;
   const place = PLACES.find(p => p.id === placeId);
   if (place) {
