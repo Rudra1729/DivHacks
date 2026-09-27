@@ -14,9 +14,27 @@ import { randomUUID } from 'crypto';
 import { AppConfig } from '../config';
 import { validateSubmission } from '../validation/submission';
 import { Orchestrator } from '../orchestrator/orchestrator';
+import { DecisionStatus } from '../orchestrator/types';
 import { withLock } from '../claims/lock';
 import { isPolicyBypassEnabled } from '../testMode/attackFlag';
 import { publishEvent } from '../events/bus';
+
+/** HTTP status for each way a submission can end.
+
+Typed over every DecisionStatus so adding a new status without deciding its
+HTTP status is a compile error. PAYMENT_UNCONFIRMED is 202 because the payment
+may still land: the client should resend the same request ID to re-check it.
+PAYMENT_FAILED is 502 because nothing was paid and the payment service failed.
+*/
+export const HTTP_STATUS_BY_DECISION: Record<DecisionStatus, number> = {
+  OK: 202,
+  STAMP_FAILED: 202,
+  PAYMENT_UNCONFIRMED: 202,
+  BLOCKED_SENTINEL: 422,
+  BLOCKED_POLICY: 422,
+  REJECTED_BY_LEDGER: 402,
+  PAYMENT_FAILED: 502,
+};
 
 /** Build the /submissions router.
 
@@ -73,15 +91,7 @@ export function createSubmissionsRouter(config: AppConfig, orchestrator: Orchest
       message: decision.reasons.join('; ') || decision.status,
     });
 
-    const statusCode: Record<string, number> = {
-      OK: 202,
-      BLOCKED_SENTINEL: 422,
-      BLOCKED_POLICY: 422,
-      REJECTED_BY_LEDGER: 402,
-      STAMP_FAILED: 202,
-    };
-
-    res.status(statusCode[decision.status] ?? 500).json(decision);
+    res.status(HTTP_STATUS_BY_DECISION[decision.status]).json(decision);
   });
 
   return router;
