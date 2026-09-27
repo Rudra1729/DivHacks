@@ -6,17 +6,20 @@ before devnet minting is ready. Stamps live only for the life of the process.
 
 import { loadSolanaConfig } from './config';
 import { findPlace } from './places';
+import { tierForSerial } from './rarity';
 import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 
 /** Fake stamp service that stores stamps in a Map keyed by owner.
 
 Attributes:
     stampsByOwner (Map<string, Stamp[]>): Minted stamps per wallet.
+    stampsPerPlace (Map<string, number>): Stamps minted per place, used for serials.
     mintCount (number): Number of successful fake mints, used for fake IDs.
     failMints (boolean): When true, every mint fails.
 */
 export class FakeStampService implements StampService {
   private stampsByOwner = new Map<string, Stamp[]>();
+  private stampsPerPlace = new Map<string, number>();
   private mintCount = 0;
   private failMints = false;
 
@@ -38,7 +41,8 @@ export class FakeStampService implements StampService {
       input (MintStampInput): Decision, place, wallet, and XRPL hash.
 
   Returns:
-      Promise<MintStampResult>: A fake asset address and signature, or an error.
+      Promise<MintStampResult>: A fake asset address, signature, serial, and
+          tier, or an error.
   */
   async mintStamp(input: MintStampInput): Promise<MintStampResult> {
     const config = loadSolanaConfig();
@@ -47,6 +51,9 @@ export class FakeStampService implements StampService {
     }
 
     this.mintCount += 1;
+    const serial = (this.stampsPerPlace.get(input.placeId) ?? 0) + 1;
+    this.stampsPerPlace.set(input.placeId, serial);
+    const tier = tierForSerial(serial);
     const assetAddress = `fake-asset-${this.mintCount}`;
     const place = findPlace(input.placeId);
     const stamp: Stamp = {
@@ -59,11 +66,13 @@ export class FakeStampService implements StampService {
       neighborhood: place?.neighborhood ?? 'unknown',
       decisionId: input.decisionId,
       xrplTxHash: input.xrplTxHash,
+      serial,
+      tier,
     };
 
     const owned = this.stampsByOwner.get(input.userSolanaAddress) ?? [];
     this.stampsByOwner.set(input.userSolanaAddress, [...owned, stamp]);
-    return { ok: true, assetAddress, signature: `fake-signature-${this.mintCount}` };
+    return { ok: true, assetAddress, signature: `fake-signature-${this.mintCount}`, serial, tier };
   }
 
   /** Check whether a wallet holds a fake stamp for a place.
@@ -95,6 +104,7 @@ export class FakeStampService implements StampService {
   /** Forget every fake stamp and stop failing mints. Used between tests. */
   reset(): void {
     this.stampsByOwner.clear();
+    this.stampsPerPlace.clear();
     this.mintCount = 0;
     this.failMints = false;
   }

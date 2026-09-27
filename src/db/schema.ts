@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS decisions (
   xrpl_result TEXT,
   solana_asset TEXT,
   solana_signature TEXT,
+  stamp_serial INTEGER,
+  stamp_tier TEXT,
   stamp_failed INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
@@ -73,3 +75,10 @@ CREATE INDEX IF NOT EXISTS idx_claims_place_id ON claims(place_id);
 CREATE INDEX IF NOT EXISTS idx_claims_xrpl_address ON claims(xrpl_address);
 CREATE INDEX IF NOT EXISTS idx_claims_solana_address ON claims(solana_address);
 `;
+
+/** Columns added to decisions after the first release, as [name, type].
+Databases created before they existed get them on open. */
+export const ADDED_DECISION_COLUMNS: ReadonlyArray<[string, string]> = [
+  ['stamp_serial', 'INTEGER'],
+  ['stamp_tier', 'TEXT'],
+];

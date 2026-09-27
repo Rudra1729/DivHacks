@@ -25,7 +25,7 @@ describe('fake stamps', () => {
 
   it('mints a stamp and reads it back with the decision ID', async () => {
     const result = await mintStamp(input);
-    expect(result.ok).toBe(true);
+    expect(result).toMatchObject({ ok: true, serial: 1, tier: 'Legendary' });
 
     const stamps = await getStamps('user-wallet');
     expect(stamps).toHaveLength(1);
@@ -54,6 +54,39 @@ describe('fake stamps', () => {
 
     solana.setFailMints(false);
     expect((await solana.mintStamp(input)).ok).toBe(true);
+  });
+
+  it('numbers stamps per place so the first finder gets serial 1 and the Legendary tier', async () => {
+    await mintStamp(input);
+    await mintStamp({ ...input, decisionId: 'dec-2', userSolanaAddress: 'second-wallet' });
+    await mintStamp({ ...input, decisionId: 'dec-3', placeId: 'other-place' });
+
+    expect((await getStamps('user-wallet')).map((stamp) => [stamp.placeId, stamp.serial, stamp.tier])).toEqual([
+      ['apollo-theater', 1, 'Legendary'],
+      ['other-place', 1, 'Legendary'],
+    ]);
+    expect(await getStamps('second-wallet')).toEqual([
+      expect.objectContaining({ placeId: 'apollo-theater', serial: 2, tier: 'Legendary' }),
+    ]);
+  });
+
+  it('does not use up a serial when a mint fails', async () => {
+    const solana = new FakeStampService();
+    solana.setFailMints(true);
+    await solana.mintStamp(input);
+    solana.setFailMints(false);
+    await solana.mintStamp(input);
+
+    expect((await solana.getStamps('user-wallet'))[0].serial).toBe(1);
+  });
+
+  it('moves to the Epic tier after the tenth stamp for a place', async () => {
+    for (let i = 1; i <= 11; i++) {
+      await mintStamp({ ...input, decisionId: `dec-${i}`, userSolanaAddress: `wallet-${i}` });
+    }
+
+    expect((await getStamps('wallet-10'))[0]).toMatchObject({ serial: 10, tier: 'Legendary' });
+    expect((await getStamps('wallet-11'))[0]).toMatchObject({ serial: 11, tier: 'Epic' });
   });
 
   it('exposes the same functions as an injectable solanaStamps object', async () => {

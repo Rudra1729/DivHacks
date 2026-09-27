@@ -3,20 +3,34 @@
 Each stamp is minted straight into the user's wallet inside its
 neighborhood collection, with a PermanentFreezeDelegate plugin that has no
 authority, so nobody can ever unfreeze or transfer it. Place, neighborhood,
-decision ID, and XRPL hash are stored on chain in an Attributes plugin, so
-reads do not depend on the metadata server.
+decision ID, XRPL hash, serial, and rarity tier are stored on chain in an
+Attributes plugin, so reads do not depend on the metadata server.
+
+Serials count stamps per place in the order they are found. They are worked
+out from chain inside the mint queue, so anyone can recount them.
 */
 
 import { PublicKey, Umi, generateSigner, publicKey } from '@metaplex-foundation/umi';
 import { base58 } from '@metaplex-foundation/umi/serializers';
-import { AssetV1, Key, create, getAssetV1GpaBuilder } from '@metaplex-foundation/mpl-core';
+import {
+  AssetV1,
+  Key,
+  create,
+  fetchAssetsByCollection,
+  getAssetV1GpaBuilder,
+} from '@metaplex-foundation/mpl-core';
 import { getSolanaClient } from './client';
 import { SolanaConfig, loadSolanaConfig } from './config';
 import { mintQueue, withOneRetry } from './mintQueue';
 import { StampPlace, collectionForPlace, findPlace } from './places';
+import { STAMP_SUPPLY_PER_PLACE, tierForSerial } from './rarity';
 import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 
 const MAX_NAME_LENGTH = 32;
+
+/** Highest serial this process has minted per place. Covers an RPC read that
+lags behind a mint that just confirmed. */
+const lastSerialByPlace = new Map<string, number>();
 
 /** Turn any thrown value into a readable message.
 
@@ -78,18 +92,72 @@ async function sendAndConfirm(
   }
 }
 
+/** Count the stamps already minted for a place, straight from chain.
+
+Args:
+    umi (Umi): Solana client.
+    collection (PublicKey): The place's neighborhood collection.
+    placeId (string): Place to count.
+
+Returns:
+    Promise<number>: Stamps in the collection whose placeId attribute matches.
+*/
+async function countStampsForPlace(umi: Umi, collection: PublicKey, placeId: string): Promise<number> {
+  const assets = await fetchAssetsByCollection(umi, collection, { skipDerivePlugins: true });
+  return assets.filter((asset) =>
+    (asset.attributes?.attributeList ?? []).some(
+      (attribute) => attribute.key === 'placeId' && attribute.value === placeId
+    )
+  ).length;
+}
+
+/** Work out the serial for the next stamp at a place.
+
+Must run inside the mint queue, so no other mint can take the same serial.
+
+Args:
+    umi (Umi): Solana client.
+    collection (PublicKey): The place's neighborhood collection.
+    placeId (string): Place being stamped.
+
+Returns:
+    Promise<number>: One more than the stamps already found for the place.
+
+Raises:
+    Error: If the RPC read fails twice.
+*/
+async function nextSerial(umi: Umi, collection: PublicKey, placeId: string): Promise<number> {
+  const onChain = await withOneRetry(() => countStampsForPlace(umi, collection, placeId));
+  return Math.max(onChain, lastSerialByPlace.get(placeId) ?? 0) + 1;
+}
+
+/** Build a stamp name like "Apollo Theater #37" that fits the on-chain limit.
+
+Args:
+    placeName (string): The place's display name.
+    serial (number): The stamp's serial.
+
+Returns:
+    string: The name, with the place name shortened if needed.
+*/
+export function stampName(placeName: string, serial: number): string {
+  const suffix = ` #${serial}`;
+  return `${placeName.slice(0, MAX_NAME_LENGTH - suffix.length).trimEnd()}${suffix}`;
+}
+
 /** Mint a stamp for a place that has already been looked up.
 
 Runs inside the shared mint queue and retries once. The retry reuses the
-same asset address, and first checks whether the first attempt actually
-landed, so a slow confirmation never mints a second stamp.
+same asset address and serial, and first checks whether the first attempt
+actually landed, so a slow confirmation never mints a second stamp.
 
 Args:
     input (MintStampInput): Decision, place, wallet, and XRPL hash.
     place (StampPlace): The place being stamped.
 
 Returns:
-    Promise<MintStampResult>: Asset address and signature, or an error message.
+    Promise<MintStampResult>: Asset address, signature, serial, and tier, or
+        an error message.
 */
 export function mintStampForPlace(input: MintStampInput, place: StampPlace): Promise<MintStampResult> {
   return mintQueue.run(async () => {
@@ -98,6 +166,8 @@ export function mintStampForPlace(input: MintStampInput, place: StampPlace): Pro
       const umi = getSolanaClient();
       const owner = parseAddress(input.userSolanaAddress, 'Solana address');
       const collection = parseAddress(collectionForPlace(config, place), 'collection address');
+      const serial = await nextSerial(umi, collection, place.id);
+      const tier = tierForSerial(serial);
       const asset = generateSigner(umi);
       let signature = '';
 
@@ -112,10 +182,11 @@ export function mintStampForPlace(input: MintStampInput, place: StampPlace): Pro
           asset,
           collection: { publicKey: collection },
           owner,
-          name: place.name.slice(0, MAX_NAME_LENGTH),
+          name: stampName(place.name, serial),
           uri: `${config.metadataBaseUrl}/${input.decisionId}`,
           plugins: [
             { type: 'PermanentFreezeDelegate', frozen: true, authority: { type: 'None' } },
+            { type: 'Edition', number: serial },
             {
               type: 'Attributes',
               attributeList: [
@@ -123,6 +194,9 @@ export function mintStampForPlace(input: MintStampInput, place: StampPlace): Pro
                 { key: 'neighborhood', value: place.neighborhood },
                 { key: 'decisionId', value: input.decisionId },
                 { key: 'xrplTxHash', value: input.xrplTxHash },
+                { key: 'serial', value: String(serial) },
+                { key: 'tier', value: tier },
+                { key: 'supply', value: String(STAMP_SUPPLY_PER_PLACE) },
               ],
             },
           ],
@@ -132,11 +206,25 @@ export function mintStampForPlace(input: MintStampInput, place: StampPlace): Pro
         });
       });
 
-      return { ok: true, assetAddress: asset.publicKey, signature };
+      lastSerialByPlace.set(place.id, serial);
+      return { ok: true, assetAddress: asset.publicKey, signature, serial, tier };
     } catch (error) {
       return { ok: false, error: `stamp mint failed: ${describeError(error)}` };
     }
   });
+}
+
+/** Parse a serial attribute read from chain.
+
+Args:
+    value (string | undefined): The attribute value, if present.
+
+Returns:
+    number | null: The serial, or null if missing or not a positive whole number.
+*/
+function parseSerial(value: string | undefined): number | null {
+  const serial = Number(value);
+  return value && Number.isInteger(serial) && serial > 0 ? serial : null;
 }
 
 /** Convert an on-chain asset into a Stamp.
@@ -145,12 +233,14 @@ Args:
     asset (AssetV1): Asset fetched from chain.
 
 Returns:
-    Stamp: The stamp fields, with empty strings for missing attributes.
+    Stamp: The stamp fields, with empty strings for missing attributes and
+        null serial and tier for stamps minted before rarity existed.
 */
 function toStamp(asset: AssetV1): Stamp {
   const attributes = new Map(
     (asset.attributes?.attributeList ?? []).map((attribute) => [attribute.key, attribute.value])
   );
+  const serial = parseSerial(attributes.get('serial'));
   return {
     assetAddress: asset.publicKey,
     owner: asset.owner,
@@ -161,6 +251,8 @@ function toStamp(asset: AssetV1): Stamp {
     neighborhood: attributes.get('neighborhood') ?? '',
     decisionId: attributes.get('decisionId') ?? '',
     xrplTxHash: attributes.get('xrplTxHash') ?? '',
+    serial,
+    tier: serial === null ? null : tierForSerial(serial),
   };
 }
 

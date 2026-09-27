@@ -5,5 +5,5 @@ import path. SOLANA_MODE picks the implementation: 'fake' (default) keeps
 stamps in memory, 'real' mints and reads soulbound stamps on devnet.
 */
 
-export { getStamps, hasStampForPlace, mintStamp } from '../solana';
-export type { MintStampInput, MintStampResult, Stamp } from '../solana';
+export { STAMP_SUPPLY_PER_PLACE, getStamps, hasStampForPlace, isFoundOut, mintStamp } from '../solana';
+export type { MintStampInput, MintStampResult, Stamp, StampTier } from '../solana';

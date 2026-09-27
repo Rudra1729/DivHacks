@@ -150,14 +150,33 @@ export interface MintStampInput {
   xrplTxHash: string;
 }
 
+export type StampTier = 'Legendary' | 'Epic' | 'Rare' | 'Common' | 'Late Explorer';
+
 export type MintStampResult =
-  | { ok: true; assetAddress: string; signature: string }
+  | { ok: true; assetAddress: string; signature: string; serial: number; tier: StampTier }
   | { ok: false; error: string };
 
 export function mintStamp(input: MintStampInput): Promise<MintStampResult>;
 export function hasStampForPlace(solanaAddress: string, placeId: string): Promise<boolean>;
 export function getStamps(solanaAddress: string): Promise<Stamp[]>;
 ```
+
+Stamp rarity is decided by the order stamps are found at each place. Each
+place has 1000 numbered stamps, and the serial alone picks the tier:
+
+| Serials | Tier |
+|---|---|
+| 1 to 10 | Legendary |
+| 11 to 100 | Epic |
+| 101 to 400 | Rare |
+| 401 to 1000 | Common |
+| 1001 and up | Late Explorer |
+
+Serials are counted from chain inside the mint queue, so anyone can recount
+them. Late Explorer stamps have no limit, because the reward is paid before
+the stamp is minted. Serial and tier are stored as stamp attributes, on the
+decision row, and on the metadata page. Stamps minted before rarity have
+`serial` and `tier` set to `null`.
 
 Open item: ask Junaid for the metadata URL pattern (for example
 `GET /metadata/:decisionId`). Until he answers, use a `METADATA_BASE_URL`

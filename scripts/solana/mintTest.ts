@@ -3,7 +3,7 @@
 Run with `npm run solana:mint-test` after `npm run solana:setup` and after
 copying the collection addresses into .env. Checks the per-owner acceptance
 criteria from the PRD: the stamp is frozen, and it reads back with the right
-place and decision ID.
+place and decision ID. Also checks the stamp's serial and rarity tier.
 
 Usage:
     npm run solana:mint-test -- [placeId] [xrplTxHash]
@@ -40,7 +40,7 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
-  console.log(`Minted ${result.assetAddress}`);
+  console.log(`Minted ${result.assetAddress}: ${place.name} #${result.serial}, ${result.tier}`);
   console.log(`Transaction: ${explorerTxUrl(result.signature)}`);
 
   const asset = await fetchAsset(umi, result.assetAddress);
@@ -54,6 +54,8 @@ async function main(): Promise<void> {
     ['owner is demo-1', asset.owner === demoUser],
     ['read back with the right place', stamp?.placeId === place.id],
     ['read back with the right decision ID', stamp?.decisionId === decisionId],
+    ['read back with the same serial and tier', stamp?.serial === result.serial && stamp?.tier === result.tier],
+    ['edition number matches the serial', asset.edition?.number === result.serial],
     ['already-has-stamp check is true', hasStamp],
   ];
   for (const [label, passed] of checks) {

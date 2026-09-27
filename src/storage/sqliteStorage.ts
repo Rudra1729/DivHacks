@@ -59,6 +59,8 @@ function toDecisionResult(decision: Decision): DecisionResult {
     xrplResultCode: decision.xrplResult ?? undefined,
     solanaAssetAddress: decision.solanaAsset ?? undefined,
     solanaSignature: decision.solanaSignature ?? undefined,
+    stampSerial: decision.stampSerial ?? undefined,
+    stampTier: decision.stampTier ?? undefined,
     stampFailed: decision.stampFailed,
   };
 }
@@ -144,6 +146,8 @@ export class SqliteStorage implements StorageLayer {
       xrplResult: decision.xrplResultCode ?? null,
       solanaAsset: decision.solanaAssetAddress ?? null,
       solanaSignature: decision.solanaSignature ?? null,
+      stampSerial: decision.stampSerial ?? null,
+      stampTier: decision.stampTier ?? null,
       stampFailed: decision.stampFailed,
     });
   }

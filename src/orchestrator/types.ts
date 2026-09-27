@@ -65,6 +65,10 @@ export interface DecisionResult {
   xrplResultCode?: string;
   solanaAssetAddress?: string;
   solanaSignature?: string;
+  /** The stamp's position among stamps for its place, from 1. */
+  stampSerial?: number;
+  /** Rarity tier picked by the stamp's serial, e.g. "Legendary". */
+  stampTier?: string;
   /** True when payment succeeded but the stamp mint failed and was queued. */
   stampFailed: boolean;
 }
