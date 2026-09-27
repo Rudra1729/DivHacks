@@ -16,7 +16,8 @@ import { fakeStampService } from './fakeStamps';
 import { realStampService } from './stamps';
 import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 
-export type { MintStampInput, MintStampResult, Stamp } from './types';
+export type { MintStampInput, MintStampResult, Stamp, StampService } from './types';
+export { FakeStampService } from './fakeStamps';
 
 /** Pick the stamp service for the current SOLANA_MODE.
 
