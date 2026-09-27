@@ -23,6 +23,16 @@ describe('fake stamps', () => {
     process.env = originalEnv;
   });
 
+  it('mints the fixed tier at a place that has one', async () => {
+    const epic = await mintStamp({ ...input, placeId: 'mudd-building' });
+    expect(epic).toMatchObject({ ok: true, serial: 1, tier: 'Epic' });
+  });
+
+  it('mints a civic bounty stamp with a serial but no tier', async () => {
+    const bounty = await mintStamp({ ...input, decisionId: 'dec-2', placeId: 'mudd-entrance' });
+    expect(bounty).toMatchObject({ ok: true, serial: 1, tier: null });
+  });
+
   it('mints a stamp and reads it back with the decision ID', async () => {
     const result = await mintStamp(input);
     expect(result).toMatchObject({ ok: true, serial: 1, tier: 'Legendary' });

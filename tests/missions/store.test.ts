@@ -1,7 +1,7 @@
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { appendGeneratedMissions, readGeneratedMissions, uniquePlaceId } from '../../src/missions/store';
+import { appendGeneratedMissions, clearGeneratedMissions, readGeneratedMissions, uniquePlaceId } from '../../src/missions/store';
 import { MissionCandidate } from '../../src/missions/types';
 
 const candidate = (overrides: Partial<MissionCandidate> = {}): MissionCandidate => ({
@@ -103,5 +103,47 @@ describe('generated missions store', () => {
     const second = appendGeneratedMissions([candidate()], new Set(['city-reliquary']), path);
 
     expect(second[0].id).toBe('city-reliquary-2');
+  });
+});
+
+describe('clearGeneratedMissions', () => {
+  let dir: string;
+  let path: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'webpass-missions-'));
+    path = join(dir, 'generated-missions.json');
+    appendGeneratedMissions([candidate(), candidate({ name: 'Wave Hill' })], new Set(), path);
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('removes every generated mission when no IDs are given', () => {
+    const removed = clearGeneratedMissions([], path);
+
+    expect(removed.map((m) => m.id)).toEqual(['city-reliquary', 'wave-hill']);
+    expect(readGeneratedMissions(path)).toEqual([]);
+    expect(readFileSync(path, 'utf8')).toBe('[]\n');
+  });
+
+  it('removes only the given IDs and keeps the rest', () => {
+    const removed = clearGeneratedMissions(['wave-hill'], path);
+
+    expect(removed.map((m) => m.id)).toEqual(['wave-hill']);
+    expect(readGeneratedMissions(path).map((m) => m.id)).toEqual(['city-reliquary']);
+  });
+
+  it('removes nothing for an unknown ID', () => {
+    expect(clearGeneratedMissions(['not-a-mission'], path)).toEqual([]);
+    expect(readGeneratedMissions(path)).toHaveLength(2);
+  });
+
+  it('frees the ID so the same place can be scouted again under its old ID', () => {
+    clearGeneratedMissions([], path);
+    const [again] = appendGeneratedMissions([candidate()], new Set(), path);
+
+    expect(again.id).toBe('city-reliquary');
   });
 });

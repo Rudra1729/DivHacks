@@ -15,6 +15,7 @@ PLACES directly keeps seeing exactly this fixed list.
 */
 
 import { readGeneratedMissions } from '../missions/store';
+import type { StampTier } from '../solana/rarity';
 
 /** Cultural visits earn only a stamp. Civic bounties also pay RLUSD. */
 export type PlaceKind = 'cultural' | 'civic';
@@ -36,6 +37,9 @@ export interface Place {
   sponsor: string | null;
   /** What a photo taken here shows. Given to Grok's photo check. */
   photoHint: string;
+  /** Tier every stamp here gets, whatever its serial. Unset means the serial picks the tier.
+      Ignored for civic places, whose stamps have no tier. */
+  fixedTier?: StampTier;
 }
 
 export const PLACES: Place[] = [
@@ -68,18 +72,18 @@ export const PLACES: Place[] = [
     photoHint: 'The Studio Museum in Harlem at 144 W 125th St: its modern facade, entrance, signage, or galleries.',
   },
   {
-    id: 'marcus-garvey-park',
-    name: 'Marcus Garvey Park',
+    id: 'butler-library',
+    name: 'Butler Library Ramps',
     kind: 'civic',
-    neighborhood: 'Harlem',
-    latitude: 40.8043,
-    longitude: -73.9439,
+    neighborhood: 'Morningside Heights',
+    latitude: 40.80639,
+    longitude: -73.96333,
     geofenceRadiusMeters: 150,
     baseRewardRlusd: 1,
     solanaCollectionAddress: null,
-    imageUrl: 'https://placehold.co/600x600/png?text=marcus+garvey+park',
-    sponsor: 'Marcus Garvey Park Alliance',
-    photoHint: 'Marcus Garvey Park in Harlem: a park entrance, path, wheelchair ramp, the fire watchtower, the amphitheater, lawns, or rocky outcrops.',
+    imageUrl: 'https://placehold.co/600x600/png?text=butler+library',
+    sponsor: 'Columbia University Libraries',
+    photoHint: "Butler Library at Columbia University, facing College Walk on W 114th St: its columned limestone facade with carved names, entrance steps, wheelchair ramps, doors, or accessibility signs.",
   },
   {
     id: 'hamilton-grange',
@@ -136,6 +140,7 @@ export const PLACES: Place[] = [
     imageUrl: 'https://placehold.co/600x600/png?text=mudd+building',
     sponsor: null,
     photoHint: 'The Seeley W. Mudd Building of Columbia Engineering, 500 W 120th St at Amsterdam Ave: its facade, signage, lobby, or halls.',
+    fixedTier: 'Epic',
   },
   {
     id: 'mudd-entrance',

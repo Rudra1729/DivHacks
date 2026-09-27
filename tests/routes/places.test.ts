@@ -32,7 +32,7 @@ describe('GET /places', () => {
     const places = await placesWith({ rewardScale: 0.01, culturalRewards: false });
     const byId = Object.fromEntries(places.map((p) => [p.id, p.rewardRlusd]));
     expect(byId['apollo-theater']).toBe(0);
-    expect(byId['marcus-garvey-park']).toBe(0.01);
+    expect(byId['butler-library']).toBe(0.01);
     expect(byId['mudd-entrance']).toBe(0.01);
   });
 
@@ -40,6 +40,7 @@ describe('GET /places', () => {
     const places = await placesWith({ rewardScale: 0.01, culturalRewards: false });
     const byId = Object.fromEntries(places.map((p) => [p.id, p.sponsor]));
     expect(byId['mudd-entrance']).toBe('Columbia Engineering');
+    expect(byId['butler-library']).toBe('Columbia University Libraries');
     expect(byId['apollo-theater']).toBeNull();
   });
 
@@ -54,6 +55,27 @@ describe('GET /places', () => {
       { tier: 'Common', fromSerial: 401, toSerial: 1000 },
       { tier: 'Late Explorer', fromSerial: 1001, toSerial: null },
     ]);
+  });
+
+  it('reports the fixed tier for places that have one', async () => {
+    const { app } = buildTestApp();
+    const response = await request(app).get('/places');
+    const byId = Object.fromEntries(
+      response.body.places.map((p: { id: string; fixedTier?: string; rarity: { nextTier: string } }) => [p.id, p])
+    );
+    expect(byId['mudd-building'].fixedTier).toBe('Epic');
+    expect(byId['mudd-building'].rarity.nextTier).toBe('Epic');
+  });
+
+  it('reports no tier for civic bounties', async () => {
+    const { app } = buildTestApp();
+    const response = await request(app).get('/places');
+    const civic = response.body.places.filter((p: { kind: string }) => p.kind === 'civic');
+    expect(civic.map((p: { id: string }) => p.id)).toEqual(expect.arrayContaining(['mudd-entrance', 'butler-library']));
+    for (const place of civic) {
+      expect(place.rarity.nextTier).toBeNull();
+      expect(place.fixedTier).toBeUndefined();
+    }
   });
 
   it('says the next stamp at an unvisited place is Legendary #1', async () => {

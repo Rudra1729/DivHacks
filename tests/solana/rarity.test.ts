@@ -1,6 +1,6 @@
 /**Tests for stamp rarity tiers decided by serial number.*/
 
-import { STAMP_SUPPLY_PER_PLACE, isFoundOut, tierForSerial } from '../../src/solana/rarity';
+import { STAMP_SUPPLY_PER_PLACE, isFoundOut, isStampTier, tierForPlace, tierForSerial } from '../../src/solana/rarity';
 
 describe('stamp rarity', () => {
   it.each([
@@ -20,6 +20,30 @@ describe('stamp rarity', () => {
 
   it.each([0, -1, 1.5, Number.NaN])('rejects the invalid serial %p', (serial) => {
     expect(() => tierForSerial(serial)).toThrow(RangeError);
+  });
+
+  it('gives every stamp at a fixed-tier place that tier, whatever the serial', () => {
+    expect(tierForPlace({ fixedTier: 'Epic' }, 1)).toBe('Epic');
+    expect(tierForPlace({ fixedTier: 'Legendary' }, 500)).toBe('Legendary');
+  });
+
+  it('falls back to the serial when a place has no fixed tier', () => {
+    expect(tierForPlace({}, 11)).toBe('Epic');
+    expect(tierForPlace({ kind: 'cultural' }, 11)).toBe('Epic');
+    expect(() => tierForPlace({ fixedTier: 'Epic' }, 0)).toThrow(RangeError);
+  });
+
+  it('gives civic bounties no tier, even with a fixed tier set', () => {
+    expect(tierForPlace({ kind: 'civic' }, 1)).toBeNull();
+    expect(tierForPlace({ kind: 'civic', fixedTier: 'Legendary' }, 1)).toBeNull();
+    expect(() => tierForPlace({ kind: 'civic' }, 0)).toThrow(RangeError);
+  });
+
+  it('recognizes tier names read from chain', () => {
+    expect(isStampTier('Legendary')).toBe(true);
+    expect(isStampTier('Late Explorer')).toBe(true);
+    expect(isStampTier('Mythic')).toBe(false);
+    expect(isStampTier(undefined)).toBe(false);
   });
 
   it('treats a place as found out once its supply is used up', () => {

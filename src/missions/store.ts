@@ -105,6 +105,28 @@ export function uniquePlaceId(name: string, existingIds: Set<string>): string {
   return `${base}-${n}`;
 }
 
+/** Remove generated missions from the store, all of them or only the given IDs.
+
+The fixed places in src/data/places.ts are never touched.
+
+Args:
+    ids (string[]): Mission IDs to remove. Empty removes every generated mission.
+    path (string): File to write. Defaults to generatedMissionsPath().
+
+Returns:
+    GeneratedMissionRecord[]: The missions that were removed.
+*/
+export function clearGeneratedMissions(ids: string[] = [], path: string = generatedMissionsPath()): GeneratedMissionRecord[] {
+  const existing = readGeneratedMissions(path);
+  const shouldRemove = (mission: GeneratedMissionRecord) => ids.length === 0 || ids.includes(mission.id);
+  const removed = existing.filter(shouldRemove);
+  const kept = existing.filter((mission) => !shouldRemove(mission));
+
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, JSON.stringify(kept, null, 2) + '\n');
+  return removed;
+}
+
 /** Append newly generated missions to the store.
 
 Args:

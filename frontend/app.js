@@ -31,18 +31,18 @@ const PLACES = [
     desc: 'Explore contemporary African-American art and culture at 144 W 125th St.'
   },
   {
-    id: 'marcus-garvey-park',
-    name: 'Marcus Garvey Park',
-    neighborhood: 'East Harlem',
-    x: 650,
+    id: 'butler-library',
+    name: 'Butler Library Ramps',
+    neighborhood: 'Morningside Heights',
+    x: 300,
     y: 320,
     radius: 150,
     rewardRlusd: 0.01,
     type: 'civic',
-    sponsor: 'Marcus Garvey Park Alliance',
+    sponsor: 'Columbia University Libraries',
     discovered: false,
-    image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=600&q=80',
-    desc: 'CIVIC MISSION: Inspect and verify wheelchair ramp accessibility at the park entrance.'
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Butler_Library%2C_Columbia_University_%286306127381%29.jpg/960px-Butler_Library%2C_Columbia_University_%286306127381%29.jpg',
+    desc: 'CIVIC MISSION: Check the wheelchair ramps at Butler Library on College Walk. Are they clear, working and well signed? Photograph them to report.'
   },
   {
     id: 'hamilton-grange',
@@ -93,6 +93,7 @@ const PLACES = [
     radius: 200,
     rewardRlusd: 0,
     type: 'cultural',
+    fixedTier: 'Epic',
     discovered: false,
     image: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=600&q=80',
     desc: 'DivHacks HQ: check in at Columbia Engineering, 500 W 120th St at Amsterdam Ave.'
@@ -121,7 +122,7 @@ let myBalance = null;
 const PLACE_COORDS = {
   'apollo-theater':         { lat: 40.8102,  lng: -73.9500 },
   'studio-museum-harlem':   { lat: 40.80835, lng: -73.94766 },
-  'marcus-garvey-park':     { lat: 40.8043,  lng: -73.9439 },
+  'butler-library':         { lat: 40.80639, lng: -73.96333 },
   'hamilton-grange':        { lat: 40.82138, lng: -73.94726 },
   'malcolm-shabazz-market': { lat: 40.80147, lng: -73.94886 },
   'morningside-park':       { lat: 40.8065,  lng: -73.9585 },
@@ -140,7 +141,18 @@ let RARITY_LADDER = [
   { tier: 'Late Explorer', fromSerial: 1001, toSerial: null }
 ];
 let STAMP_SUPPLY = 1000;
-PLACES.forEach(place => { place.rarity = { found: 0, nextSerial: 1, nextTier: 'Legendary' }; });
+
+/** Civic bounties pay RLUSD for a task, so their stamps are receipts with no rarity tier. */
+function isBounty(place) {
+  return !!place && place.type === 'civic';
+}
+
+/** The tier the first finder at a place gets before GET /places answers. */
+function defaultNextTier(place) {
+  return isBounty(place) ? null : (place.fixedTier || 'Legendary');
+}
+
+PLACES.forEach(place => { place.rarity = { found: 0, nextSerial: 1, nextTier: defaultNextTier(place) }; });
 
 /** CSS class for a tier, e.g. "tier-late-explorer". */
 function tierClass(tier) {
@@ -173,6 +185,9 @@ function renderPlaceRarity(place) {
   const ladder = document.getElementById('nodeRarityLadder');
   const note = document.getElementById('nodeRarityNote');
   if (!label || !tierEl || !ladder || !note) return;
+  const box = label.closest('.node-rarity');
+  if (box) box.style.display = isBounty(place) ? 'none' : '';
+  if (isBounty(place)) return;
 
   const { found, nextSerial, nextTier } = place.rarity;
   const mine = myStampAt(place.id);
@@ -181,10 +196,11 @@ function renderPlaceRarity(place) {
   tierEl.className = `tier-badge ${tierClass(shown.tier)}`;
   tierEl.textContent = `${String(shown.tier).toUpperCase()} #${shown.serial}`;
 
-  const current = rungForSerial(nextSerial);
+  const fixedRung = place.fixedTier && RARITY_LADDER.find(rung => rung.tier === place.fixedTier);
+  const current = fixedRung || rungForSerial(nextSerial);
   ladder.replaceChildren(...RARITY_LADDER.map(rung => {
     const step = document.createElement('div');
-    const gone = rung.toSerial !== null && rung.toSerial < nextSerial;
+    const gone = !fixedRung && rung.toSerial !== null && rung.toSerial < nextSerial;
     step.className = `rarity-step ${tierClass(rung.tier)}${rung === current ? ' current' : ''}${gone ? ' gone' : ''}`;
     step.title = `${rung.tier}: ${rung.toSerial === null ? `#${rung.fromSerial}+` : `#${rung.fromSerial}-${rung.toSerial}`}`;
     const name = document.createElement('strong');
@@ -197,6 +213,10 @@ function renderPlaceRarity(place) {
 
   const left = current.toSerial === null ? 0 : current.toSerial - found;
   const nextFinder = mine && mine.tier ? `Next finder gets ${nextTier} #${nextSerial}. ` : '';
+  if (fixedRung) {
+    note.textContent = `${nextFinder}Every stamp here is ${place.fixedTier}. ${found} of ${STAMP_SUPPLY} found.`;
+    return;
+  }
   note.textContent = nextFinder + (current.toSerial === null
     ? `All ${STAMP_SUPPLY} numbered stamps are found. New finders get Late Explorer.`
     : `${found} of ${STAMP_SUPPLY} stamps found. ${left} ${current.tier} ${left === 1 ? 'stamp' : 'stamps'} left.`);
@@ -552,6 +572,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderRarityLegend();
   loadPlacesFromServer();
   connectLiveStream();
+  // Pick up missions added or removed from a terminal while the page was in the background.
+  window.addEventListener('focus', loadPlacesFromServer);
 
 });
 
@@ -718,7 +740,7 @@ function renderMissions(filter) {
         <h4 class="mission-title">${place.name}</h4>
         <div class="mission-loc"><i data-lucide="map-pin"></i> ${place.neighborhood} • ${place.radius}m Geofence</div>
         ${sponsorName(place) ? `<div class="mission-sponsor"><i data-lucide="building-2"></i> Paid by <strong>${escapeHtml(sponsorName(place))}</strong></div>` : ''}
-        <div class="mission-rarity">${missionRarityHtml(place)}</div>
+        ${isBounty(place) ? '' : `<div class="mission-rarity">${missionRarityHtml(place)}</div>`}
         <p class="mission-desc">${place.desc}</p>
         <button class="comic-btn ${place.discovered ? 'hero-blue-btn' : 'hero-red-btn'} full-btn" onclick="openSubmissionModal('${place.id}')">
           <i data-lucide="${place.discovered ? 'check-circle-2' : 'zap'}"></i>
@@ -755,9 +777,11 @@ function escapeHtml(value) {
 /** Turn a stamp from GET /me/nft into what a trading card shows. */
 function stampCard(stamp) {
   const place = PLACES.find(p => p.id === stamp.placeId);
+  // Some bounty stamps carry a tier on chain, but a bounty never shows one.
+  const tier = isBounty(place) ? null : stamp.tier;
   return {
-    badge: stamp.tier ? `${stamp.tier.toUpperCase()} #${stamp.serial}` : 'SOULBOUND STAMP',
-    tierClass: stamp.tier ? tierClass(stamp.tier) : '',
+    badge: isBounty(place) ? 'BOUNTY COMPLETE' : tier ? `${tier.toUpperCase()} #${stamp.serial}` : 'SOULBOUND STAMP',
+    tierClass: tier ? tierClass(tier) : '',
     name: escapeHtml(stamp.name),
     place: escapeHtml(`${place ? place.name : stamp.placeId} • ${stamp.neighborhood}`),
     image: escapeHtml(place ? place.image : ''),
@@ -766,7 +790,7 @@ function stampCard(stamp) {
     tx: escapeHtml(stamp.xrplTxHash ? shortHash(stamp.xrplTxHash) : 'None, cultural visits earn the stamp only'),
     reward: stamp.rewardRlusd > 0 ? `EARNED +${stamp.rewardRlusd} RLUSD` : 'STAMP ONLY, NO RLUSD',
     rewardClass: stamp.rewardRlusd > 0 ? 'paid' : 'stamp-only',
-    rarity: escapeHtml(stamp.tier ? `${stamp.tier}, finder #${stamp.serial} of ${STAMP_SUPPLY}` : 'Unranked')
+    rarity: escapeHtml(isBounty(place) ? 'None, bounties are paid tasks' : tier ? `${tier}, finder #${stamp.serial} of ${STAMP_SUPPLY}` : 'Unranked')
   };
 }
 
@@ -890,25 +914,71 @@ function runAttackSimulation(type) {
       setSpideyBotState('policy_blocked', '"GUARDRAIL HELD! Even though Grok proposed $100, my Policy Engine blocked it automatically!"');
       addTickerItem('GUARDRAIL HELD! $100 prompt injection blocked by Policy Engine');
     }, 1800);
-
-  } else if (type === 'bypass') {
-    g1.className = 'gate-step active';
-    addSimLog('[GATE 1] Intake: Policy Bypass Attack Flag = TRUE', 'warning');
-
-    setTimeout(() => {
-      g2.className = 'gate-step active';
-      g3.className = 'gate-step active';
-      g4.className = 'gate-step active';
-      addSimLog('[GATE 4] Policy Gate Bypassed in Attack Mode!', 'warning');
-    }, 800);
-
-    setTimeout(() => {
-      g5.className = 'gate-step blocked';
-      addSimLog('[GATE 5 - XRPL LEDGER] REJECTED_BY_LEDGER: Agent wallet allowance empty ($10 max daily). Ledger rejected transaction!', 'error');
-      setSpideyBotState('sentinel_blocked', '"LEDGER STOP! Key isolation prevented the agent from accessing treasury funds directly!"');
-      addTickerItem('REJECTED BY LEDGER! XRPL allowance wallet empty, treasury key safe');
-    }, 1600);
   }
+}
+
+/** The address the forced payout targets. Only meaningful in XRPL_MODE=fake
+(the format doesn't need to be a valid classic address there); against a
+real testnet server, replace this with a real testnet address. */
+const DEMO_ATTACKER_XRPL_ADDRESS = 'rATTACKER00000000000000000000';
+
+/** Mission used for the real ledger-stop demo, so it's the same place every
+time. Must be a civic place, not cultural: cultural visits are stamp-only
+by default (no RLUSD is ever proposed), so a forced proposal never reaches
+the agent/policy/ledger steps and there is nothing for the ledger to
+reject. mudd-entrance is the civic bounty next to Mudd Building. */
+const DEMO_ATTACK_PLACE_ID = 'mudd-entrance';
+
+/** REAL demo, not a canned animation: enables the server's policy bypass and
+forces its next payout proposal, both via genuine calls to /test/attack and
+/test/attack/force-proposal. Submitting any real mission afterward runs
+through the actual orchestrator, and the ledger genuinely rejects the
+forced payout because the agent wallet only holds its small allowance.
+The resulting gate-by-gate breakdown comes from the real audit trail via
+showDecisionInPipeline, once that submission's decision comes back. */
+async function runRealLedgerStopDemo() {
+  const gates = ['gate1', 'gate2', 'gate3', 'gate4', 'gate5'].map((id) => document.getElementById(id));
+  gates.forEach((g) => { g.className = 'gate-step'; });
+
+  addSimLog('[REAL] POST /test/attack — enabling the policy bypass on the server...', 'warning');
+  const attackResult = await WebPassApi.setAttackMode(true);
+  if (attackResult.status === 404) {
+    addSimLog('[REAL] 404: /test/attack only exists when the server runs with NODE_ENV=test. Restart it that way for this demo.', 'error');
+    return;
+  }
+  if (!attackResult.ok) {
+    addSimLog(`[REAL] ${WebPassApi.errorMessage(attackResult, 'Could not enable the bypass.')}`, 'error');
+    return;
+  }
+  attackModeActive = true;
+  addSimLog(`[REAL] Server confirmed: policyBypassEnabled=${attackResult.body.policyBypassEnabled}`, 'success');
+
+  addSimLog(`[REAL] POST /test/attack/force-proposal — forcing a $50 payout to ${DEMO_ATTACKER_XRPL_ADDRESS}...`, 'warning');
+  const forceResult = await WebPassApi.forceProposal(DEMO_ATTACKER_XRPL_ADDRESS, 50, 'forced demo overspend');
+  if (!forceResult.ok) {
+    addSimLog(`[REAL] ${WebPassApi.errorMessage(forceResult, 'Could not force the proposal.')}`, 'error');
+    return;
+  }
+  addSimLog('[REAL] Server confirmed the forced proposal. Every submission now uses it, skipping Grok and the policy engine.', 'success');
+  addSimLog('[ACTION NEEDED] Submit the Mudd Building Entrance mission below (any real photo) — watch Gate 5.', 'warning');
+  setSpideyBotState('sentinel_blocked', '"Attack mode is live on the real server. Submit the Mudd Building Entrance mission and watch the ledger stop it."');
+
+  gates[0].className = 'gate-step active';
+  openSubmissionModal(DEMO_ATTACK_PLACE_ID);
+}
+
+/** Restores normal enforcement after the demo: real DELETE calls, not a reset animation. */
+async function resetRealAttackDemo() {
+  await WebPassApi.setAttackMode(false);
+  await WebPassApi.clearForcedProposal();
+  attackModeActive = false;
+  const toggle = document.getElementById('testAttackToggle');
+  if (toggle) toggle.checked = false;
+  ['gate1', 'gate2', 'gate3', 'gate4', 'gate5'].forEach((id) => {
+    document.getElementById(id).className = 'gate-step';
+  });
+  addSimLog('[REAL] DELETE /test/attack and /test/attack/force-proposal — normal policy enforcement restored.', 'success');
+  setSpideyBotState('ready', '"Normal guardrails restored."');
 }
 
 function addSimLog(msg, type = 'info') {
@@ -1008,7 +1078,8 @@ function placeFromServer(serverPlace) {
     rewardRlusd: serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd,
     type: serverPlace.kind || 'civic',
     sponsor: serverPlace.sponsor ?? null,
-    rarity: serverPlace.rarity || { found: 0, nextSerial: 1, nextTier: 'Legendary' },
+    rarity: serverPlace.rarity || { found: 0, nextSerial: 1, nextTier: defaultNextTier({ type: serverPlace.kind || 'civic', fixedTier: serverPlace.fixedTier }) },
+    fixedTier: serverPlace.fixedTier || null,
     discovered: false,
     image: serverPlace.imageUrl || 'https://placehold.co/600x600/png?text=' + encodeURIComponent(serverPlace.name),
     desc: serverPlace.description || `A newly added WebPass NYC mission in ${serverPlace.neighborhood}.`
@@ -1027,12 +1098,22 @@ async function loadPlacesFromServer() {
   if (result.body.stampSupply) STAMP_SUPPLY = result.body.stampSupply;
   renderRarityLegend();
 
-  let addedAny = false;
+  // A generated mission removed on the server (npm run missions:clear) comes off the page too.
+  const serverIds = new Set(result.body.places.map(p => p.id));
+  const removed = PLACES.filter(p => !serverIds.has(p.id));
+  removed.forEach(place => {
+    PLACES.splice(PLACES.indexOf(place), 1);
+    if (typeof removePlaceMarker === 'function') removePlaceMarker(place.id);
+  });
+  if (removed.length && !serverIds.has(selectedNodeId)) selectedNodeId = PLACES[0].id;
+
+  let addedAny = removed.length > 0;
   result.body.places.forEach(serverPlace => {
     const place = PLACES.find(p => p.id === serverPlace.id);
     if (place) {
       place.name = serverPlace.name;
       if (serverPlace.rarity) place.rarity = serverPlace.rarity;
+      place.fixedTier = serverPlace.fixedTier || null;
       place.rewardRlusd = serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd;
       if (serverPlace.kind) place.type = serverPlace.kind;
       if ('sponsor' in serverPlace) place.sponsor = serverPlace.sponsor;
@@ -1050,7 +1131,7 @@ async function loadPlacesFromServer() {
     }
   });
 
-  if (addedAny && typeof fitToPlaces === 'function') fitToPlaces(); // recenter so every pin is visible
+  if (addedAny && typeof realMap !== 'undefined' && realMap && typeof fitToPlaces === 'function') fitToPlaces(); // recenter on the pins left
   renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
   selectNode(selectedNodeId, { pan: false });
 }
@@ -1205,7 +1286,8 @@ function setupEventListeners() {
   // Attack Simulator Buttons
   document.getElementById('attackDuplicateBtn')?.addEventListener('click', () => runAttackSimulation('duplicate'));
   document.getElementById('attackInjectionBtn')?.addEventListener('click', () => runAttackSimulation('injection'));
-  document.getElementById('attackBypassBtn')?.addEventListener('click', () => runAttackSimulation('bypass'));
+  document.getElementById('attackBypassBtn')?.addEventListener('click', runRealLedgerStopDemo);
+  document.getElementById('attackResetBtn')?.addEventListener('click', resetRealAttackDemo);
 
   // Test Attack Mode Toggle
   document.getElementById('testAttackToggle')?.addEventListener('change', (e) => setAttackMode(e.target));

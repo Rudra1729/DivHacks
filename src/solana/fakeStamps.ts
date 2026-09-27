@@ -8,7 +8,7 @@ empty everyone's passport.
 
 import { loadSolanaConfig } from './config';
 import { findPlace } from './places';
-import { tierForSerial } from './rarity';
+import { tierForPlace } from './rarity';
 import { MintStampInput, MintStampResult, Stamp, StampService, StampTier } from './types';
 
 /** A stamp minted before a restart, as the decisions table recorded it. */
@@ -66,9 +66,9 @@ export class FakeStampService implements StampService {
     this.mintCount += 1;
     const serial = (this.stampsPerPlace.get(input.placeId) ?? 0) + 1;
     this.stampsPerPlace.set(input.placeId, serial);
-    const tier = tierForSerial(serial);
-    const assetAddress = `fake-asset-${this.mintCount}`;
     const place = findPlace(input.placeId);
+    const tier = tierForPlace(place ?? {}, serial);
+    const assetAddress = `fake-asset-${this.mintCount}`;
     const stamp: Stamp = {
       assetAddress,
       owner: input.userSolanaAddress,
@@ -134,7 +134,7 @@ export class FakeStampService implements StampService {
         decisionId: record.decisionId,
         xrplTxHash: record.xrplTxHash,
         serial: record.serial,
-        tier: (record.tier as StampTier | null) ?? (record.serial ? tierForSerial(record.serial) : null),
+        tier: (record.tier as StampTier | null) ?? (record.serial ? tierForPlace(place ?? {}, record.serial) : null),
       };
       const owned = this.stampsByOwner.get(record.owner) ?? [];
       if (owned.some((existing) => existing.decisionId === record.decisionId)) continue;
