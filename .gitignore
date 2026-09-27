@@ -1,7 +1,43 @@
+# Local docs
 PRD.md
+prd.md
+DivHacks.pdf
 
+# Environment and secrets
+.env
+.env.*
+!.env.example
+.keys/
+*.pem
+*.key
+
+# Node
 node_modules/
 dist/
+*.tsbuildinfo
+npm-debug.log*
+coverage/
+
+# Databases
 *.sqlite
 *.sqlite-journal
-.env
+*.sqlite3
+*.db
+
+# Playwright
+test-results/
+playwright-report/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp

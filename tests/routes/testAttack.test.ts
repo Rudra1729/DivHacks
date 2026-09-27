@@ -10,6 +10,8 @@ function buildConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     dbPath: ':memory:',
     isTestMode: false,
     maxUploadBytes: 5 * 1024 * 1024,
+    grokModel: 'grok-test',
+    grokEndpoint: 'https://example.com/grok',
     ...overrides,
   };
 }
