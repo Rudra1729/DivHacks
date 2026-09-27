@@ -9,6 +9,7 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "jest",
+    "test:e2e": "jest tests/e2e",
     "lint": "eslint \"src/**/*.ts\"",
     "solana:setup": "tsx scripts/solana/setup.ts",
     "solana:mint-test": "tsx scripts/solana/mintTest.ts",
