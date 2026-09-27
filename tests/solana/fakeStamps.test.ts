@@ -1,6 +1,6 @@
 /**Tests for the fake stamp service and the SOLANA_MODE switch.*/
 
-import { fakeStampService } from '../../src/solana/fakeStamps';
+import { FakeStampService, fakeStampService } from '../../src/solana/fakeStamps';
 import { getStamps, hasStampForPlace, mintStamp } from '../../src/solana';
 
 const input = {
@@ -44,5 +44,15 @@ describe('fake stamps', () => {
     const result = await mintStamp(input);
     expect(result).toEqual({ ok: false, error: expect.stringContaining('forced') });
     expect(await getStamps('user-wallet')).toHaveLength(0);
+  });
+
+  it('fails mints on demand with setFailMints and recovers', async () => {
+    const solana = new FakeStampService();
+    solana.setFailMints(true);
+    expect((await solana.mintStamp(input)).ok).toBe(false);
+    expect(await solana.getStamps('user-wallet')).toEqual([]);
+
+    solana.setFailMints(false);
+    expect((await solana.mintStamp(input)).ok).toBe(true);
   });
 });
