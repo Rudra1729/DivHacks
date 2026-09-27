@@ -559,6 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
   renderRarityLegend();
   loadPlacesFromServer();
   connectLiveStream();
+  // Pick up missions added or removed from a terminal while the page was in the background.
+  window.addEventListener('focus', loadPlacesFromServer);
 
 });
 
@@ -1013,7 +1015,16 @@ async function loadPlacesFromServer() {
   if (result.body.stampSupply) STAMP_SUPPLY = result.body.stampSupply;
   renderRarityLegend();
 
-  let addedAny = false;
+  // A generated mission removed on the server (npm run missions:clear) comes off the page too.
+  const serverIds = new Set(result.body.places.map(p => p.id));
+  const removed = PLACES.filter(p => !serverIds.has(p.id));
+  removed.forEach(place => {
+    PLACES.splice(PLACES.indexOf(place), 1);
+    if (typeof removePlaceMarker === 'function') removePlaceMarker(place.id);
+  });
+  if (removed.length && !serverIds.has(selectedNodeId)) selectedNodeId = PLACES[0].id;
+
+  let addedAny = removed.length > 0;
   result.body.places.forEach(serverPlace => {
     const place = PLACES.find(p => p.id === serverPlace.id);
     if (place) {
@@ -1037,7 +1048,7 @@ async function loadPlacesFromServer() {
     }
   });
 
-  if (addedAny && typeof fitToPlaces === 'function') fitToPlaces(); // recenter so every pin is visible
+  if (addedAny && typeof realMap !== 'undefined' && realMap && typeof fitToPlaces === 'function') fitToPlaces(); // recenter on the pins left
   renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
   selectNode(selectedNodeId, { pan: false });
 }
