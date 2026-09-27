@@ -31,7 +31,7 @@ const submission = {
 // Fixes in a row with an unchanged timestamp before the status calls GPS stuck.
 const STUCK_GPS_REPEATS = 4;
 
-const GATE_BY_LAYER = { sentinel: 'gate2', claim: 'gate2', agent: 'gate3', policy: 'gate4', xrpl: 'gate5', solana: 'gate5' };
+const GATE_BY_LAYER = { sentinel: 'gate2', photo: 'gate3', claim: 'gate2', agent: 'gate3', policy: 'gate4', xrpl: 'gate5', solana: 'gate5' };
 
 /** Distance between two points in meters (haversine).
 
@@ -236,6 +236,26 @@ async function snapSubmissionPhoto() {
   }
 }
 
+/** Re-encode an image the photo check cannot read (HEIC, WebP) as JPEG.
+
+Args:
+    file (File): The uploaded image.
+
+Returns:
+    Promise<Blob>: The same picture as a JPEG.
+*/
+async function toJpeg(file) {
+  const bitmap = await createImageBitmap(file);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('conversion failed'))), 'image/jpeg', 0.9);
+  });
+}
+
 /** Show the server's answer in the modal.
 
 Args:
@@ -343,6 +363,12 @@ function handleSubmissionResult(place, result) {
   } else if (body.status === 'BLOCKED_SENTINEL') {
     setSpideyBotState('sentinel_blocked', `"SNAG! Sentinel blocked this visit: ${reasons[0] || 'verification failed'}"`);
     showSubmissionResult('blocked', 'SNAG! Sentinel blocked this visit', reasons);
+  } else if (body.status === 'BLOCKED_PHOTO') {
+    setSpideyBotState('sentinel_blocked', `"SNAG! I looked at your photo and it doesn't match ${place.name}. Nothing was paid."`);
+    showSubmissionResult('blocked', 'SNAG! Grok rejected the photo', [
+      ...reasons,
+      `Take a clear photo of ${place.name} itself and try again.`,
+    ]);
   } else if (body.status === 'BLOCKED_POLICY') {
     setSpideyBotState('policy_blocked', `"GUARDRAIL HELD! ${reasons[0] || 'The policy engine refused the payout.'}"`);
     showSubmissionResult('blocked', 'GUARDRAIL HELD! Policy engine refused the payout', reasons);
@@ -407,7 +433,7 @@ function prepareSubmission(placeId) {
   if (window.lucide) lucide.createIcons();
   document.getElementById('photoFileInput').value = '';
   document.getElementById('captionInput').value = '';
-  setPhotoNote('Take a photo at the place. Sentinel rejects photos it has seen before.');
+  setPhotoNote('Take a photo of the place itself. Grok checks that it matches, and Sentinel rejects photos it has seen before.');
   hideSubmissionResult();
 
   document.getElementById('demoLocationWrap').style.display = DEMO_LOCATION_ALLOWED ? 'flex' : 'none';
@@ -431,11 +457,18 @@ function setupSubmissionListeners() {
   document.getElementById('submissionForm')?.addEventListener('submit', submitMission);
   document.getElementById('openCameraBtn')?.addEventListener('click', openSubmissionCamera);
   document.getElementById('snapPhotoBtn')?.addEventListener('click', snapSubmissionPhoto);
-  document.getElementById('photoFileInput')?.addEventListener('change', (e) => {
+  document.getElementById('photoFileInput')?.addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
-    if (file) {
-      closeSubmissionCamera();
+    if (!file) return;
+    closeSubmissionCamera();
+    if (file.type === 'image/jpeg' || file.type === 'image/png') {
       setSubmissionPhoto(file, `Using ${file.name}.`);
+      return;
+    }
+    try {
+      setSubmissionPhoto(await toJpeg(file), `Using ${file.name}, converted to JPEG for the photo check.`);
+    } catch {
+      setPhotoNote(`Could not read ${file.name}. Use a JPEG or PNG, or take the photo with the camera.`);
     }
   });
   document.getElementById('demoLocationToggle')?.addEventListener('change', (e) => {
