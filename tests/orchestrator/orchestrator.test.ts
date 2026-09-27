@@ -43,6 +43,7 @@ function build(overrides: {
   isTestMode?: boolean;
   xrpl?: FakePaymentService;
   recheck?: { attempts: number; delayMs: number };
+  rewardScale?: number;
 } = {}) {
   const xrpl = overrides.xrpl ?? new FakePaymentService();
   const solana = new FakeStampService();
@@ -55,6 +56,7 @@ function build(overrides: {
     solana,
     storage,
     isTestMode: overrides.isTestMode ?? true,
+    rewardScale: overrides.rewardScale,
     unconfirmedRecheck: overrides.recheck ?? { attempts: 2, delayMs: 0 },
   });
   return { orchestrator, xrpl, solana, storage, agent };
@@ -123,6 +125,18 @@ describe('Orchestrator', () => {
       expect(await xrpl.getRlusdBalance('rAttacker')).toBe(0);
       expect(await solana.getStamps('solUser')).toEqual([]);
       expect(storage.getClaims()[0].status).toBe('failed');
+    });
+
+    it('applies the reward scale to the caps', async () => {
+      const { orchestrator, xrpl } = build({ rewardScale: 0.01 });
+      const result = await orchestrator.runSubmission(submission);
+
+      expect(result.status).toBe('BLOCKED_POLICY');
+      expect(result.reasons).toEqual([
+        'per-task cap: asked for 2, max is 0.05',
+        'daily cap: already paid 0 today, asked for 2, max is 0.1 per day',
+      ]);
+      expect(await xrpl.getRlusdBalance('rUser')).toBe(0);
     });
 
     it('blocks a caption injection end to end through the Grok agent', async () => {

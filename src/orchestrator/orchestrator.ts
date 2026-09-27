@@ -31,6 +31,8 @@ export interface OrchestratorDeps {
   storage: StorageLayer;
   /** Gates the policy bypass. Outside test mode the bypass is ignored. */
   isTestMode: boolean;
+  /** REWARD_SCALE. The policy caps shrink by the same factor. Defaults to 1. */
+  rewardScale?: number;
   /** How often to re-check an unconfirmed payment before giving up for now. */
   unconfirmedRecheck?: { attempts: number; delayMs: number };
 }
@@ -133,6 +135,7 @@ export class Orchestrator {
           placeId: input.placeId,
           allowedPlaceIds,
           dailyTotal: Math.max(storedTotal, ledgerTotal),
+          capScale: this.deps.rewardScale,
         });
         policyVersion = policy.policyVersion;
 

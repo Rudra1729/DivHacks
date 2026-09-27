@@ -54,6 +54,7 @@ export function buildTestApp(
     solana,
     storage: new SqliteStorage(db),
     isTestMode: config.isTestMode,
+    rewardScale: config.rewardScale,
     ...deps,
   });
 
