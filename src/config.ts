@@ -37,6 +37,28 @@ export interface AppConfig {
   /** Multiplier on each place's base reward before Grok sees it, in (0, 1].
       Lets test runs pay proportionally less while Grok still decides. */
   rewardScale: number;
+  /** Whether Sentinel runs the location plausibility checks (GPS trail,
+      accuracy, typed coordinates, impossible travel, clusters). */
+  locationChecks: boolean;
+}
+
+/** Read LOCATION_CHECKS, defaulting to on.
+
+Returns:
+    boolean: False only when LOCATION_CHECKS is 'off'.
+
+Raises:
+    ConfigError: If LOCATION_CHECKS is set to anything other than 'on' or 'off'.
+*/
+function loadLocationChecks(): boolean {
+  const raw = (process.env.LOCATION_CHECKS ?? '').trim().toLowerCase();
+  if (raw === '' || raw === 'on') {
+    return true;
+  }
+  if (raw === 'off') {
+    return false;
+  }
+  throw new ConfigError(`LOCATION_CHECKS must be 'on' or 'off', got '${process.env.LOCATION_CHECKS}'`);
 }
 
 /** Read REWARD_SCALE, defaulting to 1 (full rewards).
@@ -66,7 +88,7 @@ Returns:
 
 Raises:
     ConfigError: If a treasury key is present in the environment, or
-        REWARD_SCALE is invalid.
+        REWARD_SCALE or LOCATION_CHECKS is invalid.
 */
 export function loadConfig(): AppConfig {
   assertNoTreasuryKey();
@@ -80,5 +102,6 @@ export function loadConfig(): AppConfig {
     grokModel: process.env.GROK_MODEL ?? 'grok-4',
     grokEndpoint: process.env.GROK_ENDPOINT ?? 'https://api.x.ai/v1/chat/completions',
     rewardScale: loadRewardScale(),
+    locationChecks: loadLocationChecks(),
   };
 }
