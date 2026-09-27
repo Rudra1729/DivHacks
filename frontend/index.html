@@ -499,38 +499,48 @@
           <!-- PHOTO PREVIEW AREA -->
           <div class="photo-upload-zone" id="photoDropZone">
             <div class="photo-preview-wrap" id="photoPreviewWrap">
-              <img id="photoPreviewImg" src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80" alt="Proof Photo">
-              <div class="photo-lens-frame">
-                <i data-lucide="aperture"></i>
-              </div>
+              <img id="photoPreviewImg" class="placeholder" src="" alt="Proof photo">
+              <video id="cameraPreview" autoplay muted playsinline style="display:none;"></video>
             </div>
             <div class="photo-upload-info">
-              <label for="photoFileInput" class="comic-btn hero-blue-btn small-btn">
-                <i data-lucide="camera"></i> Select Photo Proof
-              </label>
+              <div class="photo-buttons">
+                <button type="button" class="comic-btn hero-blue-btn small-btn" id="openCameraBtn">
+                  <i data-lucide="camera"></i> Open Camera
+                </button>
+                <button type="button" class="comic-btn hero-red-btn small-btn" id="snapPhotoBtn" style="display:none;">
+                  <i data-lucide="aperture"></i> Snap Photo
+                </button>
+                <label for="photoFileInput" class="comic-btn small-btn">
+                  <i data-lucide="image-plus"></i> Upload Instead
+                </label>
+              </div>
               <input type="file" id="photoFileInput" accept="image/*" style="display:none;">
-              <small class="upload-note">Sentinel verifies EXIF timestamp & duplicate hashes</small>
+              <small class="upload-note" id="photoStatusNote">Take a photo at the place. Sentinel rejects photos it has seen before.</small>
             </div>
           </div>
 
           <!-- GPS LOCATION CHECK -->
           <div class="form-group">
-            <label class="form-label"><i data-lucide="navigation"></i> Device GPS Location</label>
-            <div class="gps-status-box success" id="gpsStatusBox">
-              <i data-lucide="check-circle-2"></i>
-              <span>Coordinates Captured: <strong>40.8102° N, 73.9500° W</strong> (Within 42m of Target)</span>
+            <label class="form-label"><i data-lucide="navigation"></i> Device GPS Trail</label>
+            <div class="gps-status-box pending" id="gpsStatusBox">
+              <i data-lucide="radar"></i>
+              <span id="gpsStatusText">Waiting for GPS...</span>
             </div>
+            <label class="demo-location-toggle" id="demoLocationWrap" style="display:none;">
+              <input type="checkbox" id="demoLocationToggle">
+              Demo only: pretend my phone is standing at this place
+            </label>
           </div>
 
           <!-- WALLET ADDRESSES -->
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label"><i data-lucide="wallet"></i> XRPL Wallet Address (RLUSD)</label>
-              <input type="text" class="comic-input" id="xrplAddressInput" value="rP9x9K2bM...5Xz1" required>
+              <input type="text" class="comic-input" id="xrplAddressInput" placeholder="Log in to fill this in" required>
             </div>
             <div class="form-group">
               <label class="form-label"><i data-lucide="shield"></i> Solana Wallet Address (Stamp)</label>
-              <input type="text" class="comic-input" id="solanaAddressInput" value="7xKXtg...9M1L" required>
+              <input type="text" class="comic-input" id="solanaAddressInput" placeholder="Log in to fill this in" required>
             </div>
           </div>
 
@@ -543,9 +553,10 @@
           <!-- SUBMIT ACTION BUTTON -->
           <div class="form-actions">
             <button type="submit" class="comic-btn hero-red-btn full-btn big-btn" id="submitProofBtn">
-              <i data-lucide="zap"></i> THWIP! SUBMIT PROOF FOR VERIFICATION
+              <i data-lucide="zap"></i> <span id="submitProofText">THWIP! SUBMIT PROOF FOR VERIFICATION</span>
             </button>
           </div>
+          <div class="submission-result" id="submissionResult" style="display:none;"></div>
         </form>
       </div>
     </div>
@@ -572,6 +583,7 @@
   <script src="map.js"></script>
   <script src="locationCapture.js"></script>
   <script src="api.js"></script>
+  <script src="submission.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

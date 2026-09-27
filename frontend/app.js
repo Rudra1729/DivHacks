@@ -403,9 +403,6 @@ function triggerThwipUnlock(placeId) {
   // Update Spidey-Bot Avatar Expression
   setSpideyBotState('approved', `"THWIP! Hero unlocked ${place.name}! Node illuminated on the NYC Spiderweb map!"`);
 
-  // Append to Marquee Stream
-  addTickerItem(`THWIP! ${place.name} unlocked by Hero 0x8a...2a (+${place.reward})`);
-
   // Re-render Mission cards
   renderMissions('all');
 }
@@ -624,7 +621,9 @@ function addSimLog(msg, type = 'info') {
   const logBox = document.getElementById('simLogBox');
   const line = document.createElement('div');
   line.className = `log-line ${type}-line`;
-  line.innerHTML = `<code>${msg}</code>`;
+  const code = document.createElement('code');
+  code.textContent = msg;
+  line.appendChild(code);
   logBox.appendChild(line);
   logBox.scrollTop = logBox.scrollHeight;
 }
@@ -645,7 +644,7 @@ function addTickerItem(text) {
 function setupEventListeners() {
   // THWIP Unlock Button in Node Sidebar
   document.getElementById('thwipUnlockBtn')?.addEventListener('click', () => {
-    triggerThwipUnlock(selectedNodeId);
+    openSubmissionModal(selectedNodeId);
   });
 
   // Reset Web Button
@@ -697,13 +696,9 @@ function setupEventListeners() {
     }
   });
 
-  // Modal Controls
+  // Modal Controls (the mission form itself is wired in submission.js)
   document.getElementById('closeModalBtn')?.addEventListener('click', closeModal);
-  document.getElementById('submissionForm')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    triggerThwipUnlock(selectedNodeId);
-    closeModal();
-  });
+  setupSubmissionListeners();
 }
 
 function openSubmissionModal(placeId) {
@@ -720,10 +715,12 @@ function openSubmissionModal(placeId) {
     document.getElementById('modalMissionSub').innerText = `${place.neighborhood} • ${place.reward} Reward`;
   }
   document.getElementById('submissionModal')?.classList.add('open');
+  prepareSubmission(placeId);
 }
 
 function closeModal() {
   document.getElementById('submissionModal')?.classList.remove('open');
+  teardownSubmission();
 }
 
 /* ==========================================================================
