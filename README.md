@@ -37,6 +37,7 @@ npm run grok:try # try the Grok agent against the real API (needs GROK_API_KEY i
 npm run missions:refresh # ask Grok for new overlooked NYC missions, add them to GET /places
 npm run db:reset # delete your local SQLite file (see note below)
 npm run reset:user -- you@example.com # let one account do every place again
+npm run season:new # restart every place at stamp #1 for everyone (see note below)
 ```
 
 The server reads settings from `.env` in the folder it runs from.
@@ -80,6 +81,17 @@ server is running, and the page switches to the new wallet on its next
 refresh. A photo that Grok rejected is not linked to an account, so it stays
 blocked as a reused photo; use a new photo instead. `npm run db:reset` wipes
 every account instead.
+
+Stamp numbers: a stamp's number (Legendary #6) counts every stamp for that
+place in the current Solana collections, and old stamps can never be deleted,
+so `reset:user` does not bring numbers back to #1. `npm run season:new` does:
+it creates fresh Harlem and Morningside Heights collections on devnet, writes
+them into `.env`, and clears every visit from the database. Accounts, wallets
+and RLUSD balances stay. Old stamps stay on chain but no longer count in the
+app. Restart the server afterwards. Most places pick their tier from the
+number (Legendary for #1 to #10, then Epic, Rare, Common), but a place can set
+a fixed tier: every Mudd Building stamp is Epic and every Mudd entrance stamp
+is Legendary.
 
 The page talks to the server it was loaded from. To point it at another
 server, add `?api=http://host:port` to the URL.
