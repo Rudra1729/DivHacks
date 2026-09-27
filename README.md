@@ -91,8 +91,8 @@ them into `.env`, and clears every visit from the database. Accounts, wallets
 and RLUSD balances stay. Old stamps stay on chain but no longer count in the
 app. Restart the server afterwards. Most places pick their tier from the
 number (Legendary for #1 to #10, then Epic, Rare, Common), but a place can set
-a fixed tier: every Mudd Building stamp is Epic and every Mudd entrance stamp
-is Legendary.
+a fixed tier: every Mudd Building stamp is Epic. Civic bounties have no tier.
+They pay RLUSD for a task, so their stamp is a receipt, not a collectible.
 
 Scouted missions: "New Mission" adds a place to `data/generated-missions.json`.
 Before a demo, run `npm run missions:clear` to remove them all (or

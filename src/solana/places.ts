@@ -19,6 +19,7 @@ Attributes:
     imageUrl (string): Image link, served through the metadata page.
     solanaCollectionAddress (string | null, optional): Collection address. If
         missing, the collection is picked from config by neighborhood.
+    kind (string, optional): 'cultural' or 'civic'. Civic stamps get no tier.
     fixedTier (StampTier, optional): Tier every stamp here gets, whatever
         its serial.
 */
@@ -28,6 +29,7 @@ export interface StampPlace {
   neighborhood: string;
   imageUrl: string;
   solanaCollectionAddress?: string | null;
+  kind?: string;
   fixedTier?: StampTier;
 }
 

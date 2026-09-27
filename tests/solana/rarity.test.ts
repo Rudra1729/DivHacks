@@ -29,7 +29,14 @@ describe('stamp rarity', () => {
 
   it('falls back to the serial when a place has no fixed tier', () => {
     expect(tierForPlace({}, 11)).toBe('Epic');
+    expect(tierForPlace({ kind: 'cultural' }, 11)).toBe('Epic');
     expect(() => tierForPlace({ fixedTier: 'Epic' }, 0)).toThrow(RangeError);
+  });
+
+  it('gives civic bounties no tier, even with a fixed tier set', () => {
+    expect(tierForPlace({ kind: 'civic' }, 1)).toBeNull();
+    expect(tierForPlace({ kind: 'civic', fixedTier: 'Legendary' }, 1)).toBeNull();
+    expect(() => tierForPlace({ kind: 'civic' }, 0)).toThrow(RangeError);
   });
 
   it('recognizes tier names read from chain', () => {

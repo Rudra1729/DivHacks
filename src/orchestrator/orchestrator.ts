@@ -377,7 +377,7 @@ export class Orchestrator {
       solanaAssetAddress: mint.assetAddress,
       solanaSignature: mint.signature,
       stampSerial: mint.serial,
-      stampTier: mint.tier,
+      stampTier: mint.tier ?? undefined,
     }, trail);
   }
 
