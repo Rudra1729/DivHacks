@@ -692,18 +692,61 @@ const TICKER_LABELS = {
 };
 const MAX_TICKER_ITEMS = 20;
 
-/** Use the backend's rewards and geofences, so the page shows what the server enforces. */
+/** Build a frontend place object for a mission the server knows about but this
+page does not yet: added later by the weekly mission scout, so it has no
+entry in PLACE_COORDS and no hand-picked image/description.
+
+Args:
+    serverPlace (Object): One entry from GET /places.
+
+Returns:
+    Object: A PLACES-shaped object, ready to push and add a marker for.
+*/
+function placeFromServer(serverPlace) {
+  return {
+    id: serverPlace.id,
+    name: serverPlace.name,
+    neighborhood: serverPlace.neighborhood,
+    lat: serverPlace.latitude,
+    lng: serverPlace.longitude,
+    radius: serverPlace.geofenceRadiusMeters,
+    reward: `${serverPlace.baseRewardRlusd} RLUSD`,
+    type: 'cultural',
+    discovered: false,
+    image: serverPlace.imageUrl || 'https://placehold.co/600x600/png?text=' + encodeURIComponent(serverPlace.name),
+    desc: serverPlace.description || `A newly added WebPass NYC mission in ${serverPlace.neighborhood}.`
+  };
+}
+
+/** Use the backend's places, so the page shows exactly what the server enforces
+and pays out, including any mission the weekly scout has added since the
+page's own PLACES list was written. New places get a pin and the map
+recenters so every pin, old and new, is visible. */
 async function loadPlacesFromServer() {
   const result = await WebPassApi.getPlaces();
   if (!result.ok || !result.body) return;
+
+  let addedAny = false;
   result.body.places.forEach(serverPlace => {
     const place = PLACES.find(p => p.id === serverPlace.id);
-    if (!place) return;
-    place.name = serverPlace.name;
-    place.reward = `${serverPlace.baseRewardRlusd} RLUSD`;
-    place.radius = serverPlace.geofenceRadiusMeters;
-    if (typeof geofenceCircles !== 'undefined') geofenceCircles.get(place.id)?.setRadius(place.radius);
+    if (place) {
+      place.name = serverPlace.name;
+      place.reward = `${serverPlace.baseRewardRlusd} RLUSD`;
+      place.radius = serverPlace.geofenceRadiusMeters;
+      if (typeof geofenceCircles !== 'undefined') geofenceCircles.get(place.id)?.setRadius(place.radius);
+      return;
+    }
+    // A mission the scout generated after this page's PLACES list was written.
+    const generated = placeFromServer(serverPlace);
+    PLACES.push(generated);
+    if (typeof realMap !== 'undefined' && realMap && typeof addPlaceMarker === 'function') {
+      addPlaceMarker(generated);
+      addGeofenceCircle(generated);
+      addedAny = true;
+    }
   });
+
+  if (addedAny && typeof fitToPlaces === 'function') fitToPlaces(); // recenter so every pin is visible
   renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
   selectNode(selectedNodeId, { pan: false });
 }
