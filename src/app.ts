@@ -4,8 +4,11 @@ Keeping app construction separate from server.ts lets tests import the
 Express app directly with supertest, without binding a real port.
 */
 
-import express, { Express } from 'express';
+import express, { Express, NextFunction, Request, Response } from 'express';
+import multer from 'multer';
 import { AppConfig } from './config';
+import { placesRouter } from './routes/places';
+import { createSubmissionsRouter } from './routes/submissions';
 
 /** Build the Express application.
 
@@ -22,6 +25,17 @@ export function createApp(config: AppConfig): Express {
 
   app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok', testMode: config.isTestMode });
+  });
+
+  app.use(placesRouter);
+  app.use(createSubmissionsRouter(config));
+
+  app.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+    if (err instanceof multer.MulterError) {
+      res.status(400).json({ errors: [`upload error: ${err.message}`] });
+      return;
+    }
+    next(err);
   });
 
   return app;
