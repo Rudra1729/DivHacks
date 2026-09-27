@@ -5,10 +5,9 @@ on every call: 'fake' (default) keeps stamps in memory, 'real' mints soulbound
 Metaplex Core stamps on devnet.
 
 Example:
-    import { mintStamp, hasStampForPlace } from './solana';
+    import { solanaStamps } from './solana';
 
-    const result = await mintStamp({ decisionId, placeId, userSolanaAddress, xrplTxHash });
-    if (!result.ok) queueStampRetry(decisionId, result.error);
+    const orchestrator = new Orchestrator({ solana: solanaStamps, ... });
 */
 
 import { loadSolanaConfig } from './config';
@@ -16,7 +15,8 @@ import { fakeStampService } from './fakeStamps';
 import { realStampService } from './stamps';
 import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 
-export type { MintStampInput, MintStampResult, Stamp } from './types';
+export type { MintStampInput, MintStampResult, Stamp, StampService } from './types';
+export { FakeStampService } from './fakeStamps';
 
 /** Pick the stamp service for the current SOLANA_MODE.
 
@@ -69,3 +69,9 @@ Returns:
 export function getStamps(solanaAddress: string): Promise<Stamp[]> {
   return activeService().getStamps(solanaAddress);
 }
+
+/** The three functions as one object, for injecting into the orchestrator.
+
+Follows SOLANA_MODE on every call, so flipping to real mode needs no code change.
+*/
+export const solanaStamps: StampService = { mintStamp, hasStampForPlace, getStamps };
