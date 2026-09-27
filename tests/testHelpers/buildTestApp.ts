@@ -13,7 +13,7 @@ import { RealSentinel } from '../../src/sentinel/realSentinel';
 import { SqliteStorage } from '../../src/storage/sqliteStorage';
 import { AgentInput, AgentProposal, PayoutAgent } from '../../src/agent/types';
 import { FakePaymentService } from '../../src/xrpl/fakePayments';
-import { fakeStampService } from '../../src/solana/fakeStamps';
+import { FakeStampService } from '../../src/solana/fakeStamps';
 
 /** An agent that always proposes the place's base reward to the submitter. */
 class BaseRewardAgent implements PayoutAgent {
@@ -46,11 +46,12 @@ export function buildTestApp(
   const config: AppConfig = { ...loadConfig(), dbPath: ':memory:', ...configOverrides };
   const db = openDatabase(':memory:');
 
+  const solana = deps.solana ?? new FakeStampService();
   const orchestrator = new Orchestrator({
-    sentinel: new RealSentinel(db),
+    sentinel: new RealSentinel(db, solana),
     agent: new BaseRewardAgent(),
     xrpl: new FakePaymentService(),
-    solana: fakeStampService,
+    solana,
     storage: new SqliteStorage(db),
     isTestMode: config.isTestMode,
     ...deps,
