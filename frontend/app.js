@@ -31,18 +31,18 @@ const PLACES = [
     desc: 'Explore contemporary African-American art and culture at 144 W 125th St.'
   },
   {
-    id: 'marcus-garvey-park',
-    name: 'Marcus Garvey Park',
-    neighborhood: 'East Harlem',
-    x: 650,
+    id: 'butler-library',
+    name: 'Butler Library Ramps',
+    neighborhood: 'Morningside Heights',
+    x: 300,
     y: 320,
     radius: 150,
     rewardRlusd: 0.01,
     type: 'civic',
-    sponsor: 'Marcus Garvey Park Alliance',
+    sponsor: 'Columbia University Libraries',
     discovered: false,
-    image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?auto=format&fit=crop&w=600&q=80',
-    desc: 'CIVIC MISSION: Inspect and verify wheelchair ramp accessibility at the park entrance.'
+    image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Butler_Library%2C_Columbia_University_%286306127381%29.jpg/960px-Butler_Library%2C_Columbia_University_%286306127381%29.jpg',
+    desc: 'CIVIC MISSION: Check the wheelchair ramps at Butler Library on College Walk. Are they clear, working and well signed? Photograph them to report.'
   },
   {
     id: 'hamilton-grange',
@@ -123,7 +123,7 @@ let myBalance = null;
 const PLACE_COORDS = {
   'apollo-theater':         { lat: 40.8102,  lng: -73.9500 },
   'studio-museum-harlem':   { lat: 40.80835, lng: -73.94766 },
-  'marcus-garvey-park':     { lat: 40.8043,  lng: -73.9439 },
+  'butler-library':         { lat: 40.80639, lng: -73.96333 },
   'hamilton-grange':        { lat: 40.82138, lng: -73.94726 },
   'malcolm-shabazz-market': { lat: 40.80147, lng: -73.94886 },
   'morningside-park':       { lat: 40.8065,  lng: -73.9585 },
