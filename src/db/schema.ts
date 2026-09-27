@@ -8,6 +8,7 @@ The decision ID is the shared key linking SQLite, XRPL, and Solana records.
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS decisions (
   id TEXT PRIMARY KEY,
+  place_id TEXT,
   status TEXT NOT NULL,
   reasons TEXT NOT NULL DEFAULT '[]',
   grok_proposal TEXT,
