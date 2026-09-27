@@ -6,6 +6,7 @@ Swap FakeXrpl for the real XrplClient here once it lands, nothing else in
 this file or the orchestrator needs to change.
 */
 
+import 'dotenv/config';
 import { createApp } from './app';
 import { loadConfig } from './config';
 import { openDatabase } from './db';
