@@ -1,0 +1,113 @@
+{
+  "id": "C22",
+  "title": "A failed stamp never causes a second payment",
+  "proves": "If the payment succeeds but minting the stamp fails, the money stays paid, the failed mint is queued for retry, and nobody is paid twice.",
+  "cost": "0.01 RLUSD",
+  "status": "pass",
+  "summary": "Paid, mint failed, retry queued. Decision 3e8c7cff-3c2b-493b-a6f0-6bd852f029d7.",
+  "assertions": [
+    {
+      "description": "server answered 202",
+      "passed": true,
+      "actual": 202
+    },
+    {
+      "description": "status is STAMP_FAILED",
+      "passed": true,
+      "actual": "STAMP_FAILED"
+    },
+    {
+      "description": "the response says the stamp failed",
+      "passed": true,
+      "actual": true
+    },
+    {
+      "description": "the payment went through and has a hash",
+      "passed": true,
+      "actual": "F5763975EE984BAA09FFA7CEC0C339302B26BCA76B2F5151FB107F801CD2DF2F"
+    },
+    {
+      "description": "the failed mint is queued for retry in the database",
+      "passed": true,
+      "actual": {
+        "decision_id": "3e8c7cff-3c2b-493b-a6f0-6bd852f029d7",
+        "place_id": "hamilton-grange",
+        "solana_address": "9JH7hUyaUG213CuwhgBKeFoGHpChdupi6WC7XYncnR2b",
+        "xrpl_tx_hash": "F5763975EE984BAA09FFA7CEC0C339302B26BCA76B2F5151FB107F801CD2DF2F",
+        "attempts": 1,
+        "last_error": "mint failed, queued for retry",
+        "created_at": "2026-09-27T03:52:34.202Z",
+        "updated_at": "2026-09-27T03:52:34.202Z"
+      }
+    },
+    {
+      "description": "the queued retry remembers the payment hash",
+      "passed": true,
+      "actual": "F5763975EE984BAA09FFA7CEC0C339302B26BCA76B2F5151FB107F801CD2DF2F"
+    },
+    {
+      "description": "the payment is real and validated on the ledger",
+      "passed": true,
+      "actual": "tesSUCCESS"
+    },
+    {
+      "description": "the visitor received the reward once",
+      "passed": true,
+      "actual": {
+        "gained": 0.010000000000000002
+      }
+    },
+    {
+      "description": "no stamp was minted for this decision",
+      "passed": true,
+      "actual": 6
+    }
+  ],
+  "evidence": {
+    "response": {
+      "decisionId": "3e8c7cff-3c2b-493b-a6f0-6bd852f029d7",
+      "stampFailed": true,
+      "status": "STAMP_FAILED",
+      "reasons": [
+        "stamp mint failed, queued for retry: stamp mint failed: forced mint failure (SOLANA_FORCE_FAIL=true)"
+      ],
+      "proposal": {
+        "amount": 0.01,
+        "recipient": "rpU5YrQxWdm7So1tLC9vxyVMqhgVVCbTbY",
+        "reason": "Visit to Hamilton Grange National Memorial"
+      },
+      "policyVersion": "1.0.0",
+      "xrplTxHash": "F5763975EE984BAA09FFA7CEC0C339302B26BCA76B2F5151FB107F801CD2DF2F"
+    },
+    "queuedRetry": {
+      "decision_id": "3e8c7cff-3c2b-493b-a6f0-6bd852f029d7",
+      "place_id": "hamilton-grange",
+      "solana_address": "9JH7hUyaUG213CuwhgBKeFoGHpChdupi6WC7XYncnR2b",
+      "xrpl_tx_hash": "F5763975EE984BAA09FFA7CEC0C339302B26BCA76B2F5151FB107F801CD2DF2F",
+      "attempts": 1,
+      "last_error": "mint failed, queued for retry",
+      "created_at": "2026-09-27T03:52:34.202Z",
+      "updated_at": "2026-09-27T03:52:34.202Z"
+    },
+    "ledger": {
+      "found": true,
+      "validated": true,
+      "result": "tesSUCCESS",
+      "from": "rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN",
+      "to": "rpU5YrQxWdm7So1tLC9vxyVMqhgVVCbTbY",
+      "amount": "0.01",
+      "currency": "524C555344000000000000000000000000000000",
+      "issuer": "rQhWct2fv4Vc4KRjRgMrxa8xPN9Zx9iLKV",
+      "memos": [
+        "decision_id=3e8c7cff-3c2b-493b-a6f0-6bd852f029d7"
+      ]
+    }
+  },
+  "links": [
+    {
+      "label": "XRPL payment on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/F5763975EE984BAA09FFA7CEC0C339302B26BCA76B2F5151FB107F801CD2DF2F"
+    }
+  ],
+  "durationMs": 15099
+}

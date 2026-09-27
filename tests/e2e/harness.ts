@@ -106,13 +106,15 @@ export interface E2eStack {
 
 Args:
     options.isTestMode (boolean): Whether test-only routes are mounted.
+    options.solana (FakeStampService): Reuse an existing stamp store, so a second
+        stack with a brand new database can see stamps from an earlier one.
 
 Returns:
     E2eStack: The app plus handles to inspect the fakes and the database.
 */
-export function buildE2eStack(options: { isTestMode?: boolean } = {}): E2eStack {
+export function buildE2eStack(options: { isTestMode?: boolean; solana?: FakeStampService } = {}): E2eStack {
   const xrpl = new SlowXrpl();
-  const solana = new FakeStampService();
+  const solana = options.solana ?? new FakeStampService();
   const { app, db } = buildTestApp(
     { isTestMode: options.isTestMode ?? true },
     { agent: new ScriptedAgent(), xrpl, solana }

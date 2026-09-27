@@ -1,0 +1,69 @@
+{
+  "id": "C23",
+  "title": "The public API shows the places and the visitor stamps",
+  "proves": "The app-facing endpoints work: the list of places, a wallet's stamps read live from Solana, and the health check.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "Health, places, and wallet stamps all answered correctly.",
+  "assertions": [
+    {
+      "description": "health check is ok",
+      "passed": true,
+      "actual": {
+        "status": "ok",
+        "testMode": false
+      }
+    },
+    {
+      "description": "the places list has 6 places",
+      "passed": true,
+      "actual": 6
+    },
+    {
+      "description": "the visitor stamps endpoint lists the stamp from C01",
+      "passed": true,
+      "actual": 4
+    }
+  ],
+  "evidence": {
+    "health": {
+      "status": "ok",
+      "testMode": false
+    },
+    "places": [
+      {
+        "id": "apollo-theater",
+        "name": "Apollo Theater",
+        "neighborhood": "Harlem"
+      },
+      {
+        "id": "studio-museum-harlem",
+        "name": "Studio Museum in Harlem",
+        "neighborhood": "Harlem"
+      },
+      {
+        "id": "marcus-garvey-park",
+        "name": "Marcus Garvey Park",
+        "neighborhood": "Harlem"
+      },
+      {
+        "id": "hamilton-grange",
+        "name": "Hamilton Grange National Memorial",
+        "neighborhood": "Harlem"
+      },
+      {
+        "id": "malcolm-shabazz-market",
+        "name": "Malcolm Shabazz Harlem Market",
+        "neighborhood": "Harlem"
+      },
+      {
+        "id": "morningside-park",
+        "name": "Morningside Park",
+        "neighborhood": "Morningside Heights"
+      }
+    ],
+    "visitorStampCount": 4
+  },
+  "links": [],
+  "durationMs": 118
+}

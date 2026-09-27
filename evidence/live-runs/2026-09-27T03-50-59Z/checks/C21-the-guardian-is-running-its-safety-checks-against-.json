@@ -1,0 +1,39 @@
+{
+  "id": "C21",
+  "title": "The guardian is running its safety checks against the real ledger",
+  "proves": "The separate guardian process, the only holder of the treasury key, reads the live agent wallet and decides whether to top it up, in a mode where it sends nothing.",
+  "cost": "none (dry run)",
+  "status": "fail",
+  "summary": "The guardian ran.",
+  "assertions": [
+    {
+      "description": "the guardian ran and exited cleanly",
+      "passed": false,
+      "actual": 1
+    },
+    {
+      "description": "it announced a dry run, so nothing was sent",
+      "passed": false,
+      "actual": [
+        ""
+      ]
+    },
+    {
+      "description": "it read the agent wallet balance from the ledger",
+      "passed": false,
+      "actual": ""
+    }
+  ],
+  "evidence": {
+    "command": "npm run guardian:once -- --dry-run",
+    "exitCode": 1,
+    "output": ""
+  },
+  "links": [
+    {
+      "label": "Agent wallet",
+      "url": "https://testnet.xrpl.org/accounts/rGcs4fH41trNy8HahNy3zCQVDFSrAQYqnN"
+    }
+  ],
+  "durationMs": 3143
+}

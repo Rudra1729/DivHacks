@@ -1,0 +1,162 @@
+{
+  "id": "C24",
+  "title": "Every decision has a step-by-step audit history",
+  "proves": "Each step of a paid submission (Sentinel, claim, agent, policy, payment, stamp) is recorded and can be read back for any decision.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "6 steps recorded for decision e76c78c1-4264-49d8-b85a-6189d7df85f1.",
+  "assertions": [
+    {
+      "description": "the history has an entry for each of the 6 steps",
+      "passed": true,
+      "actual": [
+        "sentinel",
+        "claim",
+        "agent",
+        "policy",
+        "xrpl",
+        "solana"
+      ]
+    },
+    {
+      "description": "the sentinel step is recorded",
+      "passed": true,
+      "actual": [
+        "sentinel",
+        "claim",
+        "agent",
+        "policy",
+        "xrpl",
+        "solana"
+      ]
+    },
+    {
+      "description": "the claim step is recorded",
+      "passed": true,
+      "actual": [
+        "sentinel",
+        "claim",
+        "agent",
+        "policy",
+        "xrpl",
+        "solana"
+      ]
+    },
+    {
+      "description": "the agent step is recorded",
+      "passed": true,
+      "actual": [
+        "sentinel",
+        "claim",
+        "agent",
+        "policy",
+        "xrpl",
+        "solana"
+      ]
+    },
+    {
+      "description": "the policy step is recorded",
+      "passed": true,
+      "actual": [
+        "sentinel",
+        "claim",
+        "agent",
+        "policy",
+        "xrpl",
+        "solana"
+      ]
+    },
+    {
+      "description": "the xrpl step is recorded",
+      "passed": true,
+      "actual": [
+        "sentinel",
+        "claim",
+        "agent",
+        "policy",
+        "xrpl",
+        "solana"
+      ]
+    },
+    {
+      "description": "the solana step is recorded",
+      "passed": true,
+      "actual": [
+        "sentinel",
+        "claim",
+        "agent",
+        "policy",
+        "xrpl",
+        "solana"
+      ]
+    },
+    {
+      "description": "every step passed",
+      "passed": true,
+      "actual": []
+    }
+  ],
+  "evidence": {
+    "history": [
+      {
+        "id": 1,
+        "decisionId": "e76c78c1-4264-49d8-b85a-6189d7df85f1",
+        "layer": "sentinel",
+        "passed": true,
+        "message": "location, freshness, replay, and once-per-place checks passed",
+        "createdAt": "2026-09-27T04:21:54.271Z"
+      },
+      {
+        "id": 2,
+        "decisionId": "e76c78c1-4264-49d8-b85a-6189d7df85f1",
+        "layer": "claim",
+        "passed": true,
+        "message": "claim marked pending",
+        "createdAt": "2026-09-27T04:21:54.271Z"
+      },
+      {
+        "id": 3,
+        "decisionId": "e76c78c1-4264-49d8-b85a-6189d7df85f1",
+        "layer": "agent",
+        "passed": true,
+        "message": "proposed 0.01 RLUSD to rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe: Visit to Apollo Theater",
+        "createdAt": "2026-09-27T04:21:54.271Z"
+      },
+      {
+        "id": 4,
+        "decisionId": "e76c78c1-4264-49d8-b85a-6189d7df85f1",
+        "layer": "policy",
+        "passed": true,
+        "message": "policy 1.0.0: proposal allowed",
+        "createdAt": "2026-09-27T04:21:54.271Z"
+      },
+      {
+        "id": 5,
+        "decisionId": "e76c78c1-4264-49d8-b85a-6189d7df85f1",
+        "layer": "xrpl",
+        "passed": true,
+        "message": "paid 0.01 RLUSD to rnkq8JhrL99LVnxK9YryJ4Wu2rBr6Q2wCe, transaction 776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C",
+        "createdAt": "2026-09-27T04:21:54.271Z"
+      },
+      {
+        "id": 6,
+        "decisionId": "e76c78c1-4264-49d8-b85a-6189d7df85f1",
+        "layer": "solana",
+        "passed": true,
+        "message": "stamp minted: HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn",
+        "createdAt": "2026-09-27T04:21:54.271Z"
+      }
+    ]
+  },
+  "links": [
+    {
+      "label": "XRPL payment on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/776D0C450590520CB0F89448C170E0CB7521C439DCC6C25136584239AF020F5C"
+    },
+    {
+      "label": "Solana stamp (asset) on the devnet explorer",
+      "url": "https://explorer.solana.com/address/HGX9nUet9QYKbkTEv52z6PMBUMpyPrdKjUg5MFNW9Szn?cluster=devnet"
+    }
+  ],
+  "durationMs": 7
+}

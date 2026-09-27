@@ -1,0 +1,58 @@
+{
+  "id": "C17",
+  "title": "The ledger itself refuses an overspend when the policy is bypassed",
+  "proves": "Even if every app-level check is skipped and the agent tries to pay an attacker 50 RLUSD, the XRPL ledger rejects it, because the agent wallet never holds more than its small allowance.",
+  "cost": "a tiny XRP fee (the rejected payment still reaches the ledger)",
+  "status": "pass",
+  "summary": "Rejected by the ledger with tecPATH_PARTIAL.",
+  "assertions": [
+    {
+      "description": "the payment was not accepted",
+      "passed": true,
+      "actual": {
+        "ok": false,
+        "reason": "ledger_rejected",
+        "resultCode": "tecPATH_PARTIAL",
+        "txHash": "4799D9B639EAAF5AC31FF38A01338A47A702929F254A31BF92CD1C7EFEA2C574",
+        "error": "ledger rejected the payment with tecPATH_PARTIAL"
+      }
+    },
+    {
+      "description": "the reason is the ledger rejecting it",
+      "passed": true,
+      "actual": "ledger_rejected"
+    },
+    {
+      "description": "the ledger result is a \"tec\" rejection code",
+      "passed": true,
+      "actual": "tecPATH_PARTIAL"
+    },
+    {
+      "description": "the attacker received nothing",
+      "passed": true,
+      "actual": 0
+    },
+    {
+      "description": "the agent wallet lost nothing",
+      "passed": true,
+      "actual": 9.94
+    }
+  ],
+  "evidence": {
+    "attempt": "50 RLUSD from the agent wallet to the attacker wallet, sent straight to the payment layer",
+    "result": {
+      "ok": false,
+      "reason": "ledger_rejected",
+      "resultCode": "tecPATH_PARTIAL",
+      "txHash": "4799D9B639EAAF5AC31FF38A01338A47A702929F254A31BF92CD1C7EFEA2C574",
+      "error": "ledger rejected the payment with tecPATH_PARTIAL"
+    }
+  },
+  "links": [
+    {
+      "label": "The rejected transaction on the testnet explorer",
+      "url": "https://testnet.xrpl.org/transactions/4799D9B639EAAF5AC31FF38A01338A47A702929F254A31BF92CD1C7EFEA2C574"
+    }
+  ],
+  "durationMs": 6358
+}

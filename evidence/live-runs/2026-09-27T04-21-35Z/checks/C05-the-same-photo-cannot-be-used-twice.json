@@ -1,0 +1,43 @@
+{
+  "id": "C05",
+  "title": "The same photo cannot be used twice",
+  "proves": "Photo replay is blocked: reusing a photo, even at a different place, is stopped by Sentinel and pays nothing.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "Blocked: replay: this photo has already been submitted",
+  "assertions": [
+    {
+      "description": "server answered 422",
+      "passed": true,
+      "actual": 422
+    },
+    {
+      "description": "status is BLOCKED_SENTINEL",
+      "passed": true,
+      "actual": "BLOCKED_SENTINEL"
+    },
+    {
+      "description": "the reason is a replay",
+      "passed": true,
+      "actual": [
+        "replay: this photo has already been submitted"
+      ]
+    },
+    {
+      "description": "no payment was made",
+      "passed": true
+    }
+  ],
+  "evidence": {
+    "response": {
+      "decisionId": "529cf39f-d3b5-4004-96e4-5b60386f233a",
+      "stampFailed": false,
+      "status": "BLOCKED_SENTINEL",
+      "reasons": [
+        "replay: this photo has already been submitted"
+      ]
+    }
+  },
+  "links": [],
+  "durationMs": 393
+}

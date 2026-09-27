@@ -1,0 +1,47 @@
+{
+  "id": "C11",
+  "title": "Every problem is reported together",
+  "proves": "When a submission fails several checks at once, all of them are reported in one answer instead of one at a time.",
+  "cost": "none",
+  "status": "pass",
+  "summary": "2 problems reported at once.",
+  "assertions": [
+    {
+      "description": "two or more reasons were reported together",
+      "passed": true,
+      "actual": [
+        "location: 2224m from Marcus Garvey Park, max is 150m",
+        "freshness: photo is 60 minutes old, max is 15 minutes"
+      ]
+    },
+    {
+      "description": "one of them is location",
+      "passed": true,
+      "actual": [
+        "location: 2224m from Marcus Garvey Park, max is 150m",
+        "freshness: photo is 60 minutes old, max is 15 minutes"
+      ]
+    },
+    {
+      "description": "one of them is freshness",
+      "passed": true,
+      "actual": [
+        "location: 2224m from Marcus Garvey Park, max is 150m",
+        "freshness: photo is 60 minutes old, max is 15 minutes"
+      ]
+    }
+  ],
+  "evidence": {
+    "response": {
+      "decisionId": "ce2e2807-8f59-4771-b89d-ab3f7b840d8a",
+      "stampFailed": false,
+      "status": "BLOCKED_SENTINEL",
+      "reasons": [
+        "location: 2224m from Marcus Garvey Park, max is 150m",
+        "freshness: photo is 60 minutes old, max is 15 minutes"
+      ]
+    }
+  },
+  "links": [],
+  "durationMs": 12
+}
