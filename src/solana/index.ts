@@ -17,6 +17,7 @@ import { MintStampInput, MintStampResult, Stamp, StampService } from './types';
 
 export type { MintStampInput, MintStampResult, Stamp, StampService, StampTier } from './types';
 export { FakeStampService } from './fakeStamps';
+export { STAMP_SUPPLY_PER_PLACE, isFoundOut, tierForSerial } from './rarity';
 
 /** Pick the stamp service for the current SOLANA_MODE.
 

@@ -206,6 +206,22 @@ export function getDecisionByRequestId(db: Database.Database, requestId: string)
   return row ? fromRow(row) : undefined;
 }
 
+/** Highest stamp serial recorded for a place.
+
+Args:
+    db (Database.Database): Open database handle.
+    placeId (string): The place to check.
+
+Returns:
+    number: The highest serial saved on a decision for the place, 0 if none.
+*/
+export function getHighestStampSerial(db: Database.Database, placeId: string): number {
+  const row = db
+    .prepare('SELECT COALESCE(MAX(stamp_serial), 0) AS highest FROM decisions WHERE place_id = ?')
+    .get(placeId) as { highest: number };
+  return row.highest;
+}
+
 /** Sum of RLUSD paid to an address on the current UTC calendar day.
 
 Counts decisions that paid or may still pay: OK, STAMP_FAILED (a failed mint
