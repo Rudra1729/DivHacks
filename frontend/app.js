@@ -113,6 +113,93 @@ const PLACE_COORDS = {
 };
 PLACES.forEach(place => Object.assign(place, PLACE_COORDS[place.id]));
 
+// RARITY: the serial alone picks the tier, first finders get the rarest stamps.
+// These defaults match src/solana/rarity.ts and are replaced by GET /places.
+let RARITY_LADDER = [
+  { tier: 'Legendary', fromSerial: 1, toSerial: 10 },
+  { tier: 'Epic', fromSerial: 11, toSerial: 100 },
+  { tier: 'Rare', fromSerial: 101, toSerial: 400 },
+  { tier: 'Common', fromSerial: 401, toSerial: 1000 },
+  { tier: 'Late Explorer', fromSerial: 1001, toSerial: null }
+];
+let STAMP_SUPPLY = 1000;
+PLACES.forEach(place => { place.rarity = { found: 0, nextSerial: 1, nextTier: 'Legendary' }; });
+
+/** CSS class for a tier, e.g. "tier-late-explorer". */
+function tierClass(tier) {
+  return `tier-${String(tier || 'common').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z-]/g, '')}`;
+}
+
+/** The ladder rung a serial falls on. */
+function rungForSerial(serial) {
+  return RARITY_LADDER.find(rung => rung.toSerial === null || serial <= rung.toSerial) || RARITY_LADDER[RARITY_LADDER.length - 1];
+}
+
+/** The logged-in visitor's stamp for a place, if they have one. */
+function myStampAt(placeId) {
+  return myStamps.find(stamp => stamp.placeId === placeId);
+}
+
+/** A tier badge element, e.g. "EPIC #11". */
+function tierBadge(tier, serial, prefix = '') {
+  const badge = document.createElement('span');
+  badge.className = `tier-badge ${tierClass(tier)}`;
+  badge.textContent = `${prefix}${String(tier).toUpperCase()} #${serial}`;
+  return badge;
+}
+
+/** Fill the map card's rarity box: the visitor's own stamp here, or the tier
+    the next finder gets, plus the whole ladder with the current rung lit. */
+function renderPlaceRarity(place) {
+  const label = document.getElementById('nodeRarityLabel');
+  const tierEl = document.getElementById('nodeRarityTier');
+  const ladder = document.getElementById('nodeRarityLadder');
+  const note = document.getElementById('nodeRarityNote');
+  if (!label || !tierEl || !ladder || !note) return;
+
+  const { found, nextSerial, nextTier } = place.rarity;
+  const mine = myStampAt(place.id);
+  const shown = mine && mine.tier ? { tier: mine.tier, serial: mine.serial } : { tier: nextTier, serial: nextSerial };
+  label.textContent = mine && mine.tier ? 'Your stamp here' : 'Next stamp here';
+  tierEl.className = `tier-badge ${tierClass(shown.tier)}`;
+  tierEl.textContent = `${String(shown.tier).toUpperCase()} #${shown.serial}`;
+
+  const current = rungForSerial(nextSerial);
+  ladder.replaceChildren(...RARITY_LADDER.map(rung => {
+    const step = document.createElement('div');
+    const gone = rung.toSerial !== null && rung.toSerial < nextSerial;
+    step.className = `rarity-step ${tierClass(rung.tier)}${rung === current ? ' current' : ''}${gone ? ' gone' : ''}`;
+    step.title = `${rung.tier}: ${rung.toSerial === null ? `#${rung.fromSerial}+` : `#${rung.fromSerial}-${rung.toSerial}`}`;
+    const name = document.createElement('strong');
+    name.textContent = rung.tier === 'Late Explorer' ? 'Late' : rung.tier;
+    const range = document.createElement('small');
+    range.textContent = rung.toSerial === null ? `${rung.fromSerial}+` : `${rung.fromSerial}-${rung.toSerial}`;
+    step.append(name, range);
+    return step;
+  }));
+
+  const left = current.toSerial === null ? 0 : current.toSerial - found;
+  const nextFinder = mine && mine.tier ? `Next finder gets ${nextTier} #${nextSerial}. ` : '';
+  note.textContent = nextFinder + (current.toSerial === null
+    ? `All ${STAMP_SUPPLY} numbered stamps are found. New finders get Late Explorer.`
+    : `${found} of ${STAMP_SUPPLY} stamps found. ${left} ${current.tier} ${left === 1 ? 'stamp' : 'stamps'} left.`);
+}
+
+/** Explain the tiers above the passport cards. */
+function renderRarityLegend() {
+  const legend = document.getElementById('rarityLegend');
+  if (!legend) return;
+  const title = document.createElement('span');
+  title.className = 'rarity-legend-title';
+  title.textContent = 'Rarity by finder number:';
+  legend.replaceChildren(title, ...RARITY_LADDER.map(rung => {
+    const item = document.createElement('span');
+    item.className = `tier-badge ${tierClass(rung.tier)}`;
+    item.textContent = `${rung.tier} ${rung.toSerial === null ? `#${rung.fromSerial}+` : `#${rung.fromSerial}-${rung.toSerial}`}`;
+    return item;
+  }));
+}
+
 /** What a verified visit to this place earns, e.g. "0.01 RLUSD" or "Stamp only". */
 function rewardLabel(place) {
   return place.rewardRlusd > 0 ? `${place.rewardRlusd} RLUSD + stamp` : 'Stamp only';
@@ -229,6 +316,8 @@ async function refreshAccount() {
   if (stamps.ok) {
     myStamps = stamps.body.stamps || [];
     markStampedPlaces();
+    renderMissions(document.querySelector('.filter-btn.active')?.dataset.filter || 'all');
+    if (selectedNodeId) renderPlaceRarity(PLACES.find(p => p.id === selectedNodeId));
   }
   if (balance.ok) {
     myBalance = balance.body.balance;
@@ -373,6 +462,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupEventListeners();
 
   // Live data from the backend
+  renderRarityLegend();
   loadPlacesFromServer();
   connectLiveStream();
 
@@ -391,6 +481,7 @@ function selectNode(placeId, { pan = true } = {}) {
   document.getElementById('nodeNeighborhood').innerHTML = `<i data-lucide="map-pin"></i> ${place.neighborhood}`;
   document.getElementById('nodeGeofence').innerText = `${place.radius} Meters`;
   document.getElementById('nodeReward').innerText = rewardLabel(place);
+  renderPlaceRarity(place);
   document.getElementById('nodeDesc').innerText = place.desc;
   document.getElementById('nodeImage').src = place.image;
 
@@ -510,6 +601,7 @@ function renderMissions(filter) {
       <div class="mission-body">
         <h4 class="mission-title">${place.name}</h4>
         <div class="mission-loc"><i data-lucide="map-pin"></i> ${place.neighborhood} • ${place.radius}m Geofence</div>
+        <div class="mission-rarity">${missionRarityHtml(place)}</div>
         <p class="mission-desc">${place.desc}</p>
         <button class="comic-btn ${place.discovered ? 'hero-blue-btn' : 'hero-red-btn'} full-btn" onclick="openSubmissionModal('${place.id}')">
           <i data-lucide="${place.discovered ? 'check-circle-2' : 'zap'}"></i>
@@ -521,6 +613,17 @@ function renderMissions(filter) {
   });
 
   if (window.lucide) lucide.createIcons();
+}
+
+/** Rarity line for a mission card: the visitor's stamp here, or the next one up for grabs. */
+function missionRarityHtml(place) {
+  const mine = myStampAt(place.id);
+  if (mine && mine.tier) {
+    return `<span class="tier-badge ${tierClass(mine.tier)}">YOURS: ${escapeHtml(mine.tier.toUpperCase())} #${Number(mine.serial)}</span>`;
+  }
+  const { found, nextSerial, nextTier } = place.rarity;
+  return `<span class="tier-badge ${tierClass(nextTier)}">NEXT: ${escapeHtml(String(nextTier).toUpperCase())} #${Number(nextSerial)}</span>` +
+    `<small>${Number(found)} of ${STAMP_SUPPLY} found</small>`;
 }
 
 /* ==========================================================================
@@ -537,13 +640,14 @@ function stampCard(stamp) {
   const place = PLACES.find(p => p.id === stamp.placeId);
   return {
     badge: stamp.tier ? `${stamp.tier.toUpperCase()} #${stamp.serial}` : 'SOULBOUND STAMP',
+    tierClass: stamp.tier ? tierClass(stamp.tier) : '',
     name: escapeHtml(stamp.name),
     place: escapeHtml(`${place ? place.name : stamp.placeId} • ${stamp.neighborhood}`),
     image: escapeHtml(place ? place.image : ''),
     decisionId: escapeHtml(stamp.decisionId),
     mint: escapeHtml(shortHash(stamp.assetAddress)),
     tx: escapeHtml(stamp.xrplTxHash ? shortHash(stamp.xrplTxHash) : 'None, cultural visits earn the stamp only'),
-    rarity: escapeHtml(stamp.tier ? `${stamp.tier}, found #${stamp.serial}` : 'Unranked')
+    rarity: escapeHtml(stamp.tier ? `${stamp.tier}, finder #${stamp.serial} of ${STAMP_SUPPLY}` : 'Unranked')
   };
 }
 
@@ -564,7 +668,7 @@ function renderTradingCards() {
 
   myStamps.map(stampCard).forEach(stamp => {
     const cardWrap = document.createElement('div');
-    cardWrap.className = 'card-3d-wrapper';
+    cardWrap.className = `card-3d-wrapper ${stamp.tierClass}`;
     cardWrap.onclick = () => cardWrap.classList.toggle('flipped');
 
     cardWrap.innerHTML = `
@@ -572,7 +676,7 @@ function renderTradingCards() {
         <!-- FRONT FACE -->
         <div class="card-face card-face-front">
           <div>
-            <span class="card-stamp-badge">${escapeHtml(stamp.badge)}</span>
+            <span class="card-stamp-badge tier-badge ${stamp.tierClass}">${escapeHtml(stamp.badge)}</span>
             <div class="card-art-box">
               <img src="${stamp.image}" alt="${stamp.name}">
             </div>
@@ -715,10 +819,14 @@ const MAX_TICKER_ITEMS = 20;
 async function loadPlacesFromServer() {
   const result = await WebPassApi.getPlaces();
   if (!result.ok || !result.body) return;
+  if (Array.isArray(result.body.rarityTiers)) RARITY_LADDER = result.body.rarityTiers;
+  if (result.body.stampSupply) STAMP_SUPPLY = result.body.stampSupply;
+  renderRarityLegend();
   result.body.places.forEach(serverPlace => {
     const place = PLACES.find(p => p.id === serverPlace.id);
     if (!place) return;
     place.name = serverPlace.name;
+    if (serverPlace.rarity) place.rarity = serverPlace.rarity;
     place.rewardRlusd = serverPlace.rewardRlusd ?? serverPlace.baseRewardRlusd;
     if (serverPlace.kind) place.type = serverPlace.kind;
     place.radius = serverPlace.geofenceRadiusMeters;
@@ -748,6 +856,7 @@ async function connectLiveStream() {
   const source = await WebPassApi.subscribeEvents(event => {
     const label = TICKER_LABELS[event.type];
     if (label) addLiveTickerItem(label[0], label[1], label[2] || event.message);
+    if (event.type === 'decision.ok' || event.type === 'decision.stamp_failed') loadPlacesFromServer();
   });
   source.onopen = () => {
     if (stream && stream.dataset.live !== 'true') {
