@@ -30,6 +30,10 @@ export interface AppConfig {
   dbPath: string;
   isTestMode: boolean;
   maxUploadBytes: number;
+  /** Grok API key. Unset means the agent always uses its fallback payout. */
+  grokApiKey?: string;
+  grokModel: string;
+  grokEndpoint: string;
 }
 
 /** Build the app configuration from environment variables.
@@ -48,5 +52,8 @@ export function loadConfig(): AppConfig {
     dbPath: process.env.DB_PATH ?? 'webpass.sqlite',
     isTestMode: process.env.NODE_ENV === 'test',
     maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES ?? 5 * 1024 * 1024),
+    grokApiKey: process.env.GROK_API_KEY,
+    grokModel: process.env.GROK_MODEL ?? 'grok-4',
+    grokEndpoint: process.env.GROK_ENDPOINT ?? 'https://api.x.ai/v1/chat/completions',
   };
 }
