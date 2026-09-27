@@ -92,6 +92,7 @@ describe('GrokAgent', () => {
     expect(body.model).toBe('grok-test');
     expect(body.messages[1].content).toContain('Loved the show');
     expect(body.messages[1].content).toContain('rUser');
+    expect(body.messages[1].content).toContain('Base reward: 2 RLUSD');
   });
 
   it('passes the raw reply to onRawReply, even when it is malformed', async () => {

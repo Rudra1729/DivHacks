@@ -27,6 +27,7 @@ import { GrokAgent } from '../../src/agent/grok';
 import { AgentInput, AgentProposal } from '../../src/agent/types';
 import { loadConfig } from '../../src/config';
 import { PLACES } from '../../src/data/places';
+import { toPlace } from '../../src/storage/sqliteStorage';
 import { evaluatePolicy } from '../../src/policy/policy';
 
 const VISITOR = 'rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe';
@@ -62,7 +63,14 @@ async function main(): Promise<void> {
   console.log(`Model:    ${config.grokModel}`);
   console.log(`Endpoint: ${config.grokEndpoint}\n`);
 
-  const place = PLACES[0];
+  // The same conversion the server uses, so Grok sees the real base reward.
+  const place = toPlace(PLACES[0].id);
+  if (!place) {
+    throw new Error('first place not found');
+  }
+  console.log(`Place:    ${place.name}, base reward ${place.baseReward} RLUSD
+`);
+
   let lastRaw = '';
   const agent = new GrokAgent({
     apiKey: config.grokApiKey,
@@ -88,7 +96,10 @@ async function main(): Promise<void> {
       console.log(`Raw reply: ${lastRaw}`);
     }
     if (fellBack) {
-      console.log(`Result:   FALLBACK (${proposal.reason})`);
+      const refusal = lastRaw
+        ? ' Grok replied, but not as JSON. If this was the injection case, that is a refusal, which is safe.'
+        : '';
+      console.log(`Result:   FALLBACK (${proposal.reason}).${refusal}`);
     } else {
       answered += 1;
       console.log(`Result:   GROK ANSWERED, ${summarize(proposal)}`);

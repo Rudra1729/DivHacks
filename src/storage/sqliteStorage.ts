@@ -20,7 +20,15 @@ import {
 } from '../db/claims';
 import { queueStampRetryWithInput } from '../db/stampRetries';
 
-function toPlace(placeId: string): Place | undefined {
+/** Look up a place in the shared list and convert it to the shape the orchestrator uses.
+
+Args:
+    placeId (string): The place's ID.
+
+Returns:
+    Place | undefined: The place, or undefined if the ID is unknown.
+*/
+export function toPlace(placeId: string): Place | undefined {
   const place = getPlaceById(placeId);
   if (!place) {
     return undefined;

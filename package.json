@@ -11,6 +11,7 @@
     "test": "jest",
     "test:e2e": "jest tests/e2e",
     "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc -p tsconfig.scripts.json",
     "solana:setup": "tsx scripts/solana/setup.ts",
     "solana:mint-test": "tsx scripts/solana/mintTest.ts",
     "solana:transfer-test": "tsx scripts/solana/transferTest.ts",
