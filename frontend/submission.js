@@ -293,7 +293,14 @@ function handleSubmissionResult(place, result) {
   const amount = body.proposal ? `${body.proposal.amount} RLUSD` : 'the reward';
   const stamp = body.stampTier ? `${body.stampTier} stamp #${body.stampSerial}` : 'soulbound stamp';
 
-  if (body.status === 'OK') {
+  if (body.status === 'OK' && !body.xrplTxHash) {
+    triggerThwipUnlock(place.id);
+    setSpideyBotState('approved', `"THWIP! ${place.name} verified. A ${stamp} was added to your passport!"`);
+    showSubmissionResult('ok', 'THWIP! Visit verified', [
+      `Minted a ${stamp} on Solana (${shortHash(body.solanaAssetAddress)})`,
+      'Cultural visits earn the stamp only. Civic bounties also pay RLUSD.',
+    ]);
+  } else if (body.status === 'OK') {
     triggerThwipUnlock(place.id);
     setSpideyBotState('approved', `"THWIP! ${place.name} verified. ${amount} paid and a ${stamp} added to your passport!"`);
     showSubmissionResult('ok', 'THWIP! Visit verified', [
@@ -304,8 +311,9 @@ function handleSubmissionResult(place, result) {
   } else if (body.status === 'STAMP_FAILED' || body.status === 'PAYMENT_UNCONFIRMED') {
     if (body.status === 'STAMP_FAILED') triggerThwipUnlock(place.id);
     setSpideyBotState('policy_blocked', `"${place.name} verified, but ${body.status === 'STAMP_FAILED' ? 'the stamp is queued for a retry' : 'the payment is still confirming'}."`);
-    showSubmissionResult('warn', body.status === 'STAMP_FAILED' ? 'Paid, stamp queued for retry' : 'Payment sent, waiting for the ledger', [
-      `Payment transaction ${shortHash(body.xrplTxHash)}`,
+    const paidTitle = body.xrplTxHash ? 'Paid, stamp queued for retry' : 'Verified, stamp queued for retry';
+    showSubmissionResult('warn', body.status === 'STAMP_FAILED' ? paidTitle : 'Payment sent, waiting for the ledger', [
+      ...(body.xrplTxHash ? [`Payment transaction ${shortHash(body.xrplTxHash)}`] : []),
       ...reasons,
     ]);
   } else if (body.status === 'BLOCKED_SENTINEL') {
