@@ -4,6 +4,7 @@ Runs the two payments from the PRD through the real payment service:
     1. 2 RLUSD to demo user-1. Expected: success.
     2. 50 RLUSD to the attacker while the agent holds at most 10.
        Expected: rejected by the ledger.
+    3. Payment 1 again with the same decision ID. Expected: same hash, no new payment.
 Both transactions carry a decision ID memo and are printed with explorer links.
 
 Usage:
@@ -45,18 +46,24 @@ async function main(): Promise<void> {
   console.log(`Agent ${getAgentAddress()} holds ${await getRlusdBalance(getAgentAddress())} ${unit}`);
 
   const goodId = randomUUID();
-  const good = await sendPayment({ decisionId: goodId, userXrplAddress: user, amount: 2 });
+  const good = await sendPayment({ decisionId: goodId, recipient: user, amount: 2 });
   report(`1. Pay 2 ${unit} to user-1 (expect success)`, goodId, good);
 
   const attackId = randomUUID();
-  const attack = await sendPayment({ decisionId: attackId, userXrplAddress: attacker, amount: attackAmount });
+  const attack = await sendPayment({ decisionId: attackId, recipient: attacker, amount: attackAmount });
   report(`2. Pay ${attackAmount} ${unit} to attacker (expect ledger rejection)`, attackId, attack);
 
-  console.log(`\nuser-1 paid today: ${await getPaidToday(user)} ${unit}`);
+  const paidBefore = await getPaidToday(user);
+  const repeat = await sendPayment({ decisionId: goodId, recipient: user, amount: 2 });
+  report('3. Repeat payment 1 with the same decision ID (expect same hash, no new payment)', goodId, repeat);
+  const paidAfter = await getPaidToday(user);
+  const noDoublePay = repeat.txHash === good.txHash && paidAfter === paidBefore;
+
+  console.log(`\nuser-1 paid today: ${paidAfter} ${unit} (before repeat: ${paidBefore})`);
   console.log(`attacker balance:  ${await getRlusdBalance(attacker)} ${unit}`);
   console.log(`agent balance now: ${await getRlusdBalance(getAgentAddress())} ${unit}`);
 
-  const passed = good.ok && !attack.ok && attack.reason === 'ledger_rejected';
+  const passed = good.ok && !attack.ok && attack.reason === 'ledger_rejected' && noDoublePay;
   console.log(passed ? '\nPASS' : '\nFAIL');
   await disconnectClient();
   process.exit(passed ? 0 : 1);
