@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spidey-Verse NYC — Unweb the City & Earn Rewards</title>
+  <meta name="description" content="Explore NYC, complete cultural & civic missions, unlock soulbound trading cards, and earn RLUSD micro-rewards managed by a guardrailed AI referee!">
+  
+  <!-- Google Fonts: Bangers, Luckiest Guy, Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Luckiest+Guy&family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Three.js CDN for Interactive 3D Spider-Man -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="spidey-theme">
+
+  <!-- BACKGROUND ROTATING ACTION RAYS & HALFTONE -->
+  <div class="halftone-overlay"></div>
+  <div class="sunburst-rays"></div>
+
+  <!-- NAVIGATION BAR -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <div class="spider-logo-icon">
+          <svg viewBox="0 0 100 100" class="spider-svg">
+            <path d="M50 15 C30 15 20 35 20 50 C20 65 30 85 50 85 C70 85 80 65 80 50 C80 35 70 15 50 15 Z" fill="#E52421"/>
+            <path d="M50 25 L35 10 M50 25 L65 10 M50 40 L20 30 M50 40 L80 30 M50 60 L15 70 M50 60 L85 70 M50 75 L30 90 M50 75 L70 90" stroke="#121212" stroke-width="4" stroke-linecap="round"/>
+            <circle cx="42" cy="45" r="5" fill="#FFF"/>
+            <circle cx="58" cy="45" r="5" fill="#FFF"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">SPIDEY-VERSE</span>
+          <span class="brand-sub">NYC EXPLORER</span>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <a href="#hero" class="nav-link active"><i data-lucide="zap"></i> Home</a>
+        <a href="#spiderweb" class="nav-link"><i data-lucide="share-2"></i> The Web</a>
+        <a href="#missions" class="nav-link"><i data-lucide="target"></i> Missions</a>
+        <a href="#cards" class="nav-link"><i data-lucide="layers"></i> Cards</a>
+        <a href="#referee" class="nav-link"><i data-lucide="shield-check"></i> Spidey-Bot AI</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="comic-btn hero-red-btn" id="connectWalletBtn">
+          <i data-lucide="wallet"></i>
+          <span id="walletBtnText">CONNECT WALLET</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- LIVE TICKER MARQUEE -->
+  <div class="ticker-wrap">
+    <div class="ticker-title"><i data-lucide="activity"></i> LIVE WEB NETWORK STREAM:</div>
+    <div class="ticker-content" id="tickerStream">
+      <span class="ticker-item"><strong class="highlight-yellow">THWIP!</strong> User <code>rP9x...2a</code> unlocked Apollo Theater (+1.0 RLUSD)</span>
+      <span class="ticker-item"><strong class="highlight-red">SNAG!</strong> Duplicate photo attempt blocked by Sentinel</span>
+      <span class="ticker-item"><strong class="highlight-cyan">CARD MINTED!</strong> Harlem Cultural Passport #042 minted on Solana</span>
+      <span class="ticker-item"><strong class="highlight-yellow">THWIP!</strong> Wheelchair Ramp Inspection verified in Morningside Heights</span>
+      <span class="ticker-item"><strong class="highlight-red">GUARDRAIL HELD!</strong> Policy engine blocked prompt injection overspend</span>
+    </div>
+  </div>
+
+  <!-- HERO SECTION -->
+  <section class="hero-section" id="hero">
+    <div class="hero-container">
+      <div class="hero-badge-container">
+        <span class="comic-tag yellow-tag"><i data-lucide="sparkles"></i> DIVHACKS 2026 SPECIAL</span>
+        <span class="comic-tag cyan-tag"><i data-lucide="shield"></i> XRPL + SOLANA GUARDRAILED</span>
+      </div>
+
+      <h1 class="hero-title">
+        SUIT UP HEROES!<br>
+        <span class="text-glow-red">UNWEB NEW YORK CITY</span>
+      </h1>
+
+      <p class="hero-description">
+        NYC is drawn like a giant spiderweb. Right now, it's gray and unexplored. 
+        Go out on missions, take verified photos of murals & civic spots, and 
+        <strong class="text-yellow">THWIP!</strong> Watch the web light up while collecting 
+        soulbound trading cards & real RLUSD micro-rewards!
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#spiderweb" class="comic-btn hero-red-btn big-btn">
+          <i data-lucide="compass"></i> EXPLORE NYC WEB MAP
+        </a>
+        <a href="#referee" class="comic-btn hero-blue-btn big-btn">
+          <i data-lucide="bot"></i> TEST SPIDEY-BOT AI
+        </a>
+      </div>
+
+      <!-- INTERACTIVE 3D SPIDER-MAN CHARACTER VIEWPORT -->
+      <div class="spidey-3d-card comic-box">
+        <div class="spidey-3d-header">
+          <span class="comic-tag red-tag"><i data-lucide="box"></i> REAL-TIME WEBGL 3D</span>
+          <h3 class="spidey-3d-title">INTERACTIVE 3D SPIDER-MAN HERO</h3>
+          <span class="spidey-3d-subtitle">Move your mouse to rotate 3D Spidey • Click 3D Spidey to THWIP Web Shoot!</span>
+        </div>
+        <div class="spidey-3d-viewport" id="spidey3dViewport">
+          <canvas id="spidey3dCanvas"></canvas>
+          <div class="web-shoot-thwip-text" id="webShootThwipText">THWIP!</div>
+        </div>
+      </div>
+
+      <!-- SPIDEY-BOT FLOATING MASCOT & DIALOGUE -->
+      <div class="spidey-bot-card">
+        <div class="spidey-bot-avatar" id="spideyBotAvatar">
+          <svg viewBox="0 0 120 120" class="spidey-head-svg">
+            <!-- Mask Base -->
+            <path d="M60 10 C25 10 15 45 15 75 C15 100 40 115 60 115 C80 115 105 100 105 75 C105 45 95 10 60 10 Z" fill="#E52421" stroke="#121212" stroke-width="4"/>
+            <!-- Web Lines on Mask -->
+            <path d="M60 10 L60 115 M15 75 C40 70 80 70 105 75 M25 45 C45 40 75 40 95 45 M35 95 C48 90 72 90 85 95" stroke="#121212" stroke-width="2.5" opacity="0.4" fill="none"/>
+            <!-- Left Eye Lens -->
+            <path id="leftEye" class="spidey-eye" d="M25 48 C35 48 52 58 48 72 C35 72 22 62 25 48 Z" fill="#FFF" stroke="#121212" stroke-width="4"/>
+            <!-- Right Eye Lens -->
+            <path id="rightEye" class="spidey-eye" d="M95 48 C85 48 68 58 72 72 C85 72 98 62 95 48 Z" fill="#FFF" stroke="#121212" stroke-width="4"/>
+          </svg>
+          <div class="bot-status-indicator online" id="botStatusDot"></div>
+        </div>
+
+        <div class="spidey-speech-bubble">
+          <div class="bubble-header">
+            <span class="bot-name"><i data-lucide="bot"></i> SPIDEY-BOT AI REFEREE</span>
+            <span class="bot-state-badge" id="botStateBadge">READY TO VERIFY</span>
+          </div>
+          <p class="bubble-text" id="spideyTalkText">
+            "Hey Hero! I'm Grok Spidey-Bot. I review your mission photos and hand out RLUSD rewards! But don't try tricking me — my hard policy guardrails mean I physically CANNOT overspend!"
+          </p>
+          <div class="bubble-actions">
+            <button class="comic-chip-btn" id="spideyWaveBtn"><i data-lucide="hand"></i> Say Hi!</button>
+            <button class="comic-chip-btn" id="spideyExplainBtn"><i data-lucide="info"></i> How Guardrails Work</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- SECTION 1: THE INTERACTIVE SPIDERWEB MAP -->
+  <section class="section-container" id="spiderweb">
+    <div class="section-header">
+      <span class="comic-tag red-tag"><i data-lucide="map-pin"></i> INTERACTIVE NYC MAP</span>
+      <h2 class="section-title">THE NEIGHBORHOOD SPIDERWEB</h2>
+      <p class="section-subtitle">Click on unexplored gray nodes, review missions, and hit <strong>THWIP!</strong> to light up the city network!</p>
+    </div>
+
+    <div class="web-map-wrapper">
+      <!-- CANVAS SPIDERWEB GRAPH -->
+      <div class="canvas-container">
+        <canvas id="spiderwebCanvas" width="900" height="550"></canvas>
+        <div class="canvas-overlay-controls">
+          <button class="comic-icon-btn" id="resetWebBtn" title="Reset Web Progress"><i data-lucide="rotate-ccw"></i> Reset Web</button>
+          <button class="comic-icon-btn" id="unlockAllBtn" title="THWIP Unlock All"><i data-lucide="sparkles"></i> THWIP All!</button>
+        </div>
+      </div>
+
+      <!-- NODE DETAIL SIDEBAR -->
+      <div class="node-detail-panel" id="nodeDetailPanel">
+        <div class="panel-card comic-box">
+          <div class="panel-header">
+            <span class="node-badge" id="nodeStatusBadge">UNEXPLORED</span>
+            <h3 class="node-title" id="nodeTitle">Apollo Theater</h3>
+            <span class="node-sub" id="nodeNeighborhood"><i data-lucide="map-pin"></i> Harlem Corridor</span>
+          </div>
+
+          <div class="panel-body">
+            <div class="node-image-wrap">
+              <img id="nodeImage" src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80" alt="Landmark Image">
+              <div class="node-thwip-badge" id="nodeThwipBadge">THWIP! UNLOCKED</div>
+            </div>
+
+            <div class="node-stats">
+              <div class="stat-item">
+                <span class="stat-label">Geofence Radius</span>
+                <span class="stat-val" id="nodeGeofence">150 Meters</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">RLUSD Bounty</span>
+                <span class="stat-val highlight-yellow" id="nodeReward">1.0 RLUSD</span>
+              </div>
+            </div>
+
+            <p class="node-desc" id="nodeDesc">
+              Visit 125th Street, locate the iconic historic Apollo Theater marquee, take a photo, and submit proof to light up Harlem!
+            </p>
+
+            <div class="node-actions">
+              <button class="comic-btn hero-red-btn full-btn" id="thwipUnlockBtn">
+                <i data-lucide="zap"></i> THWIP! UNLOCK NEIGHBORHOOD
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 2: MISSION HUB & CIVIC BOUNTIES -->
+  <section class="section-container bg-dark-comic" id="missions">
+    <div class="section-header">
+      <span class="comic-tag yellow-tag"><i data-lucide="target"></i> HERO MISSIONS</span>
+      <h2 class="section-title text-white">CULTURAL SITES & CIVIC BOUNTIES</h2>
+      <p class="section-subtitle text-gray">Help your neighborhood or explore iconic culture. Earn soulbound stamps and RLUSD payouts!</p>
+    </div>
+
+    <!-- MISSION CATEGORY FILTERS -->
+    <div class="filter-tabs">
+      <button class="filter-btn active" data-filter="all"><i data-lucide="grid"></i> All Missions</button>
+      <button class="filter-btn" data-filter="cultural"><i data-lucide="landmark"></i> Cultural Exploration</button>
+      <button class="filter-btn" data-filter="civic"><i data-lucide="heart-handshake"></i> Civic Good Bounties</button>
+    </div>
+
+    <!-- MISSION CARDS GRID -->
+    <div class="missions-grid" id="missionsGrid">
+      <!-- Dynamic Javascript rendering will populate mission cards here -->
+    </div>
+  </section>
+
+  <!-- SECTION 3: DIGITAL PASSPORT & 3D COLLECTIBLE CARDS -->
+  <section class="section-container" id="cards">
+    <div class="section-header">
+      <span class="comic-tag cyan-tag"><i data-lucide="layers"></i> SOLANA METAPLEX CORE</span>
+      <h2 class="section-title">SOULBOUND TRADING CARDS</h2>
+      <p class="section-subtitle">Earned cards are locked to your wallet forever. Hover to inspect 3D tilt sheen, or click to flip & inspect on-chain proof!</p>
+    </div>
+
+    <div class="cards-gallery" id="cardsGallery">
+      <!-- Dynamic 3D trading cards populated by app.js -->
+    </div>
+  </section>
+
+  <!-- SECTION 4: SPIDEY-BOT AI REFEREE & GUARDRAIL ATTACK SIMULATOR -->
+  <section class="section-container bg-dark-comic" id="referee">
+    <div class="section-header">
+      <span class="comic-tag red-tag"><i data-lucide="shield-check"></i> UN-BYPASSABLE SECURITY</span>
+      <h2 class="section-title text-white">SPIDEY-BOT & POLICY GUARDRAILS</h2>
+      <p class="section-subtitle text-gray">Even if Grok AI gets prompt-injected or manipulated, hard ledger guardrails prevent unauthorized payouts!</p>
+    </div>
+
+    <!-- 5-GATE PIPELINE VISUALIZER -->
+    <div class="pipeline-container comic-box">
+      <h3 class="pipeline-title"><i data-lucide="git-commit"></i> THE 5 SECURITY GATES OF WEBPASS NYC</h3>
+      <div class="pipeline-gates" id="pipelineGates">
+        <div class="gate-step active" id="gate1">
+          <div class="gate-icon"><i data-lucide="file-check"></i></div>
+          <div class="gate-name">Gate 1: Intake</div>
+          <div class="gate-sub">Request Shape Validation</div>
+        </div>
+        <div class="gate-connector"></div>
+        <div class="gate-step" id="gate2">
+          <div class="gate-icon"><i data-lucide="radar"></i></div>
+          <div class="gate-name">Gate 2: Sentinel</div>
+          <div class="gate-sub">GPS Distance & Photo Hash</div>
+        </div>
+        <div class="gate-connector"></div>
+        <div class="gate-step" id="gate3">
+          <div class="gate-icon"><i data-lucide="bot"></i></div>
+          <div class="gate-name">Gate 3: Grok AI</div>
+          <div class="gate-sub">Agent Payout Proposal</div>
+        </div>
+        <div class="gate-connector"></div>
+        <div class="gate-step" id="gate4">
+          <div class="gate-icon"><i data-lucide="shield-alert"></i></div>
+          <div class="gate-name">Gate 4: Policy Engine</div>
+          <div class="gate-sub">Hard Rule Enforcement</div>
+        </div>
+        <div class="gate-connector"></div>
+        <div class="gate-step" id="gate5">
+          <div class="gate-icon"><i data-lucide="link"></i></div>
+          <div class="gate-name">Gate 5: Settlement</div>
+          <div class="gate-sub">XRPL & Solana Ledger</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ATTACK SIMULATOR DEMO CONTROL CENTER -->
+    <div class="attack-sim-container comic-box red-accent-box">
+      <div class="sim-header">
+        <div>
+          <span class="comic-tag red-tag"><i data-lucide="flame"></i> LIVE TEST SUITE</span>
+          <h3 class="sim-title">GUARDRAIL ATTACK SIMULATOR</h3>
+        </div>
+        <div class="attack-toggle-wrap">
+          <span class="toggle-label">Test Attack Mode:</span>
+          <label class="switch">
+            <input type="checkbox" id="testAttackToggle">
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+
+      <p class="sim-desc">
+        Select a malicious attack vector below to trigger a live execution test. Observe how Sentinel, Policy Engine, or the XRPL ledger block the exploit in real-time!
+      </p>
+
+      <div class="attack-buttons-grid">
+        <button class="comic-btn attack-btn" id="attackDuplicateBtn">
+          <i data-lucide="copy-x"></i>
+          <div>
+            <strong>Attack #1: Duplicate Photo Fraud</strong>
+            <small>Submits identical photo hash twice</small>
+          </div>
+        </button>
+
+        <button class="comic-btn attack-btn" id="attackInjectionBtn">
+          <i data-lucide="terminal"></i>
+          <div>
+            <strong>Attack #2: Grok Prompt Injection ($100)</strong>
+            <small>Tricks AI to propose $100 payout</small>
+          </div>
+        </button>
+
+        <button class="comic-btn attack-btn" id="attackBypassBtn">
+          <i data-lucide="shield-off"></i>
+          <div>
+            <strong>Attack #3: Policy Engine Bypass</strong>
+            <small>Bypasses policy gate to attack ledger</small>
+          </div>
+        </button>
+      </div>
+
+      <!-- SIMULATION LOG OUTPUT -->
+      <div class="sim-log-box" id="simLogBox">
+        <div class="log-line info-line"><code>[SYSTEM] Attack Simulator Ready. Select an attack scenario above.</code></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUBMISSION MODAL DRAWER -->
+  <div class="modal-overlay" id="submissionModal">
+    <div class="modal-content comic-box">
+      <button class="modal-close-btn" id="closeModalBtn">&times;</button>
+
+      <div class="modal-header">
+        <span class="comic-tag red-tag"><i data-lucide="send"></i> HERO SUBMISSION</span>
+        <h3 class="modal-title" id="modalMissionTitle">Mission Verification</h3>
+        <p class="modal-sub" id="modalMissionSub">Apollo Theater • Harlem Corridor</p>
+      </div>
+
+      <div class="modal-body">
+        <form id="submissionForm">
+          <!-- PHOTO PREVIEW AREA -->
+          <div class="photo-upload-zone" id="photoDropZone">
+            <div class="photo-preview-wrap" id="photoPreviewWrap">
+              <img id="photoPreviewImg" src="https://images.unsplash.com/photo-1541961017774-22349e4a1262?auto=format&fit=crop&w=600&q=80" alt="Proof Photo">
+              <div class="photo-lens-frame">
+                <i data-lucide="aperture"></i>
+              </div>
+            </div>
+            <div class="photo-upload-info">
+              <label for="photoFileInput" class="comic-btn hero-blue-btn small-btn">
+                <i data-lucide="camera"></i> Select Photo Proof
+              </label>
+              <input type="file" id="photoFileInput" accept="image/*" style="display:none;">
+              <small class="upload-note">Sentinel verifies EXIF timestamp & duplicate hashes</small>
+            </div>
+          </div>
+
+          <!-- GPS LOCATION CHECK -->
+          <div class="form-group">
+            <label class="form-label"><i data-lucide="navigation"></i> Device GPS Location</label>
+            <div class="gps-status-box success" id="gpsStatusBox">
+              <i data-lucide="check-circle-2"></i>
+              <span>Coordinates Captured: <strong>40.8102° N, 73.9500° W</strong> (Within 42m of Target)</span>
+            </div>
+          </div>
+
+          <!-- WALLET ADDRESSES -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label"><i data-lucide="wallet"></i> XRPL Wallet Address (RLUSD)</label>
+              <input type="text" class="comic-input" id="xrplAddressInput" value="rP9x9K2bM...5Xz1" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label"><i data-lucide="shield"></i> Solana Wallet Address (Stamp)</label>
+              <input type="text" class="comic-input" id="solanaAddressInput" value="7xKXtg...9M1L" required>
+            </div>
+          </div>
+
+          <!-- CAPTION FOR GROK -->
+          <div class="form-group">
+            <label class="form-label"><i data-lucide="message-square"></i> Mission Caption for Spidey-Bot AI</label>
+            <textarea class="comic-textarea" id="captionInput" rows="2" placeholder="e.g. Verified the Apollo Theater historic marquee with friends on 125th Street!"></textarea>
+          </div>
+
+          <!-- SUBMIT ACTION BUTTON -->
+          <div class="form-actions">
+            <button type="submit" class="comic-btn hero-red-btn full-btn big-btn" id="submitProofBtn">
+              <i data-lucide="zap"></i> THWIP! SUBMIT PROOF FOR VERIFICATION
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-brand">
+        <span class="brand-title">SPIDEY-VERSE NYC</span>
+        <p>Built for DivHacks 2026 • Powered by Express, XRPL RLUSD & Solana Metaplex</p>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/Rudra1729/DivHacks" target="_blank"><i data-lucide="github"></i> Repository</a>
+        <a href="#referee"><i data-lucide="shield"></i> Guardrail Spec</a>
+        <a href="#spiderweb"><i data-lucide="map"></i> Web Canvas</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
