@@ -8,7 +8,11 @@ The decision ID is the shared key linking SQLite, XRPL, and Solana records.
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS decisions (
   id TEXT PRIMARY KEY,
+  request_id TEXT UNIQUE,
   place_id TEXT,
+  xrpl_address TEXT,
+  solana_address TEXT,
+  amount REAL,
   status TEXT NOT NULL,
   reasons TEXT NOT NULL DEFAULT '[]',
   grok_proposal TEXT,
@@ -39,6 +43,7 @@ CREATE TABLE IF NOT EXISTS photo_fingerprints (
 
 CREATE TABLE IF NOT EXISTS claims (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  decision_id TEXT UNIQUE,
   xrpl_address TEXT NOT NULL,
   solana_address TEXT NOT NULL,
   place_id TEXT NOT NULL,
@@ -54,6 +59,9 @@ CREATE TABLE IF NOT EXISTS request_ids (
 
 CREATE TABLE IF NOT EXISTS stamp_retries (
   decision_id TEXT PRIMARY KEY,
+  place_id TEXT,
+  solana_address TEXT,
+  xrpl_tx_hash TEXT,
   attempts INTEGER NOT NULL DEFAULT 0,
   last_error TEXT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),

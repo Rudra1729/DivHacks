@@ -1,13 +1,11 @@
 import http from 'http';
 import { AddressInfo } from 'net';
-import { createApp } from '../../src/app';
-import { loadConfig } from '../../src/config';
-import { openDatabase } from '../../src/db';
 import { publishEvent } from '../../src/events/bus';
+import { buildTestApp } from '../testHelpers/buildTestApp';
 
 describe('GET /events', () => {
   it('streams a published event to a connected client', (done) => {
-    const app = createApp(loadConfig(), openDatabase(':memory:'));
+    const { app } = buildTestApp();
     const server = app.listen(0, () => {
       const port = (server.address() as AddressInfo).port;
 

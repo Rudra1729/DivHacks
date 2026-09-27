@@ -1,14 +1,19 @@
 /**Data access for the decisions table.
 
 The decision ID is the shared key across SQLite, the XRPL payment memo,
-and the Solana stamp metadata.
+and the Solana stamp metadata. requestId is the client-supplied idempotency
+key the orchestrator uses to avoid re-running a retried request.
 */
 
 import Database from 'better-sqlite3';
 
 export interface Decision {
   id: string;
+  requestId: string;
   placeId: string | null;
+  xrplAddress: string | null;
+  solanaAddress: string | null;
+  amount: number | null;
   status: string;
   reasons: string[];
   grokProposal?: string | null;
@@ -23,7 +28,11 @@ export interface Decision {
 
 interface DecisionRow {
   id: string;
+  request_id: string;
   place_id: string | null;
+  xrpl_address: string | null;
+  solana_address: string | null;
+  amount: number | null;
   status: string;
   reasons: string;
   grok_proposal: string | null;
@@ -39,7 +48,11 @@ interface DecisionRow {
 function fromRow(row: DecisionRow): Decision {
   return {
     id: row.id,
+    requestId: row.request_id,
     placeId: row.place_id,
+    xrplAddress: row.xrpl_address,
+    solanaAddress: row.solana_address,
+    amount: row.amount,
     status: row.status,
     reasons: JSON.parse(row.reasons),
     grokProposal: row.grok_proposal,
@@ -53,7 +66,79 @@ function fromRow(row: DecisionRow): Decision {
   };
 }
 
-/** Create a new decision row with an initial status.
+export interface UpsertDecisionInput {
+  id: string;
+  requestId: string;
+  placeId: string | null;
+  xrplAddress?: string | null;
+  solanaAddress?: string | null;
+  amount?: number | null;
+  status: string;
+  reasons?: string[];
+  grokProposal?: string | null;
+  policyVersion?: string | null;
+  xrplHash?: string | null;
+  xrplResult?: string | null;
+  solanaAsset?: string | null;
+  solanaSignature?: string | null;
+  stampFailed?: boolean;
+}
+
+/** Create or fully replace a decision row.
+
+Args:
+    db (Database.Database): Open database handle.
+    input (UpsertDecisionInput): The decision's full field set.
+
+Returns:
+    Decision: The saved decision.
+*/
+export function upsertDecision(db: Database.Database, input: UpsertDecisionInput): Decision {
+  db.prepare(
+    `INSERT INTO decisions (
+       id, request_id, place_id, xrpl_address, solana_address, amount, status, reasons,
+       grok_proposal, policy_version, xrpl_hash, xrpl_result, solana_asset, solana_signature, stamp_failed
+     ) VALUES (
+       @id, @requestId, @placeId, @xrplAddress, @solanaAddress, @amount, @status, @reasons,
+       @grokProposal, @policyVersion, @xrplHash, @xrplResult, @solanaAsset, @solanaSignature, @stampFailed
+     )
+     ON CONFLICT(id) DO UPDATE SET
+       place_id = COALESCE(excluded.place_id, decisions.place_id),
+       xrpl_address = COALESCE(excluded.xrpl_address, decisions.xrpl_address),
+       solana_address = COALESCE(excluded.solana_address, decisions.solana_address),
+       amount = COALESCE(excluded.amount, decisions.amount),
+       status = excluded.status,
+       reasons = excluded.reasons,
+       grok_proposal = excluded.grok_proposal,
+       policy_version = excluded.policy_version,
+       xrpl_hash = excluded.xrpl_hash,
+       xrpl_result = excluded.xrpl_result,
+       solana_asset = excluded.solana_asset,
+       solana_signature = excluded.solana_signature,
+       stamp_failed = excluded.stamp_failed`
+  ).run({
+    id: input.id,
+    requestId: input.requestId,
+    placeId: input.placeId,
+    xrplAddress: input.xrplAddress ?? null,
+    solanaAddress: input.solanaAddress ?? null,
+    amount: input.amount ?? null,
+    status: input.status,
+    reasons: JSON.stringify(input.reasons ?? []),
+    grokProposal: input.grokProposal ?? null,
+    policyVersion: input.policyVersion ?? null,
+    xrplHash: input.xrplHash ?? null,
+    xrplResult: input.xrplResult ?? null,
+    solanaAsset: input.solanaAsset ?? null,
+    solanaSignature: input.solanaSignature ?? null,
+    stampFailed: input.stampFailed ? 1 : 0,
+  });
+  return getDecision(db, input.id) as Decision;
+}
+
+/** Create a new decision row with an initial status. Convenience wrapper
+around upsertDecision for callers that don't have the full orchestrator
+shape yet (tests, manual inspection).
 
 Args:
     db (Database.Database): Open database handle.
@@ -72,10 +157,7 @@ export function createDecision(
   status: string,
   reasons: string[] = []
 ): Decision {
-  db.prepare(
-    'INSERT INTO decisions (id, place_id, status, reasons) VALUES (@id, @placeId, @status, @reasons)'
-  ).run({ id, placeId, status, reasons: JSON.stringify(reasons) });
-  return getDecision(db, id) as Decision;
+  return upsertDecision(db, { id, requestId: id, placeId, status, reasons });
 }
 
 /** Fetch a decision by ID.
@@ -94,6 +176,46 @@ export function getDecision(db: Database.Database, id: string): Decision | undef
   return row ? fromRow(row) : undefined;
 }
 
+/** Fetch a decision by its client-supplied request ID.
+
+Args:
+    db (Database.Database): Open database handle.
+    requestId (string): The idempotency key supplied with the submission.
+
+Returns:
+    Decision | undefined: The decision, or undefined if this request hasn't been handled.
+*/
+export function getDecisionByRequestId(db: Database.Database, requestId: string): Decision | undefined {
+  const row = db.prepare('SELECT * FROM decisions WHERE request_id = ?').get(requestId) as
+    | DecisionRow
+    | undefined;
+  return row ? fromRow(row) : undefined;
+}
+
+/** Sum of RLUSD paid to an address on the current UTC calendar day.
+
+Only counts decisions that resulted in a real payment (status OK or
+STAMP_FAILED, since a failed mint does not undo the payment).
+
+Args:
+    db (Database.Database): Open database handle.
+    xrplAddress (string): The address to total.
+
+Returns:
+    number: Total RLUSD paid today (UTC), 0 if none.
+*/
+export function getDailyTotalUtc(db: Database.Database, xrplAddress: string): number {
+  const row = db
+    .prepare(
+      `SELECT COALESCE(SUM(amount), 0) AS total FROM decisions
+       WHERE xrpl_address = @xrplAddress
+         AND status IN ('OK', 'STAMP_FAILED')
+         AND date(created_at) = date('now')`
+    )
+    .get({ xrplAddress }) as { total: number };
+  return row.total;
+}
+
 /** Update mutable fields on an existing decision.
 
 Args:
@@ -104,11 +226,27 @@ Args:
 export function updateDecision(
   db: Database.Database,
   id: string,
-  fields: Partial<Omit<Decision, 'id' | 'createdAt'>>
+  fields: Partial<Omit<Decision, 'id' | 'requestId' | 'createdAt'>>
 ): void {
   const columns: string[] = [];
   const params: Record<string, unknown> = { id };
 
+  if (fields.placeId !== undefined) {
+    columns.push('place_id = @placeId');
+    params.placeId = fields.placeId;
+  }
+  if (fields.xrplAddress !== undefined) {
+    columns.push('xrpl_address = @xrplAddress');
+    params.xrplAddress = fields.xrplAddress;
+  }
+  if (fields.solanaAddress !== undefined) {
+    columns.push('solana_address = @solanaAddress');
+    params.solanaAddress = fields.solanaAddress;
+  }
+  if (fields.amount !== undefined) {
+    columns.push('amount = @amount');
+    params.amount = fields.amount;
+  }
   if (fields.status !== undefined) {
     columns.push('status = @status');
     params.status = fields.status;

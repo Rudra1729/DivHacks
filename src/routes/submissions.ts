@@ -1,32 +1,33 @@
-/**POST /submissions: intake, validation, and Sentinel verification.
+/**POST /submissions: intake, validation, and handoff to the orchestrator.
 
-This is the API-server boundary plus Sentinel. The orchestrator handoff
-(Grok, policy, XRPL, Solana) is separate follow-up work owned by Arundathi;
-once Sentinel passes, this route currently just accepts the submission.
+This is the API-server boundary only. Sentinel, the pending claim, the
+agent proposal, policy, XRPL payment, and the Solana mint are all run by
+the Orchestrator (Arundathi's), which is injected here already wired to
+the real Sentinel and storage implementations. This route's job is just
+to validate the HTTP request shape, serialize one submission per user,
+and translate the orchestrator's DecisionResult into an HTTP response.
 */
 
 import { Router } from 'express';
 import multer from 'multer';
-import Database from 'better-sqlite3';
+import { randomUUID } from 'crypto';
 import { AppConfig } from '../config';
 import { validateSubmission } from '../validation/submission';
-import { getPlaceById } from '../data/places';
-import { runSentinelChecks, BLOCKED_SENTINEL } from '../sentinel';
-import { recordPhotoHash } from '../db/photoFingerprints';
-import { checkOncePerPlace, markClaimPending } from '../claims';
+import { Orchestrator } from '../orchestrator/orchestrator';
 import { withLock } from '../claims/lock';
+import { isPolicyBypassEnabled } from '../testMode/attackFlag';
 import { publishEvent } from '../events/bus';
 
 /** Build the /submissions router.
 
 Args:
     config (AppConfig): App configuration, used for the upload size limit.
-    db (Database.Database): Open database handle, for Sentinel's replay check.
+    orchestrator (Orchestrator): Runs the submission pipeline.
 
 Returns:
     Router: The configured router.
 */
-export function createSubmissionsRouter(config: AppConfig, db: Database.Database): Router {
+export function createSubmissionsRouter(config: AppConfig, orchestrator: Orchestrator): Router {
   const router = Router();
   const upload = multer({
     storage: multer.memoryStorage(),
@@ -42,42 +43,45 @@ export function createSubmissionsRouter(config: AppConfig, db: Database.Database
     }
 
     const xrplAddress = String(req.body.xrplAddress);
-    const solanaAddress = String(req.body.solanaAddress);
-    const placeId = String(req.body.placeId);
-    const place = getPlaceById(placeId)!;
+    const requestId = typeof req.body.requestId === 'string' && req.body.requestId
+      ? req.body.requestId
+      : randomUUID();
 
-    const sentinel = runSentinelChecks(db, {
-      place,
-      latitude: Number(req.body.latitude),
-      longitude: Number(req.body.longitude),
-      timestamp: String(req.body.timestamp),
-      photoBuffer: req.file!.buffer,
+    // One submission per user at a time: the orchestrator's duplicate-
+    // request check alone doesn't stop two different requestIds for the
+    // same user racing each other through Sentinel/claim/payment.
+    const decision = await withLock(xrplAddress, () =>
+      orchestrator.runSubmission(
+        {
+          requestId,
+          placeId: String(req.body.placeId),
+          photo: req.file!.buffer,
+          latitude: Number(req.body.latitude),
+          longitude: Number(req.body.longitude),
+          timestamp: Date.parse(String(req.body.timestamp)),
+          xrplAddress,
+          solanaAddress: String(req.body.solanaAddress),
+          caption: typeof req.body.caption === 'string' ? req.body.caption : undefined,
+        },
+        { bypassPolicy: isPolicyBypassEnabled() }
+      )
+    );
+
+    publishEvent({
+      type: `decision.${decision.status.toLowerCase()}`,
+      decisionId: decision.decisionId,
+      message: decision.reasons.join('; ') || decision.status,
     });
 
-    if (!sentinel.passed) {
-      const reasons = sentinel.checks.filter((check) => !check.passed).map((check) => check.message);
-      publishEvent({ type: 'sentinel.blocked', message: reasons.join('; ') });
-      res.status(422).json({ status: BLOCKED_SENTINEL, reasons });
-      return;
-    }
+    const statusCode: Record<string, number> = {
+      OK: 202,
+      BLOCKED_SENTINEL: 422,
+      BLOCKED_POLICY: 422,
+      REJECTED_BY_LEDGER: 402,
+      STAMP_FAILED: 202,
+    };
 
-    // One submission per user at a time: the once-per-place check and the
-    // pending-claim write must not interleave with another submission from
-    // the same user's wallets.
-    await withLock(xrplAddress, async () => {
-      const oncePerPlace = checkOncePerPlace(db, placeId, xrplAddress, solanaAddress);
-
-      if (!oncePerPlace.passed) {
-        publishEvent({ type: 'sentinel.blocked', message: oncePerPlace.message });
-        res.status(422).json({ status: BLOCKED_SENTINEL, reasons: [oncePerPlace.message] });
-        return;
-      }
-
-      recordPhotoHash(db, sentinel.photoHash);
-      const claim = markClaimPending(db, placeId, xrplAddress, solanaAddress);
-      publishEvent({ type: 'claim.pending', message: `claim ${claim.id} pending for ${place.name}` });
-      res.status(202).json({ accepted: true, photoHash: sentinel.photoHash, claimId: claim.id });
-    });
+    res.status(statusCode[decision.status] ?? 500).json(decision);
   });
 
   return router;
