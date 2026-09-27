@@ -4,9 +4,11 @@ Enough behavior for the orchestrator and policy tests. The inspection
 helpers at the bottom exist only so tests can check what was written.
 */
 
-import { DecisionResult, Place } from '../orchestrator/types';
+import { DecisionResult, DecisionStatus, Place } from '../orchestrator/types';
 import { MintStampInput } from '../solana/types';
 import { ClaimInput, ClaimStatus, StorageLayer } from './types';
+
+const COUNTS_AS_PAID: DecisionStatus[] = ['OK', 'STAMP_FAILED', 'PAYMENT_UNCONFIRMED'];
 
 export interface StoredClaim extends ClaimInput {
   status: ClaimStatus;
@@ -39,11 +41,13 @@ export class FakeStorage implements StorageLayer {
     return [...this.places.keys()];
   }
 
-  /** Sum of saved payments to an address. The fake does not track dates. */
+  /** Sum of saved payments to an address. The fake does not track dates.
+
+  An unconfirmed payment counts, since it may still land. */
   async getDailyTotal(xrplAddress: string): Promise<number> {
     let total = 0;
     for (const d of this.decisions.values()) {
-      if (d.xrplTxHash && d.proposal?.recipient === xrplAddress) {
+      if (COUNTS_AS_PAID.includes(d.status) && d.proposal?.recipient === xrplAddress) {
         total += d.proposal.amount;
       }
     }
